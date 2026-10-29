@@ -4,6 +4,10 @@ import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
+  build: {
+    // Thêm CSS dự phòng cho Safari / iPhone cũ (xem postcss.config.js)
+    cssTarget: ['safari14', 'ios14'],
+  },
   plugins: [
     react(),
     tailwindcss(),
@@ -13,7 +17,7 @@ export default defineConfig({
         // Lưu sẵn cả ảnh (gồm icon 3D trong public/icons3d) để app dùng được khi mất mạng
         globPatterns: ['**/*.{js,css,html,svg,png,webp}'],
       },
-      includeAssets: ['apple-touch-icon.png', 'icon.svg'],
+      includeAssets: ['apple-touch-icon-v2.png', 'icon-v2.svg'],
       manifest: {
         name: 'Quản lý quỹ',
         short_name: 'Quỹ',
@@ -24,9 +28,9 @@ export default defineConfig({
         background_color: '#1e1b4b',
         theme_color: '#1e1b4b',
         icons: [
-          { src: 'icon-192.png', sizes: '192x192', type: 'image/png' },
-          { src: 'icon-512.png', sizes: '512x512', type: 'image/png' },
-          { src: 'icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+          { src: 'icon-192-v2.png', sizes: '192x192', type: 'image/png' },
+          { src: 'icon-512-v2.png', sizes: '512x512', type: 'image/png' },
+          { src: 'icon-512-v2.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
         ],
       },
     }),

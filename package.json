@@ -19,11 +19,14 @@
     "three": "^0.186.1"
   },
   "devDependencies": {
+    "@csstools/postcss-cascade-layers": "^6.0.2",
+    "@csstools/postcss-oklab-function": "^5.0.15",
     "@tailwindcss/vite": "^4.3.3",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@types/three": "^0.186.0",
     "@vitejs/plugin-react": "^6.1.2",
+    "postcss": "^8.5.32",
     "tailwindcss": "^4.3.3",
     "typescript": "^7.0.2",
     "vite": "^8.3.5",

@@ -1,4 +1,4 @@
-@import 'tailwindcss';
+@import 'tailwindcss' theme(inline);
 
 @theme {
   /* iPhone/Mac dùng font SF của Apple; nơi khác dùng Be Vietnam Pro để dấu tiếng Việt hiển thị đúng */
