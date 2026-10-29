@@ -1,0 +1,42 @@
+@import 'tailwindcss';
+
+@theme {
+  /* iPhone/Mac dùng font SF của Apple; nơi khác dùng Be Vietnam Pro để dấu tiếng Việt hiển thị đúng */
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Be Vietnam Pro', 'Segoe UI', Roboto, Arial, sans-serif;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+/* Ẩn thanh cuộn nhưng vẫn cuộn được (dùng cho vùng dự phòng khi màn hình quá nhỏ) */
+@utility no-scrollbar {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Thanh cuộn mảnh cho bảng / danh sách */
+@utility scroll-thin {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(255 255 255 / 0.25) transparent;
+}
+
+body {
+  margin: 0;
+  color: #fff;
+  background-color: #1e1b4b;
+  background-image:
+    radial-gradient(at 15% 10%, rgb(168 85 247 / 0.55) 0, transparent 50%),
+    radial-gradient(at 85% 20%, rgb(59 130 246 / 0.5) 0, transparent 50%),
+    radial-gradient(at 50% 95%, rgb(236 72 153 / 0.45) 0, transparent 55%),
+    linear-gradient(160deg, #1e1b4b 0%, #312e81 50%, #0f172a 100%);
+  background-attachment: fixed;
+  overflow: hidden;
+  /* Không cho cả trang nảy lên khi kéo trên iPhone */
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
+}

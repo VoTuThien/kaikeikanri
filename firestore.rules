@@ -1,0 +1,94 @@
+rules_version = '2';
+
+// Dữ liệu tổ chức theo GIA ĐÌNH: mọi dữ liệu Quỹ / Trạng thái / Chăm con nằm trong families/{familyId}/...
+// và CHỈ THÀNH VIÊN của gia đình đó mới đọc / ghi được. Thành viên do chủ gia đình duyệt thêm vào.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function me() { return request.auth.uid; }
+    function familyPath(fid) { return /databases/$(database)/documents/families/$(fid); }
+    function ownedMarker() { return /databases/$(database)/documents/users/$(me())/meta/ownedFamily; }
+
+    // Là thành viên gia đình (có bản ghi trong families/{fid}/members/{uid})
+    function isMember(fid) {
+      return signedIn() && exists(/databases/$(database)/documents/families/$(fid)/members/$(me()));
+    }
+    // Là chủ gia đình
+    function isOwner(fid) { return signedIn() && get(familyPath(fid)).data.ownerUid == me(); }
+    // Là chủ gia đình, tính cả gia đình vừa được tạo trong cùng 1 lần ghi (batch)
+    function isOwnerAfter(fid) { return signedIn() && getAfter(familyPath(fid)).data.ownerUid == me(); }
+
+    match /families/{fid} {
+      allow read: if isMember(fid);
+      // Mỗi người chỉ tạo được 1 gia đình: chưa có dấu "đã tạo" và phải ghi dấu đó cùng lúc
+      allow create: if signedIn()
+        && request.resource.data.ownerUid == me()
+        && !exists(ownedMarker())
+        && getAfter(ownedMarker()).data.familyId == fid;
+      allow update: if isOwner(fid) && request.resource.data.ownerUid == resource.data.ownerUid;
+
+      // Thành viên: chỉ chủ gia đình thêm được (lúc tạo gia đình hoặc khi duyệt yêu cầu)
+      match /members/{uid} {
+        allow read: if isMember(fid);
+        allow create: if isOwnerAfter(fid);
+        // Chủ gia đình xoá thành viên khác; thành viên tự rời. Chủ gia đình không tự rời được gia đình mình tạo.
+        allow delete: if (isOwner(fid) && uid != me()) || (signedIn() && uid == me() && !isOwner(fid));
+      }
+
+      // Yêu cầu xin tham gia: tự gửi cho chính mình; chủ gia đình xem / duyệt / từ chối
+      match /requests/{uid} {
+        allow read: if isOwner(fid) || (signedIn() && uid == me());
+        allow create: if signedIn() && uid == me() && exists(familyPath(fid)) && !isMember(fid);
+        allow delete: if isOwner(fid) || (signedIn() && uid == me());
+      }
+
+      // Dữ liệu các app: CHỈ THÀNH VIÊN
+      match /funds/{id} { allow read, write: if isMember(fid); }
+      match /transactions/{id} { allow read, write: if isMember(fid); }
+      match /places/{id} { allow read, write: if isMember(fid); }
+      match /babyCards/{id} { allow read, write: if isMember(fid); }
+      match /babyEntries/{id} { allow read, write: if isMember(fid); }
+      // Ai đang ở đâu: thành viên xem được, mỗi người chỉ sửa trạng thái của chính mình
+      match /presence/{uid} {
+        allow read: if isMember(fid);
+        allow write: if isMember(fid) && uid == me();
+        // Chủ gia đình xoá trạng thái của thành viên bị xoá khỏi gia đình
+        allow delete: if isOwner(fid);
+      }
+    }
+
+    // Tra mã gia đình: chỉ đọc được đúng 1 mã khi biết mã (không liệt kê được);
+    // chỉ chủ gia đình tạo; không ghi đè (mã trùng thì bị từ chối, app thử mã khác)
+    match /familyCodes/{code} {
+      allow get: if signedIn();
+      allow create: if signedIn() && isOwnerAfter(request.resource.data.familyId);
+      // Đổi tên gia đình: chỉ chủ gia đình, không đổi được gia đình mà mã trỏ tới
+      allow update: if isOwner(resource.data.familyId) && request.resource.data.familyId == resource.data.familyId;
+    }
+
+    match /users/{uid} {
+      function self() { return signedIn() && uid == me(); }
+
+      // Cài đặt hiển thị riêng của từng tài khoản
+      match /settings/{doc} { allow read, write: if self(); }
+
+      // Dấu "đã tạo gia đình": chỉ tạo 1 lần, không sửa được (để chặn tạo gia đình thứ 2)
+      match /meta/ownedFamily { allow read, create, delete: if self(); }
+
+      // Các gia đình mình là thành viên: chủ gia đình thêm vào khi tạo / duyệt
+      match /families/{fid} {
+        allow read: if self();
+        allow create: if isOwnerAfter(fid);
+        // Đổi tên gia đình: chủ gia đình chỉ được sửa tên hiển thị
+        allow update: if isOwner(fid) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name']);
+        allow delete: if self() || isOwner(fid);
+      }
+
+      // Các yêu cầu mình đã gửi
+      match /requests/{fid} {
+        allow read, create: if self();
+        allow delete: if self() || isOwner(fid);
+      }
+    }
+  }
+}
