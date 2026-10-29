@@ -7,10 +7,10 @@ import { SIZE } from '../../components/ui/sizes'
 import { useFund } from './data/FundContext'
 
 const FEATURES: Feature[] = [
-  { icon: '🗂️', label: 'Nhóm quỹ', hint: 'Tạo, sửa quỹ', to: '/fund/groups' },
-  { icon: '➕', label: 'Nạp quỹ', hint: 'Thêm tiền vào quỹ', to: '/fund/deposit' },
-  { icon: '➖', label: 'Rút quỹ', hint: 'Lấy tiền từ quỹ', to: '/fund/withdraw' },
   { icon: '🔍', label: 'Tra cứu', hint: 'Lịch sử nạp / rút', to: '/fund/history' },
+  { icon: '➖', label: 'Rút quỹ', hint: 'Lấy tiền từ quỹ', to: '/fund/withdraw' },
+  { icon: '➕', label: 'Nạp quỹ', hint: 'Thêm tiền vào quỹ', to: '/fund/deposit' },
+  { icon: '🗂️', label: 'Nhóm quỹ', hint: 'Tạo, sửa quỹ', to: '/fund/groups' },
   { icon: '⚙️', label: 'Cài đặt', hint: 'Tuỳ chỉnh app Quỹ', to: '/fund/settings', wide: true },
 ]
 

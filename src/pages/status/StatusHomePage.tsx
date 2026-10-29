@@ -8,9 +8,9 @@ import { useStatus } from './data/StatusContext'
 
 // Chức năng chưa làm (chưa có `to`) hiện "Sắp có"
 const FEATURES: Feature[] = [
+  { icon: '👥', label: 'Trạng thái', hint: 'Ai đang ở đâu', to: '/status/live' },
   { icon: '📍', label: 'Địa điểm', hint: 'Tạo, sửa địa điểm', to: '/status/places' },
   { icon: '🗺️', label: 'Bản đồ mini', hint: 'Xếp địa điểm lên bàn cờ', to: '/status/map' },
-  { icon: '👥', label: 'Trạng thái', hint: 'Ai đang ở đâu', to: '/status/live' },
   { icon: '⚙️', label: 'Cài đặt', hint: 'Tuỳ chỉnh app Trạng thái' },
 ]
 

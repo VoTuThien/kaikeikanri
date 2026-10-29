@@ -10,9 +10,9 @@ import { formatTime } from './data/types'
 
 // Chức năng chưa làm (chưa có `to`) hiện "Sắp có"
 const FEATURES: Feature[] = [
-  { icon: '🏷️', label: 'Thẻ hoạt động', hint: 'Ăn, ngủ, chơi...', to: '/baby/cards' },
   { icon: '🕒', label: 'Time line', hint: 'Ghi lại trong ngày', to: '/baby/timeline' },
   { icon: '📊', label: 'Thống kê', hint: 'Thời gian trong ngày', to: '/baby/stats' },
+  { icon: '🏷️', label: 'Thẻ hoạt động', hint: 'Ăn, ngủ, chơi...', to: '/baby/cards' },
   { icon: '⚙️', label: 'Cài đặt', hint: 'Tuỳ chỉnh app Chăm con' },
 ]
 
