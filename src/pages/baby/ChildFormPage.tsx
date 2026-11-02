@@ -16,7 +16,7 @@ import { createChild, deleteChild, updateChild } from './data/api'
 import { useBaby } from './data/BabyContext'
 import { CHILD_AVATARS, childAge, GENDERS, type Child, type Gender } from './data/types'
 
-// Thêm / sửa thông tin con: tên, ngày sinh, giờ sinh (không bắt buộc), giới tính, avatar.
+// Thêm / sửa thông tin con: tên, nickname (không bắt buộc), ngày sinh, giờ sinh (không bắt buộc), giới tính, avatar.
 // Avatar hình tròn ở đầu form: CHẠM VÀO AVATAR để chọn / đổi ảnh (thư viện hoặc chụp; cắt vuông + thu nhỏ trên máy rồi lưu
 // thẳng vào Firestore). Chưa có ảnh thì hiện hình camera.
 
@@ -43,6 +43,7 @@ function ChildForm({ child }: { child?: Child }) {
   const isNew = !child
 
   const [name, setName] = useState(child?.name ?? '')
+  const [nickname, setNickname] = useState(child?.nickname ?? '')
   const [birthDate, setBirthDate] = useState(child?.birthDate ?? '')
   const [birthTime, setBirthTime] = useState(child?.birthTime ?? '')
   const [gender, setGender] = useState<Gender>(child?.gender ?? 'male')
@@ -80,7 +81,7 @@ function ChildForm({ child }: { child?: Child }) {
     if (!birthDate) return setError('Vui lòng chọn ngày sinh.')
     setSaving(true)
     try {
-      const input = { name: name.trim(), birthDate, birthTime: birthTime || null, gender, avatar, photo }
+      const input = { name: name.trim(), nickname: nickname.trim(), birthDate, birthTime: birthTime || null, gender, avatar, photo }
       if (isNew) await createChild(input, actor)
       else await updateChild(child.id, input)
       navigate('/baby/children')
@@ -132,7 +133,10 @@ function ChildForm({ child }: { child?: Child }) {
               )}
             </button>
             <span className="min-w-0 flex-1">
-              <span className="block truncate text-base leading-6 font-semibold">{name.trim() || 'Tên của con'}</span>
+              <span className="block truncate text-base leading-6 font-semibold">
+                {name.trim() || 'Tên của con'}
+                {nickname.trim() && <span className="font-normal text-white/60"> ({nickname.trim()})</span>}
+              </span>
               <span className="block truncate text-xs leading-5 text-white/60">
                 {birthDate ? `${childAge(birthDate)} · ${birthLabel({ birthDate, birthTime: birthTime || null })}` : 'Chưa nhập ngày sinh'}
               </span>
@@ -148,6 +152,14 @@ function ChildForm({ child }: { child?: Child }) {
           </div>
 
           <TextField id="name" label="Tên" placeholder="Ví dụ: Bé Na" value={name} onChange={(e) => setName(e.target.value)} maxLength={40} />
+          <TextField
+            id="nickname"
+            label="Nickname (nếu có)"
+            placeholder="Ví dụ: Bin, Sữa"
+            value={nickname}
+            onChange={(e) => setNickname(e.target.value)}
+            maxLength={20}
+          />
 
           <div className={ROW_2}>
             <TextField id="birthDate" label="Ngày sinh" type="date" value={birthDate} onChange={(e) => setBirthDate(e.target.value)} />
@@ -198,6 +210,7 @@ export function ChildFormPageSkeleton({ isNew }: { isNew: boolean }) {
               <Skeleton className="h-4 w-44 rounded-md" />
             </div>
           </div>
+          <TextFieldSkeleton />
           <TextFieldSkeleton />
           <div className={ROW_2}>
             <TextFieldSkeleton />

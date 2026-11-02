@@ -164,14 +164,15 @@ Dữ liệu Firestore (xem `src/pages/status/data/api.ts`), thuộc gia đình �
 ### App Chăm con (`/baby`)
 Ghi lại hoạt động hằng ngày của bé theo time line. **Mỗi gia đình có nhiều con; time line và thống kê đi theo TỪNG CON.**
 - [x] Con (`/baby/children`, thêm / sửa `/baby/children/new|:id`): danh sách các con (avatar, tên, giới tính, tuổi, ngày sinh); thông tin con gồm
-  **tên, ngày sinh, giờ sinh (không bắt buộc), giới tính, avatar**. **Avatar luôn hiển thị HÌNH TRÒN** (`ChildAvatar`).
+  **tên, nickname (không bắt buộc, ô nhập ngay dưới tên; hiện "Tên (nickname)" ở danh sách), ngày sinh, giờ sinh (không bắt buộc), giới tính, avatar**.
+  **Avatar luôn hiển thị HÌNH TRÒN** (`ChildAvatar`, xem quy ước mục 13), kể cả ngay sau khi vừa chọn ảnh trong form.
   Form không có lưới chọn avatar: **chạm vào avatar tròn ở đầu form để chọn / đổi ảnh** (thư viện / chụp); **chưa có ảnh thì hiện hình camera**; có nút "Bỏ ảnh".
   **Ảnh không dùng Firebase Storage**: cắt vuông ở giữa + thu nhỏ 256px JPEG ngay trên máy (`fileToSquareDataUrl` trong `src/lib/image.ts`, ~20–40KB)
-  rồi lưu thẳng vào trường `photo` (data URL) của con. Con chưa có ảnh thì ở danh sách hiện khối tròn màu theo giới tính + icon 3D (`avatar`, mặc định 👶;
-  ô chọn con dạng sổ xuống vẫn dùng emoji này).
+  rồi lưu thẳng vào trường `photo` (data URL) của con. Con chưa có ảnh thì hiện khối tròn màu theo giới tính + icon 3D (`avatar`, mặc định 👶).
   Xoá con không xoá hoạt động đã ghi (chỉ không còn hiện).
-- **Chọn con** ở Time line và Thống kê bằng ô sổ xuống `ChildSelect` (giống ô chọn gia đình ở màn hình chính; có "+ Thêm con", "Quản lý con...");
-  gia đình 1 con thì đã chọn sẵn. Con đang chọn nằm trong `BabyContext` (`child`, `selectChild`), nhớ theo gia đình (localStorage `baby-child:{familyId}`).
+- **Chọn con** ở Time line và Thống kê bằng `ChildPicker` **nằm trên thanh tiêu đề** (`AppHeader right`): chỉ hiện **avatar tròn** của con đang chọn;
+  chạm avatar mở **popup** lưới avatar tròn các con (kèm nickname / tên, con đang chọn có viền trắng), **ô cuối là "+"** để thêm con.
+  Popup vẽ bằng `createPortal` ra `document.body` (không nằm trong GlassPanel) và có `data-no-swipe`. Gia đình 1 con thì đã chọn sẵn. Con đang chọn nằm trong `BabyContext` (`child`, `selectChild`), nhớ theo gia đình (localStorage `baby-child:{familyId}`).
   `useDayEntries` chỉ trả hoạt động của con đang chọn; **hoạt động cũ chưa gắn con (`childId` = null) tính là của con đầu tiên**
   (sửa lại thì gắn luôn vào con đang chọn). Chưa thêm con nào thì time line vẫn dùng được (hoạt động có `childId` = null).
 - [x] Thẻ hoạt động (`/baby/cards`): tên thẻ, màu, icon (bắt buộc có **ăn 🍼, ngủ 😴, chơi 🧸, đi vệ sinh 🚽**, thêm vài icon khác), thời gian mặc định (phút)
@@ -195,7 +196,7 @@ Ghi lại hoạt động hằng ngày của bé theo time line. **Mỗi gia đì
 
 Dữ liệu Firestore (xem `src/pages/baby/data/api.ts`), thuộc gia đình đang chọn:
 - `families/{familyId}/babyCards/{cardId}`: thẻ hoạt động (`name`, `icon`, `color`, `defaultMinutes`)
-- `families/{familyId}/children/{childId}`: con (`name`, `birthDate` "YYYY-MM-DD", `birthTime` "HH:MM" hoặc null, `gender` male / female, `avatar` emoji, `photo` data URL JPEG hoặc null)
+- `families/{familyId}/children/{childId}`: con (`name`, `birthDate` "YYYY-MM-DD", `birthTime` "HH:MM" hoặc null, `gender` male / female, `avatar` emoji, `photo` data URL JPEG hoặc null, `nickname` chuỗi, "" = không có)
 - `families/{familyId}/babyEntries/{entryId}`: hoạt động (`childId` = của con nào, `cardId`, `start`, `minutes`, `end`, `createdByName`; chưa hoàn thành thì `minutes` / `end` = null) + lưu sẵn `name` / `icon` / `color` của thẻ
   để sửa / xoá thẻ không làm mất lịch sử
 
@@ -302,4 +303,10 @@ Dữ liệu Firestore (xem `src/pages/baby/data/api.ts`), thuộc gia đình đa
 ### 12. Ô nhập số phút
 - **Mọi ô nhập số phút phải dùng `MinutesField`** (`src/components/ui/MinutesField.tsx`), không tự viết bằng `TextField`.
 - Bên phải ô có **2 nút tam giác lên / xuống** (bằng nhau, xếp dọc): bấm lên **tăng 5 phút**, bấm xuống **giảm 5 phút**; vẫn gõ số trực tiếp được.
-- Giới hạn bằng `min` / `max` (mặc định 1 phút đến 24 giờ); hết giới hạn thì nút tương ứng mờ đi.
+- Giới hạn bằng `min` / `max` (mặc định 1 phút đến 24 giờ); hết giới hạn thì nút tương ứng mờ đi.### 13. Avatar (người, con...)
+- **Mọi avatar trong app đều hiển thị trong KHUNG TRÒN** (`rounded-full`), ở mọi nơi: danh sách, form, thanh tiêu đề, popup chọn, kể cả ngay sau khi vừa chọn ảnh. Không bao giờ hiện nguyên ảnh vuông.
+- Ảnh thật: khung `block` / `flex` (**không để `span` inline**, vì inline bỏ qua `h-*` / `w-*` làm ảnh hiện nguyên hình vuông) + `overflow-hidden rounded-full`;
+  thẻ `<img>` thêm `block h-full w-full rounded-full object-cover` để cắt tròn chắc chắn cả trên iOS cũ.
+- Chưa có ảnh: khối tròn màu nổi 3D (`BLOCK_3D` + `GLOSS_3D` có `rounded-full`) với icon 3D bên trong; ô "chọn ảnh" / "thêm" cũng là hình tròn (viền nét đứt).
+- Skeleton của avatar cũng là `rounded-full`, cùng kích thước với avatar thật.
+- Dùng lại component có sẵn (vd `ChildAvatar` trong `src/pages/baby/components.tsx`) thay vì tự viết lại.

@@ -12,7 +12,7 @@ import { PagedRow, PagedRowSkeleton } from '../../components/ui/PagedRow'
 import { Skeleton } from '../../components/ui/Skeleton'
 import { TextField } from '../../components/ui/TextField'
 import { SIZE } from '../../components/ui/sizes'
-import { CardIcon, ChildSelect, ChildSelectSkeleton, DayBar, DayBarSkeleton } from './components'
+import { CardIcon, ChildPicker, ChildPickerSkeleton, DayBar, DayBarSkeleton } from './components'
 import { createEntry, deleteEntry, updateEntry, type EntryTiming } from './data/api'
 import { useBaby, useDayEntries } from './data/BabyContext'
 import {
@@ -70,9 +70,7 @@ function Timeline({ day, setDay, entries }: { day: Date; setDay: (d: Date) => vo
 
   return (
     <PageShell>
-      <AppHeader title="Time line" backTo="/baby" />
-      {/* Chọn con (giống chọn gia đình ở màn hình chính); dữ liệu bên dưới là của con này */}
-      <ChildSelect />
+      <AppHeader title="Time line" backTo="/baby" right={<ChildPicker />} />
 
       <DayBar day={day} onChange={changeDay} />
 
@@ -452,8 +450,7 @@ function TimelineRowsSkeleton() {
 export function TimelinePageSkeleton() {
   return (
     <PageShell>
-      <AppHeaderSkeleton />
-      <ChildSelectSkeleton />
+      <AppHeaderSkeleton right={<ChildPickerSkeleton />} />
       <DayBarSkeleton />
       <ScrollArea className={`${TABLE_CLASS} !overflow-hidden`}>
         <TimelineRowsSkeleton />

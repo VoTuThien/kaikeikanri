@@ -78,6 +78,7 @@ export interface ChildInput {
   name: string
   birthDate: string // "YYYY-MM-DD"
   birthTime: string | null // "HH:MM", không bắt buộc
+  nickname: string // tên ở nhà (biệt danh), không bắt buộc; "" = không có
   gender: Gender
   avatar: string // emoji (vẫn dùng ở ô chọn con dạng sổ xuống, nơi không hiện được ảnh)
   photo: string | null // ảnh thật: data URL JPEG đã cắt vuông + thu nhỏ trên máy (src/lib/image.ts); null = dùng icon

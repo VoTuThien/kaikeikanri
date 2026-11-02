@@ -1,5 +1,6 @@
+import { useState } from 'react'
+import { createPortal } from 'react-dom'
 import { Link, Navigate, Outlet, useNavigate } from 'react-router-dom'
-import { Select } from '../../components/ui/Select'
 import { Icon3D } from '../../components/ui/Icon3D'
 import { Skeleton } from '../../components/ui/Skeleton'
 import { SIZE } from '../../components/ui/sizes'
@@ -93,7 +94,9 @@ export function DayBarSkeleton() {
 
 // ---- Con ----
 
-// Avatar của con: ảnh thật (nếu có) hoặc khối màu nổi 3D theo giới tính với icon 3D đã chọn
+// Avatar của con: ảnh thật (nếu có) hoặc khối màu nổi 3D theo giới tính với icon 3D đã chọn.
+// QUY ƯỚC: avatar LUÔN là HÌNH TRÒN ở mọi nơi. Khung là `block` / `flex` (span inline sẽ bỏ qua h / w, ảnh hiện nguyên hình vuông),
+// ảnh `object-cover` + `rounded-full` và khung `overflow-hidden rounded-full` để chắc chắn cắt tròn cả trên iOS cũ.
 export function ChildAvatar({
   child,
   box = 'h-12 w-12',
@@ -103,11 +106,10 @@ export function ChildAvatar({
   box?: string
   img?: string
 }) {
-  // Avatar con luôn là HÌNH TRÒN: ảnh thật, hoặc chưa có ảnh thì khối tròn màu theo giới tính + icon 3D
   if (child.photo) {
     return (
-      <span className={`${box} relative shrink-0 overflow-hidden rounded-full border-2 border-white/40 shadow-lg shadow-black/30`}>
-        <img src={child.photo} alt="" className="h-full w-full object-cover" draggable={false} />
+      <span className={`${box} relative block shrink-0 overflow-hidden rounded-full border-2 border-white/40 shadow-lg shadow-black/30`}>
+        <img src={child.photo} alt="" className="block h-full w-full rounded-full object-cover" draggable={false} />
       </span>
     )
   }
@@ -135,7 +137,10 @@ export function ChildRow({ child }: { child: Child }) {
     >
       <ChildAvatar child={child} />
       <span className="min-w-0 flex-1">
-        <span className="block truncate text-base leading-6 font-semibold">{child.name}</span>
+        <span className="block truncate text-base leading-6 font-semibold">
+          {child.name}
+          {child.nickname && <span className="font-normal text-white/60"> ({child.nickname})</span>}
+        </span>
         <span className="block truncate text-xs leading-5 text-white/60">
           {[gender, child.birthDate && childAge(child.birthDate), birthLabel(child)].filter(Boolean).join(' · ')}
         </span>
@@ -144,35 +149,77 @@ export function ChildRow({ child }: { child: Child }) {
   )
 }
 
-// Ô chọn con (giống ô chọn gia đình ở màn hình chính): sổ xuống rồi chọn; có thêm "Thêm con" / "Quản lý con".
-// Dùng ở Time line và Thống kê. Gia đình 1 con thì đã chọn sẵn, không phải làm gì.
-const ADD_CHILD = '__add'
-const MANAGE_CHILDREN = '__manage'
+// Chọn con ở Time line và Thống kê: nằm trên thanh tiêu đề (`AppHeader right`), chỉ hiện avatar tròn của con đang chọn.
+// Chạm avatar -> popup lưới avatar tròn của các con để chọn, ô cuối là "+" để thêm con.
+const PICKER = `${SIZE.control} w-12`
 
-export function ChildSelect() {
+export function ChildPicker() {
   const { children, child, selectChild } = useBaby()
   const navigate = useNavigate()
-  function onChange(value: string) {
-    if (value === ADD_CHILD) return navigate('/baby/children/new')
-    if (value === MANAGE_CHILDREN) return navigate('/baby/children')
-    selectChild(value)
+  const [open, setOpen] = useState(false)
+
+  function pick(id: string) {
+    selectChild(id)
+    setOpen(false)
   }
+
   return (
-    <Select id="child" label="Con" hideLabel value={child?.id ?? ''} onChange={(e) => onChange(e.target.value)}>
-      {!child && <option value="">Chưa thêm con</option>}
-      {children.map((c) => (
-        <option key={c.id} value={c.id}>
-          {c.avatar} {c.name}
-          {c.birthDate ? ` (${childAge(c.birthDate)})` : ''}
-        </option>
-      ))}
-      <option disabled>──────────</option>
-      <option value={ADD_CHILD}>+ Thêm con</option>
-      <option value={MANAGE_CHILDREN}>Quản lý con...</option>
-    </Select>
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        aria-label={child ? `Đang xem: ${child.name}. Chạm để chọn con khác` : 'Chọn con'}
+        className={`${PICKER} flex shrink-0 items-center justify-center rounded-full transition active:scale-95`}
+      >
+        {child ? (
+          <ChildAvatar child={child} box="h-12 w-12" img="h-9 w-9" />
+        ) : (
+          <span className="flex h-12 w-12 items-center justify-center rounded-full border-2 border-dashed border-white/40 bg-white/10 text-2xl">+</span>
+        )}
+      </button>
+      {open &&
+        // Vẽ ra document.body: không nằm trong GlassPanel (backdrop-blur làm position: fixed bị lệch)
+        createPortal(
+          <div
+            data-no-swipe
+            className="fixed inset-0 z-50 flex items-start justify-center bg-black/50 px-4 pt-24 backdrop-blur-sm"
+            onClick={() => setOpen(false)}
+          >
+            <div
+              role="dialog"
+              aria-label="Chọn con"
+              className="w-full max-w-sm rounded-3xl border border-white/20 bg-indigo-950/80 p-4 shadow-2xl shadow-black/40 backdrop-blur-xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h2 className="mb-3 text-center text-base leading-6 font-semibold">Chọn con</h2>
+              <div className="grid max-h-[60dvh] grid-cols-4 gap-x-2 gap-y-3 overflow-y-auto">
+                {children.map((c) => (
+                  <button key={c.id} type="button" onClick={() => pick(c.id)} className="flex flex-col items-center gap-1 transition active:scale-95">
+                    <span className={`flex rounded-full p-0.5 ${c.id === child?.id ? 'bg-white' : ''}`}>
+                      <ChildAvatar child={c} box="h-14 w-14" img="h-10 w-10" />
+                    </span>
+                    <span className="line-clamp-2 h-8 w-full text-center text-xs leading-4 break-words">{c.nickname || c.name}</span>
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => navigate('/baby/children/new')}
+                  className="flex flex-col items-center gap-1 transition active:scale-95"
+                >
+                  <span className="flex p-0.5">
+                    <span className="flex h-14 w-14 items-center justify-center rounded-full border-2 border-dashed border-white/50 bg-white/10 text-3xl">+</span>
+                  </span>
+                  <span className="h-8 text-xs leading-4 text-white/70">Thêm con</span>
+                </button>
+              </div>
+            </div>
+          </div>,
+          document.body,
+        )}
+    </>
   )
 }
 
-export function ChildSelectSkeleton() {
-  return <Skeleton className={`${SIZE.control} w-full`} />
+export function ChildPickerSkeleton() {
+  return <Skeleton className={`${PICKER} rounded-full`} />
 }

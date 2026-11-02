@@ -36,6 +36,7 @@ function toChild(id: string, d: DocumentData): Child {
   return {
     id,
     name: d.name ?? '',
+    nickname: d.nickname ?? '',
     birthDate: d.birthDate ?? '',
     birthTime: d.birthTime ?? null,
     gender: d.gender === 'female' ? 'female' : 'male',
