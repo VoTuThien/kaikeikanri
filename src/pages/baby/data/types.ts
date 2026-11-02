@@ -55,9 +55,56 @@ export interface BabyEntry {
   minutes: number | null
   end: Date | null // = start + minutes
   createdByName: string
+  childId: string | null // hoạt động của con nào; dữ liệu cũ (trước khi có màn hình Con) = null, tính là của con đầu tiên
+}
+
+// ---- Con (mỗi gia đình nhiều con; time line / thống kê đi theo từng con) ----
+export type Gender = 'male' | 'female'
+
+export const GENDERS: { value: Gender; label: string }[] = [
+  { value: 'male', label: 'Bé trai' },
+  { value: 'female', label: 'Bé gái' },
+]
+
+// Avatar của con: ảnh thật (photo) hoặc 1 icon 3D; màu nền icon theo giới tính.
+// 11 icon + 1 ô chọn ảnh = 12 ô, vừa 2 hàng của lưới 6 cột
+export const CHILD_AVATARS = ['👶', '🧒', '👦', '👧', '🐣', '🐻', '🐰', '🐱', '🦊', '🐼', '🐸']
+export const GENDER_COLORS: Record<Gender, string> = {
+  male: 'from-sky-400 to-blue-600',
+  female: 'from-pink-400 to-rose-600',
+}
+
+export interface ChildInput {
+  name: string
+  birthDate: string // "YYYY-MM-DD"
+  birthTime: string | null // "HH:MM", không bắt buộc
+  gender: Gender
+  avatar: string // emoji (vẫn dùng ở ô chọn con dạng sổ xuống, nơi không hiện được ảnh)
+  photo: string | null // ảnh thật: data URL JPEG đã cắt vuông + thu nhỏ trên máy (src/lib/image.ts); null = dùng icon
+}
+
+export interface Child extends ChildInput {
+  id: string
+  createdAt: Date | null
+}
+
+// Tuổi hiển thị: "3 tháng 12 ngày", "2 tuổi 5 tháng", "Sắp chào đời"
+export function childAge(birthDate: string, now = new Date()) {
+  const [y, m, d] = birthDate.split('-').map(Number)
+  if (!y) return ''
+  const birth = new Date(y, m - 1, d)
+  if (birth > now) return 'Sắp chào đời'
+  let months = (now.getFullYear() - y) * 12 + (now.getMonth() - (m - 1))
+  if (now.getDate() < d) months--
+  if (months >= 24) return `${Math.floor(months / 12)} tuổi${months % 12 ? ` ${months % 12} tháng` : ''}`
+  const anchor = new Date(y, m - 1 + months, d)
+  const days = Math.floor((now.getTime() - anchor.getTime()) / 86400000)
+  if (months === 0) return `${days + 1} ngày tuổi`
+  return `${months} tháng${days ? ` ${days} ngày` : ''}`
 }
 
 export interface BabyEntryInput {
+  childId: string | null // hoạt động của con nào (null = gia đình chưa thêm con)
   card: Pick<BabyCard, 'id' | 'name' | 'icon' | 'color'>
   start: Date
   minutes: number | null // null = chưa hoàn thành

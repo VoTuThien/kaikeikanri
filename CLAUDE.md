@@ -5,6 +5,8 @@
 - Công nghệ: React + TypeScript + Vite, vite-plugin-pwa, Tailwind CSS
 - Database / backend: Firebase (Firestore, Authentication, Hosting)
 - Trả lời người dùng bằng tiếng Việt
+- Phải chạy được trên **iPhone cũ (iOS 15.1)**: `vite.config.ts` hạ cú pháp JS (`build.target`) và CSS (`cssTarget`),
+  `postcss.config.js` bỏ `@layer`, thêm màu rgb dự phòng cho oklch và bỏ `in oklab` trong gradient
 
 ## Chức năng
 App là một "hệ thống nhiều app con": sau khi đăng nhập, màn hình chính hiện lưới icon giống màn hình iPhone,
@@ -13,6 +15,23 @@ mỗi icon là một app con (Quỹ, sau này thêm các app quản lý khác). 
 
 - [x] Đăng nhập / Tạo tài khoản / Quên mật khẩu (Firebase Auth, email + mật khẩu)
 - [x] Màn hình chính dạng lưới icon (`/`), đăng xuất ở màn hình này
+- [x] **Phím tắt (shortcut)** ở màn hình chính: sau icon các app con là các phím tắt, cuối cùng là ô **"+"** mở `/shortcuts`
+  (liệt kê theo nhóm các màn hình **mở trực tiếp từ ô chức năng ở trang chính của app con**, trừ Cài đặt; chạm để thêm). Phím tắt có màu nền của app con + icon nhỏ của app ở góc.
+  **Mở màn hình từ phím tắt thì nút quay lại (‹) của màn hình đó về thẳng màn hình chính** (`markShortcutEntry` / `isShortcutEntry` trong `AppHeader`, lưu ở sessionStorage;
+  màn hình chính xoá dấu này mỗi khi hiện ra).
+  **Nhấn giữ** 1 icon (~0.5 giây, `useLongPress`) thì vào chế độ gỡ giống iPhone: icon rung, phím tắt có nút "−" để gỡ, FAB check để xong;
+  lúc này hiện thêm 2 nút "Bên trái" / "Bên phải": chạm để đổi màn hình 2 bên, đã thiết đặt thì có nút "−" ở góc để gỡ ngay (`REMOVE_BADGE`). Nhiều icon thì chỉ lưới icon cuộn (có thanh cuộn).
+- [x] **Màn hình 2 bên** của màn hình chính (`src/components/SideSwipe.tsx`, vẽ `AppRoutes` trong `App.tsx`; khi kéo thì vẽ sẵn màn hình bên cạnh ở mép (`<Routes location>`) và cho 2 màn hình đi theo ngón tay, thả tay thì trượt nốt — kéo quá 30% hoặc vuốt nhanh thì chuyển): ở màn hình chính **vuốt sang phải** mở màn hình **bên trái**,
+  **vuốt sang trái** mở màn hình **bên phải**. Chưa thiết đặt thì mở `/side/left|right` có dấu **"+"** để chọn (`/shortcuts?side=…`, cùng danh sách `SHORTCUTS`;
+  đã thiết đặt thì có FAB xoá để bỏ). Đang ở màn hình được thiết đặt (**vào từ đâu cũng vậy**: menu của app con, phím tắt, vuốt) thì vuốt ngược lại để về màn hình chính.
+  Lưu riêng từng tài khoản ở `left` / `right` của `users/{uid}/settings/launcher`.
+  **Nhớ người dùng đang ở màn hình giữa / bên trái / bên phải** (localStorage `home-screen:{uid}`, `loadHomeScreen` / `saveHomeScreen`):
+  mở lại app ở `/` thì tự chuyển tới màn hình đã lưu; vào các trang khác (app con…) thì giữ nguyên lựa chọn. Vuốt bắt đầu trên canvas 3D, ô nhập, hoặc phần tử có `data-no-swipe` thì bỏ qua
+  (vd khay kéo thả của bản đồ mini, chế độ gỡ phím tắt) — **thêm `data-no-swipe` cho vùng kéo ngang mới**.
+  **Icon các app con không gỡ được.** Phím tắt là dữ liệu **riêng từng tài khoản** (`users/{uid}/settings/launcher` `{ shortcuts: string[], left, right }`,
+  `src/lib/shortcuts.ts`), không ảnh hưởng màn hình chính của người khác. Code: `src/components/HomeIcon.tsx`, `src/pages/ShortcutPickerPage.tsx`.
+  - **QUY ƯỚC: thêm màn hình mới vào app con (mở trực tiếp từ ô chức năng ở trang chính của app con) thì phải thêm dữ liệu phím tắt của màn hình đó (icon + tên màn hình) vào `SHORTCUTS` trong `src/shortcuts.ts`**,
+    trừ màn hình Cài đặt (mỗi app con đều có). **Không** thêm màn hình con mở từ bên trong (vd Tạo / Sửa địa điểm từ màn hình Địa điểm). Không đổi `id` của dòng đã có.
 
 ### Gia đình (bảo mật dữ liệu)
 **Dữ liệu Quỹ, Trạng thái, Chăm con thuộc về từng GIA ĐÌNH, KHÔNG chia sẻ cho mọi người dùng.**
@@ -22,7 +41,8 @@ Chỉ thành viên trong cùng gia đình mới xem / sửa được; Security R
 - **Mỗi người chỉ tạo được 1 gia đình** (Rules chặn bằng dấu `users/{uid}/meta/ownedFamily`), nhưng **tham gia được nhiều gia đình**.
 - **Chọn gia đình ngay ở màn hình chính** (ô chọn dưới lời chào, có thêm lựa chọn "Tạo gia đình mới" / "Tham gia gia đình khác"),
   không có màn hình chọn gia đình riêng. Lựa chọn được nhớ theo tài khoản (localStorage).
-- Màn hình chính có **FAB chuông** (cạnh FAB thoát) với số đếm yêu cầu xin gia nhập, **cập nhật realtime**; bấm vào mở `/notifications` để Duyệt / Từ chối.
+- Màn hình chính có **FAB chuông** (cạnh FAB thoát) với số đếm = yêu cầu xin gia nhập + nhắc nhập lương thực lãnh (app Quỹ), **cập nhật realtime**;
+  bấm vào mở `/notifications` để Duyệt / Từ chối, hoặc chạm dòng nhắc lương để mở màn hình Thực thi (nhập lương thực lãnh).
 - **Quản lý gia đình** (`/family/manage`, mở từ "Quản lý ›" dưới ô chọn gia đình hoặc trong ô chọn): danh sách thành viên realtime;
   chủ gia đình **đổi tên** (cập nhật cả `familyCodes` và `users/{uid}/families` của mọi thành viên) và **xoá thành viên**;
   thành viên **rời gia đình**. Xoá / rời đều phải bấm 2 lần để xác nhận, và xoá luôn `presence` của người đó.
@@ -41,15 +61,68 @@ Dữ liệu gia đình (xem `src/pages/family/data/api.ts`):
   (`allow ...: if isMember(fid)`) vào `firestore.rules`. Không tạo dữ liệu dùng chung ngoài gia đình.
 
 ### App Quỹ (`/fund`)
-- [x] Quản lý nhóm quỹ (`/fund/groups`): tạo các nhóm quỹ (chi tiêu hàng tháng, quỹ cho con, quỹ du lịch…). Nhóm quỹ có thể có **lãi suất**; khi có lãi suất thì số dư tự tăng theo **lãi kép hàng tháng**
+- [x] Quản lý nhóm quỹ (`/fund/groups`): danh sách thẻ nhóm quỹ có **số thứ tự** (`position`, liên tục 1..n, không trùng; mọi danh sách / ô chọn quỹ xếp theo số này).
+  **Chạm thẻ** mở màn hình **Nạp / Rút / Chuyển của quỹ đó** (`/fund/groups/:id/tx`, `FundActionPage`, giống form Tạo lệnh chuyển, quỹ điền sẵn);
+  **trượt thẻ sang trái** hiện nút **cây bút** → chạm để sửa nhóm quỹ (`/fund/groups/:id`); **giữ tay cầm ≡ kéo lên / xuống** để đổi thứ tự (`reorderFunds`).
+  Form tạo / sửa có ô "Số thứ tự" (`NumberField`, cạnh ô tên); thêm / đổi số / xoá / kéo thả đều đánh số lại mọi quỹ cùng 1 batch. Quỹ cũ chưa có số thì xếp theo lúc tạo.
+  Tạo các nhóm quỹ (chi tiêu hàng tháng, quỹ cho con, quỹ du lịch…). Nhóm quỹ có thể có **lãi suất**; khi có lãi suất thì số dư tự tăng theo **lãi kép hàng tháng**.
+  Ô check **"Đã chuyển đi"** (`transferred`): tiền của quỹ không còn trong tài khoản nên **không tính vào tổng số dư** ở màn hình app Quỹ (thẻ quỹ hiện số dư gạch ngang)
 - [x] Nạp vào quỹ (`/fund/deposit`)
 - [x] Rút từ quỹ (`/fund/withdraw`)
-- [x] Tra cứu quỹ (`/fund/history`): lịch sử nạp / rút / lãi, lọc theo quỹ và loại
+- [x] Chuyển quỹ (`/fund/transfer`): chuyển tiền từ quỹ A sang quỹ B (giao diện giống nạp / rút, có 2 ô chọn "Từ quỹ" / "Sang quỹ",
+  chọn trùng thì tự đổi chỗ 2 quỹ). Ghi 2 giao dịch `transfer_out` / `transfer_in` (có `peerFundId`) và cập nhật 2 số dư trong cùng 1 batch (`transferFunds`)
+- [x] Lương (`/fund/salary`): mỗi thành viên 1 **thẻ**, **chỉ gồm [ngày nhận lương] và [chuyển vào quỹ]** (không nhập lương thực lãnh ở đây).
+  Thẻ của mình chỉnh **trực tiếp** trên thẻ (đổi là lưu ngay); thẻ người khác chỉ xem. Ngày nhận lương 1–31 (tháng ngắn hơn thì lấy ngày cuối tháng).
+  **Ngày nhận lương để trống ("Không có lương") = người đó không có lương** (mặc định khi chưa đặt; đặt lại về trống được, vd khi thất nghiệp):
+  không nhắc, không cần nhập lương thực lãnh.
+  **Đến ngày nhận lương mà chưa nhập lương thực lãnh thì chuông ở màn hình chính có thông báo nhắc** (`useSalaryReminders`, xét 3 tháng gần nhất, từ tháng thiết đặt),
+  **thông báo còn đó cho tới khi nhập xong**; chạm dòng nhắc ở trang Thông báo thì **mở màn hình Thực thi** đúng tháng đó (`/fund/execute?month=YYYY-MM`).
+  **Lương thực lãnh chỉ nhập ở bước 1 của Thực thi**; lưu là **tự nạp vào quỹ nhận lương** (`saveSalary` trong `data/salary.ts`, 1 transaction;
+  sửa số tiền thì sửa luôn giao dịch nạp cũ, đổi quỹ thì chuyển giao dịch sang quỹ mới).
+- [x] Lệnh chuyển (`/fund/orders`, tạo / sửa `/fund/orders/new|:id`): soạn sẵn các lệnh **chuyển** (từ quỹ A sang quỹ B), **rút** (từ quỹ nào),
+  **nạp** (vào quỹ nào) kèm số tiền. Lệnh chỉ được chạy ở bước 3 của màn hình Thực thi. Quỹ trong lệnh bị xoá thì lệnh báo "Quỹ đã bị xoá" và không chạy được.
+  **Số thứ tự** (`position`): mỗi lệnh có 1 số, **luôn liên tục 1..n và không trùng**; đổi số của 1 lệnh (ô "Số thứ tự" trong form: ô nhập số hẹp `NumberField`, ô số tiền rộng bên cạnh) hoặc thêm / xoá
+  thì **đánh số lại mọi lệnh** cùng 1 batch (vd 7 lệnh, đổi lệnh 4 thành lệnh 2 thì lệnh 2, 3 cũ thành 3, 4). Ở danh sách **kéo tay cầm ≡** bên trái lệnh
+  lên / xuống để sắp xếp lại (`reorderOrders`; vùng danh sách có `data-no-swipe`). Lệnh cũ chưa có số thì xếp theo lúc tạo.
+  Ô check **"Chuyển / Rút toàn bộ số dư"** (`allBalance`, chỉ cho lệnh chuyển / rút): không cần nhập số tiền, lúc chạy lấy hết số dư của quỹ nguồn
+  tại lượt của lệnh đó (quỹ đang 0 đồng thì không ghi giao dịch, vẫn đánh dấu đã chạy).
+- [x] Thực thi (`/fund/execute`): chia **theo tháng** (thanh ‹ Tháng › ở trên), gồm 3 bước (chọn bằng `Segmented`, mặc định mở bước đầu tiên chưa xong):
+  1. **Lương**: mỗi thành viên nhập **lương thực lãnh** của mình (cả gia đình xem được, Rules chỉ cho sửa lương của mình); lưu là tự nạp vào quỹ nhận lương.
+     Người **không có lương** (chưa đặt ngày nhận lương) hiện "Không có lương" và không cần nhập; bước 1 xong khi mọi người có lương đã nhập.
+     Đã tổng kết thì không sửa được lương đã nhập.
+  2. **Tổng kết**: tổng lương + số người đã nhập; 1 thành viên bấm FAB check để **xác nhận đã tổng kết** (ghi tên + thời điểm).
+     **Tổng kết lưu lại số dư của mọi quỹ tại thời điểm đó** (`balances`, `total` trong `fundRuns/{tháng}`, đọc mới từ server) cho màn hình Thống kê.
+     Huỷ được nếu chưa chạy lệnh nào (huỷ thì xoá số dư đã lưu).
+  3. **Chạy lệnh**: chỉ mở sau khi đã tổng kết. Liệt kê các lệnh chuyển, **mặc định chọn sẵn** mọi lệnh chưa chạy, chạm để bỏ chọn (bỏ qua).
+     **Mỗi lệnh chỉ chạy 1 lần mỗi tháng** (đã chạy thì hiện "Đã chạy …" và khoá). Chạy trong 1 Firestore transaction (`executeOrders`),
+     **tuần tự theo số thứ tự** (lệnh sau thấy số dư đã đổi bởi lệnh trước): kiểm tra lệnh chưa chạy, tính số dư lần lượt — quỹ không đủ tiền thì báo lỗi và **không lệnh nào được chạy**; ghi giao dịch (có `orderId`, `runId`) + số dư + đánh dấu đã chạy cùng lúc.
+- [x] Tra cứu quỹ (`/fund/history`): lịch sử nạp / rút / chuyển / lãi, lọc theo quỹ và loại.
+  **Trượt thẻ giao dịch sang TRÁI** hiện nút thùng rác ở bên phải (chạm 1 lần thành "Xoá?", chạm lần nữa mới xoá) để xoá giao dịch nạp / rút / chuyển nhập sai
+  (`deleteTransaction` trong `data/api.ts`, 1 transaction): **không xoá hẳn** mà đánh dấu `deleted` và **hoàn lại số dư** các quỹ như trước giao dịch;
+  chuyển quỹ thì xoá cả cặp chuyển đi / nhận về (`pairId`, dữ liệu cũ thì tìm theo ngày giờ + số tiền); hoàn lại làm quỹ âm thì báo lỗi.
+  Không xoá được tiền lãi và giao dịch nạp lương thực lãnh (sửa ở Thực thi). **Giao dịch đã bị TỔNG KẾT không xoá được nữa**: tháng của giao dịch
+  đã tổng kết và giao dịch được ghi (`createdAt`) trước lúc tổng kết (`lockedBySummary`) → thẻ khoá trượt, dòng phụ ghi "Đã tổng kết";
+  `deleteTransaction` cũng đọc lại đợt tổng kết trong transaction để chặn. Giao dịch ghi sau lúc tổng kết (vd chạy lệnh ở bước 3) vẫn xoá được. Giao dịch đã xoá vẫn hiện với **nền xám**, không tính vào tổng;
+  **trượt thẻ xám sang trái** thì mở màn hình nạp / rút / chuyển với giá trị điền sẵn (`?fund=&to=&amount=&note=&date=`), lưu sẽ tạo **giao dịch mới**.
+- [x] Thống kê (`/fund/stats`): số dư các quỹ **theo tháng**, lấy từ số liệu lưu lúc tổng kết. 2 tab (`Segmented`):
+  **Theo tháng** (‹ Tháng ›, tổng số dư + thay đổi so với tháng trước, bảng số dư từng quỹ + chênh lệch) và
+  **Biểu đồ năm** (‹ Năm ›, biểu đồ đường 12 tháng `FundLineChart`, SVG tự vẽ). Biểu đồ **chỉ vẽ đường của quỹ được chạm chọn** ở lưới bên dưới
+  (có thêm "Tổng số dư"), tối đa 8 đường; màu lấy từ bảng 8 màu `SERIES_COLORS` (đã kiểm tra mù màu trên nền tối), gắn theo quỹ lúc chọn và giữ nguyên khi chọn / bỏ đường khác.
+  Tháng chưa tổng kết thì đường bị ngắt. Chạm / kéo trên biểu đồ hiện vạch dọc + khung số liệu của tháng đó (vùng biểu đồ có `data-no-swipe`).
+- Ô **Số thứ tự** (Lệnh chuyển, Nhóm quỹ) là ô nhập số `NumberField` (`src/components/ui/NumberField.tsx`): gõ lớn hơn tổng số mục
+  (tính cả mục đang thêm) thì tự đưa về số đó, để trống thì về 1. **Tạo mới mặc định = tổng số mục tính cả mục đang thêm** (đứng cuối);
+  sửa thì giữ số hiện tại của mục.
 - [x] Cài đặt của app Quỹ (`/fund/settings`)
 
 Dữ liệu Firestore (xem `src/pages/fund/data/api.ts`), thuộc gia đình đang chọn:
-- `families/{familyId}/funds/{fundId}`: nhóm quỹ, `balance` là số dư hiện tại (VND, số nguyên)
-- `families/{familyId}/transactions/{txId}`: giao dịch `deposit` / `withdraw` / `interest`, `amount` luôn dương, có `createdByName` (người thực hiện)
+- `families/{familyId}/funds/{fundId}`: nhóm quỹ, `balance` là số dư hiện tại (VND, số nguyên), `position` số thứ tự
+- `families/{familyId}/transactions/{txId}`: giao dịch `deposit` / `withdraw` / `interest` / `transfer_out` / `transfer_in`, `amount` luôn dương, có `createdByName` (người thực hiện);
+  chuyển quỹ có `peerFundId` + `pairId` (id giao dịch còn lại của cặp); đã xoá thì `deleted`, `deletedByName`, `deletedAt`
+- `families/{familyId}/fundOrders/{orderId}`: lệnh chuyển (`type` transfer / withdraw / deposit, `fromFundId`, `toFundId`, `amount`, `allBalance`, `position`, `note`), xem `data/orders.ts`
+- `families/{familyId}/fundRuns/{YYYY-MM}`: đợt thực thi của tháng (`summarizedBy`, `summarizedByName`, `summarizedAt`, `executed` = map id lệnh -> lúc chạy,
+  `balances` = map id quỹ -> { name, icon, balance, transferred } lưu lúc tổng kết, `total` = tổng không tính quỹ đã chuyển đi)
+- `families/{familyId}/fundRuns/{YYYY-MM}/salaries/{uid}`: lương thực lãnh (`name`, `amount`, `fundId`, `txId` = giao dịch nạp vào quỹ); cả gia đình đọc, mỗi người chỉ ghi của mình
+- `families/{familyId}/salaryInfo/{uid}`: thông tin lương (`payday` 1–31, `fundId` quỹ nhận lương, `createdAt`); cả gia đình đọc, mỗi người chỉ ghi của mình, xem `data/salary.ts`
 - `users/{uid}/settings/fund`: cài đặt hiển thị của app Quỹ, RIÊNG từng tài khoản
 - Security Rules ở `firestore.rules`
 
@@ -59,11 +132,11 @@ Lãi được cộng phía client khi mở app (`applyDueInterest`, chạy trong
 ### App Trạng thái (`/status`)
 Biết mọi người đang ở đâu: tạo các địa điểm (mỗi địa điểm là 1 mô hình 3D), xếp lên bản đồ mini dạng bàn cờ,
 rồi gắn tag người dùng lên mô hình theo vị trí GPS.
-- [x] Bước 1 - Địa điểm (`/status/places`): chọn loại (7 mô hình 3D), tên, tọa độ (dán từ Google Maps hoặc lấy vị trí hiện tại), ghi chú
+- [x] Bước 1 - Địa điểm (`/status/places`): chọn loại (8 mô hình 3D; ô chọn là hàng ngang phân trang `PagedRow` **4 loại / trang, chỉ hiện icon** (tên loại hiện ở khung xem trước), mở sẵn trang chứa loại đang chọn), tên, tọa độ (dán từ Google Maps hoặc lấy vị trí hiện tại), ghi chú
 - [x] Bước 2 - Bản đồ mini (`/status/map`): dạng **thành phố mini** (nền cỏ một màu, cây quanh mép, **không** tô màu kiểu bàn cờ),
   camera xoay / phóng to / dịch chuyển được (OrbitControls). Bên dưới chia lưới **16×16 ô** (`BOARD_SIZE`) để đặt mô hình, lưới chỉ hiện mờ khi đang kéo.
   **Kích thước chiếm ô** (`data/layout.ts`): chợ, công ty, siêu thị, bệnh viện chiếm **2×2 ô** và vẽ to gấp đôi (cao hơn);
-  nhà ở, trạm xe điện, trạm xe buýt chiếm 1 ô. `cell` là ô góc trên-trái của vùng mô hình chiếm.
+  nhà ở, trạm xe điện, trạm xe buýt, quán ăn chiếm 1 ô. `cell` là ô góc trên-trái của vùng mô hình chiếm.
   Kéo địa điểm từ khay lên, kéo mô hình sang chỗ khác để di chuyển; thả vào chỗ vướng đúng 1 mô hình thì đổi chỗ (nếu cả hai vừa),
   không đủ chỗ thì tô đỏ và không cho thả (`planDrop`); kéo xuống khay để gỡ.
   Lưu ô vào `cell` của địa điểm (`models/BoardScene.tsx`, `MiniMapPage.tsx`)
@@ -81,7 +154,7 @@ Quyết định đã chốt:
 - Quy tắc gắn tag: người dùng vào **bán kính 100m** của địa điểm thì tag chuyển sang địa điểm đó và **nằm yên** cho tới khi vào vùng của địa điểm khác.
   Trong 100m có nhiều địa điểm thì **chọn địa điểm gần nhất**. Bỏ qua lần đo GPS kém chính xác để tránh nhảy qua lại.
 - Quyền riêng tư: chỉ lưu người dùng đang ở **địa điểm nào**, không lưu tọa độ thật của người dùng.
-- 7 mô hình 3D (nhà ở, chợ, công ty, trạm xe điện, trạm xe buýt, siêu thị, bệnh viện) **dựng bằng code** (low-poly) trong
+- 8 mô hình 3D (nhà ở, chợ, công ty, trạm xe điện, trạm xe buýt, siêu thị, bệnh viện, quán ăn) **dựng bằng code** (low-poly) trong
   `src/pages/status/models/PlaceModels.tsx`, dùng three.js + @react-three/fiber. Thư viện 3D chỉ tải khi mở màn hình cần (lazy).
 
 Dữ liệu Firestore (xem `src/pages/status/data/api.ts`), thuộc gia đình đang chọn:
@@ -89,7 +162,18 @@ Dữ liệu Firestore (xem `src/pages/status/data/api.ts`), thuộc gia đình �
 - `families/{familyId}/presence/{uid}`: thành viên đang ở đâu (`name`, `placeId`, `since`), **không có toạ độ**; thành viên xem được, mỗi người chỉ sửa được của mình
 
 ### App Chăm con (`/baby`)
-Ghi lại hoạt động hằng ngày của bé theo time line.
+Ghi lại hoạt động hằng ngày của bé theo time line. **Mỗi gia đình có nhiều con; time line và thống kê đi theo TỪNG CON.**
+- [x] Con (`/baby/children`, thêm / sửa `/baby/children/new|:id`): danh sách các con (avatar, tên, giới tính, tuổi, ngày sinh); thông tin con gồm
+  **tên, ngày sinh, giờ sinh (không bắt buộc), giới tính, avatar**. **Avatar luôn hiển thị HÌNH TRÒN** (`ChildAvatar`).
+  Form không có lưới chọn avatar: **chạm vào avatar tròn ở đầu form để chọn / đổi ảnh** (thư viện / chụp); **chưa có ảnh thì hiện hình camera**; có nút "Bỏ ảnh".
+  **Ảnh không dùng Firebase Storage**: cắt vuông ở giữa + thu nhỏ 256px JPEG ngay trên máy (`fileToSquareDataUrl` trong `src/lib/image.ts`, ~20–40KB)
+  rồi lưu thẳng vào trường `photo` (data URL) của con. Con chưa có ảnh thì ở danh sách hiện khối tròn màu theo giới tính + icon 3D (`avatar`, mặc định 👶;
+  ô chọn con dạng sổ xuống vẫn dùng emoji này).
+  Xoá con không xoá hoạt động đã ghi (chỉ không còn hiện).
+- **Chọn con** ở Time line và Thống kê bằng ô sổ xuống `ChildSelect` (giống ô chọn gia đình ở màn hình chính; có "+ Thêm con", "Quản lý con...");
+  gia đình 1 con thì đã chọn sẵn. Con đang chọn nằm trong `BabyContext` (`child`, `selectChild`), nhớ theo gia đình (localStorage `baby-child:{familyId}`).
+  `useDayEntries` chỉ trả hoạt động của con đang chọn; **hoạt động cũ chưa gắn con (`childId` = null) tính là của con đầu tiên**
+  (sửa lại thì gắn luôn vào con đang chọn). Chưa thêm con nào thì time line vẫn dùng được (hoạt động có `childId` = null).
 - [x] Thẻ hoạt động (`/baby/cards`): tên thẻ, màu, icon (bắt buộc có **ăn 🍼, ngủ 😴, chơi 🧸, đi vệ sinh 🚽**, thêm vài icon khác), thời gian mặc định (phút)
 - [x] Time line (`/baby/timeline`): chọn ngày; danh sách hoạt động trong ngày theo giờ bắt đầu (cuộn trong bảng);
   khay thẻ bên dưới, chạm 1 thẻ để mở khung nhập. **Giờ bắt đầu mặc định** dựa vào hoạt động cuối cùng trong danh sách (giờ bắt đầu muộn nhất):
@@ -98,6 +182,10 @@ Ghi lại hoạt động hằng ngày của bé theo time line.
   Ô check **"Đã hoàn thành"**: có check mới nhập số phút / kết thúc; không check = hoạt động **đang diễn ra / sắp bắt đầu** (lưu `minutes` = `end` = null),
   trên time line hiện nhãn "Đang diễn ra" / "Sắp bắt đầu". Thêm mới mặc định là chưa hoàn thành.
   thời gian hoạt động mặc định lấy từ thẻ; **giờ kết thúc tự tính = bắt đầu + thời gian**. **Giờ kết thúc cũng sửa được**: sửa kết thúc thì số phút tự tính lại (kết thúc trước giờ bắt đầu = sang hôm sau), sửa bắt đầu thì giữ số phút và dời kết thúc. Chạm hoạt động đã có để sửa / xoá.
+  **Sửa hoạt động thì các hoạt động liền kề đổi theo cho time line nối liền, không chồng lên nhau** (`linkNeighbors`, cùng 1 batch trong `updateEntry`):
+  đổi giờ bắt đầu thì hoạt động **liền trước** kết thúc đúng giờ bắt đầu mới; đổi giờ kết thúc thì hoạt động **liền sau** bắt đầu đúng giờ kết thúc mới
+  (giữ giờ kết thúc của nó, số phút tính lại). Khung sửa báo trước dòng "… kết thúc lúc / bắt đầu lúc …"; dời quá giờ bắt đầu của hoạt động trước
+  hoặc quá giờ kết thúc của hoạt động sau thì báo lỗi.
 - [x] Thống kê (`/baby/stats`): chọn ngày (thanh chọn ngày dùng chung `DayBar` trong `components.tsx`); 2 ô tổng thời gian / số lần;
   **biểu đồ cột** thời gian theo từng hoạt động (thẻ) trong ngày, xếp giảm dần, màu cột theo màu thẻ, icon thẻ ở trục ngang, chạm cột để xem chi tiết;
   bên dưới là bảng số liệu (số lần, %, thời lượng) chiếm phần còn lại. Cách tính ở `data/stats.ts` (`dayStats`):
@@ -107,14 +195,19 @@ Ghi lại hoạt động hằng ngày của bé theo time line.
 
 Dữ liệu Firestore (xem `src/pages/baby/data/api.ts`), thuộc gia đình đang chọn:
 - `families/{familyId}/babyCards/{cardId}`: thẻ hoạt động (`name`, `icon`, `color`, `defaultMinutes`)
-- `families/{familyId}/babyEntries/{entryId}`: hoạt động (`cardId`, `start`, `minutes`, `end`, `createdByName`; chưa hoàn thành thì `minutes` / `end` = null) + lưu sẵn `name` / `icon` / `color` của thẻ
+- `families/{familyId}/children/{childId}`: con (`name`, `birthDate` "YYYY-MM-DD", `birthTime` "HH:MM" hoặc null, `gender` male / female, `avatar` emoji, `photo` data URL JPEG hoặc null)
+- `families/{familyId}/babyEntries/{entryId}`: hoạt động (`childId` = của con nào, `cardId`, `start`, `minutes`, `end`, `createdByName`; chưa hoàn thành thì `minutes` / `end` = null) + lưu sẵn `name` / `icon` / `color` của thẻ
   để sửa / xoá thẻ không làm mất lịch sử
 
 ## Cấu trúc code
 - `src/components/ui/sizes.ts`: kích thước dùng chung giữa giao diện thật và skeleton
 - Mỗi app con nằm trong thư mục riêng `src/pages/<app>/`, trang con dùng `AppHeader` (có nút quay lại)
+- Thêm màn hình mới mở trực tiếp từ trang chính của app con (không phải Cài đặt) thì thêm 1 dòng vào `SHORTCUTS` (`src/shortcuts.ts`) để tạo được phím tắt ở màn hình chính
 - Dữ liệu của app con nằm trong `src/pages/<app>/data/` (types, api, Context dùng chung cho các trang của app)
 - Mỗi trang export cả component thật và `XxxSkeleton` trong cùng file; `App.tsx` hiển thị skeleton khi đang loading
+- Thao tác dùng chung: **kéo thả sắp xếp** danh sách dọc bằng tay cầm ≡ → `useDragReorder` (`src/components/useDragReorder.ts`);
+  **trượt thẻ sang trái hiện nút** → `SwipeActions` (`src/components/ui/SwipeActions.tsx`, icon trên nút dùng `LineIcon`, không dùng 3D).
+  Vùng có các thao tác này phải gắn `data-no-swipe` để không bị nhầm thành vuốt sang màn hình 2 bên.
 - Cấu hình Firebase đọc từ `.env` (xem `.env.example`)
 
 ## Yêu cầu giao diện (bắt buộc)
@@ -131,6 +224,11 @@ Dữ liệu Firestore (xem `src/pages/baby/data/api.ts`), thuộc gia đình đa
 ### 3. Skeleton khi loading
 - Mọi màn hình / khu vực có tải dữ liệu đều phải hiển thị **khung xương (skeleton)** trong lúc loading, không dùng màn hình trắng hay chỉ có spinner.
 - Skeleton phải mô phỏng đúng bố cục thật: cùng số dòng, cùng vị trí panel, nút, ô nhập.
+
+- **Chỉ hiện skeleton khi trang CHƯA CÓ dữ liệu.** Dữ liệu realtime phải đọc qua `useLiveQuery` (`src/lib/liveQuery.ts`, khoá theo gia đình `familyKey(...)`):
+  dữ liệu được nhớ tạm trong lúc mở app, nên mở lại màn hình / vuốt qua lại giữa màn hình chính và màn hình 2 bên thì hiện ngay dữ liệu cũ,
+  **không chớp skeleton**; trong lúc chờ dữ liệu mới từ server thì hiện **vòng xoay nhỏ ở góc trái dưới** (`RefreshIndicator`, gắn sẵn trong `App.tsx`).
+  Thêm truy vấn realtime mới thì dùng `useLiveQuery` thay vì tự `useState` + `onSnapshot`.
 
 ### 4. Skeleton phải khớp chiều cao với giao diện thật
 - Khi thay đổi giao diện của một màn hình / component, **phải cập nhật luôn skeleton tương ứng** trong cùng lần sửa.
@@ -158,7 +256,9 @@ Dữ liệu Firestore (xem `src/pages/baby/data/api.ts`), thuộc gia đình đa
 - **Mọi ô nhập số tiền phải dùng `MoneyField`** (`src/components/ui/MoneyField.tsx`), không tự viết lại bằng `TextField`.
 - Đang nhập (onChange): chỉ giữ chữ số, **không chèn dấu chấm**.
 - Nhập xong (onBlur): hiển thị **có dấu chấm** phân cách hàng nghìn (vd `1.500.000`).
-- Giá trị tối đa **1 tỷ** (`MAX_MONEY`): nhập vượt quá thì tự đưa về 1 tỷ ngay trong onChange.
+- Giá trị tối đa **99 tỷ** (`MAX_MONEY`): nhập vượt quá thì tự đưa về 99 tỷ ngay trong onChange.
+- **Bên dưới ô luôn hiện số tiền bằng chữ** (`moneyToWords` trong `src/lib/format.ts`, vd "Một triệu năm trăm nghìn đồng"), dòng cao cố định 2 dòng.
+  Skeleton của ô tiền phải dùng **`MoneyFieldSkeleton`** (không dùng `TextFieldSkeleton`) để cao bằng ô thật.
 
 ### 9. Icon dạng 3D ảnh
 - **Mọi icon trong app phải hiển thị dạng 3D ảnh**: dùng component `Icon3D` (`src/components/ui/Icon3D.tsx`) với emoji tương ứng, vd `<Icon3D emoji="💰" className="h-8 w-8" />`. Không hiển thị emoji dạng chữ, không dùng icon SVG phẳng.
@@ -168,6 +268,8 @@ Dữ liệu Firestore (xem `src/pages/baby/data/api.ts`), thuộc gia đình đa
 - Góc nhìn: thẳng từ trên xuống (không nghiêng xéo).
 - Ngoại lệ: chữ trong `<option>` của ô chọn gốc (native select) không hiển thị được ảnh, giữ emoji dạng chữ. Các ký hiệu điều khiển nhỏ (mũi tên quay lại ‹, mũi tên ▾ của ô chọn) không tính là icon.
 - **Ngoại lệ: icon trên nút nổi (FAB) KHÔNG dùng 3D**, xem mục 10.
+- **Ngoại lệ: icon trong sự kiện TRƯỢT THẺ** (nút hiện ra khi trượt thẻ trong danh sách, vd thùng rác / nhập lại ở Tra cứu) **KHÔNG dùng 3D**:
+  dùng icon nét trắng đơn giản giống FAB (`LineIcon` trong `src/components/ui/Fab.tsx`, cùng bộ `ICON_PATHS`; thiếu icon thì vẽ thêm vào `ICON_PATHS`).
 
 ### 10. Nút nổi (Floating Action Button - FAB)
 - **Ưu tiên dùng FAB cho các chức năng của màn hình** (thêm, lưu, xoá, sửa...). Màn hình có 1 nút chức năng thì nút đó **bắt buộc là FAB**.
@@ -191,6 +293,7 @@ Dữ liệu Firestore (xem `src/pages/baby/data/api.ts`), thuộc gia đình đa
 ### 11. Menu / danh sách theo hàng ngang: phân trang, không cuộn
 - Menu hoặc danh sách nằm theo **hàng ngang** (khay thẻ, khay địa điểm, dải người dùng...) **không được cuộn ngang**; phải **phân trang**.
 - Dùng component `PagedRow` (`src/components/ui/PagedRow.tsx`), skeleton dùng `PagedRowSkeleton`.
+  Cần cố định số mục mỗi trang thì truyền `perPage` (vd chọn loại địa điểm 4 mục / trang); `startIndex` để mở sẵn trang chứa mục đang chọn.
 - **Mỗi trang phải hiện trọn vẹn thông tin, không cắt xén**: số mục mỗi trang tự tính theo bề rộng màn hình và `itemWidth`
   (bề rộng tối thiểu để 1 mục hiện đủ), nên không có mục nào bị cắt ở mép. Tên dài thì xuống dòng (tối đa 2–3 dòng, chữ nhỏ lại nếu cần) để đọc được trọn vẹn.
 - **Bên trái và bên phải có nút hình tam giác** để chuyển trang trước / sau; hết trang thì nút mờ đi.

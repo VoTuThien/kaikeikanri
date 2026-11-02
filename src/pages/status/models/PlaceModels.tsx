@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import type { PlaceType } from '../data/types'
 
-// 7 mô hình 3D low-poly dựng bằng khối cơ bản (hộp, trụ, nón).
+// 8 mô hình 3D low-poly dựng bằng khối cơ bản (hộp, trụ, nón).
 // Quy ước: đáy mô hình nằm ở y = 0, chiếm khoảng 1 x 1 đơn vị (vừa 1 ô bàn cờ), mặt trước hướng về +z.
 
 type Vec3 = [number, number, number]
@@ -170,6 +170,46 @@ function Hospital() {
   )
 }
 
+// Quán ăn: nhà nhỏ có mái hiên sọc, biển hiệu tô mì trên mái, đèn lồng đỏ, bàn ghế nhựa trước cửa
+function Restaurant() {
+  const stripes = [-0.36, -0.18, 0, 0.18, 0.36]
+  return (
+    <>
+      <Box p={[0, 0.27, -0.1]} s={[0.82, 0.54, 0.56]} c="#fff1d6" />
+      <Box p={[0, 0.57, -0.1]} s={[0.88, 0.06, 0.62]} c="#7a4a2a" />
+      {/* Cửa ra vào + cửa sổ kính */}
+      <Box p={[-0.2, 0.17, 0.181]} s={[0.2, 0.34, 0.02]} c={WOOD} />
+      <Box p={[0.17, 0.25, 0.181]} s={[0.3, 0.18, 0.02]} c={WINDOW} />
+      {/* Mái hiên sọc xanh trắng, dốc ra phía trước */}
+      {stripes.map((x, i) => (
+        <Box key={x} p={[x, 0.47, 0.27]} s={[0.18, 0.03, 0.2]} r={[0.45, 0, 0]} c={i % 2 ? '#ffffff' : '#2e9e6a'} />
+      ))}
+      {/* Đèn lồng đỏ 2 bên mái hiên */}
+      {[-0.4, 0.4].map((x) => (
+        <group key={x}>
+          <Cyl p={[x, 0.42, 0.33]} radius={0.006} h={0.06} c="#333333" />
+          <Ball p={[x, 0.36, 0.33]} radius={0.045} c="#e74c3c" />
+        </group>
+      ))}
+      {/* Biển hiệu trên mái: bảng đỏ viền vàng + tô mì bốc khói */}
+      <Box p={[0, 0.74, -0.02]} s={[0.56, 0.24, 0.04]} c="#c0392b" />
+      <Box p={[0, 0.64, 0]} s={[0.56, 0.035, 0.05]} c="#f1c40f" />
+      <Cyl p={[0, 0.77, 0.03]} radius={0.09} h={0.05} r={[Math.PI / 2, 0, 0]} c="#ffffff" seg={16} />
+      <Cyl p={[0, 0.79, 0.06]} radius={0.06} h={0.02} r={[Math.PI / 2, 0, 0]} c="#f5c26b" seg={16} />
+      {[-0.04, 0.04].map((x) => (
+        <Box key={x} p={[x, 0.92, 0.03]} s={[0.015, 0.08, 0.015]} r={[0, 0, x * 4]} c="#ecf0f1" />
+      ))}
+      {/* Bàn tròn + 2 ghế nhựa trước quán */}
+      <Cyl p={[0.06, 0.12, 0.44]} radius={0.015} h={0.22} c={METAL} />
+      <Cyl p={[0.06, 0.235, 0.44]} radius={0.12} h={0.02} c="#ecf0f1" seg={16} />
+      <Ball p={[0.06, 0.26, 0.44]} radius={0.03} c="#e67e22" />
+      {[-0.13, 0.25].map((x) => (
+        <Cyl key={x} p={[x, 0.06, 0.44]} radius={0.05} h={0.12} c="#e74c3c" seg={10} />
+      ))}
+    </>
+  )
+}
+
 const MODELS: Record<PlaceType, () => ReactNode> = {
   house: House,
   market: Market,
@@ -178,6 +218,7 @@ const MODELS: Record<PlaceType, () => ReactNode> = {
   bus: BusStop,
   supermarket: Supermarket,
   hospital: Hospital,
+  restaurant: Restaurant,
 }
 
 export function PlaceModel({ type }: { type: PlaceType }) {

@@ -1,6 +1,5 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useState, type FormEvent } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
-import { onSnapshot, orderBy, query, type Timestamp } from 'firebase/firestore'
 import { AppHeader, AppHeaderSkeleton } from '../../components/AppHeader'
 import { Avatar } from '../../components/Avatar'
 import { PageShell, ScrollArea } from '../../components/PageShell'
@@ -13,37 +12,14 @@ import { TextField, TextFieldSkeleton } from '../../components/ui/TextField'
 import { SIZE } from '../../components/ui/sizes'
 import { useAuth } from '../../contexts/AuthContext'
 import { useFamily, type MyFamily } from '../../contexts/FamilyContext'
-import { membersCol, removeMember, renameFamily, type Member } from './data/api'
+import { removeMember, renameFamily, type Member } from './data/api'
+import { useMembers } from './data/useMembers'
 
 const FORM_ID = 'family-manage-form'
 const INFO_PANEL = 'space-y-3 !p-5'
 // Danh sách thành viên: chiếm phần còn lại của màn hình, chỉ danh sách được cuộn; chừa chỗ cuối cho nút nổi
 const LIST_CLASS = `${GLASS_CLASS} !p-0 ${FAB_SPACE}`
 const REMOVE_BUTTON = 'w-24 shrink-0'
-
-// Thành viên của gia đình đang chọn, cập nhật realtime. null = đang tải.
-function useMembers(familyId: string | undefined): Member[] | null {
-  const [members, setMembers] = useState<Member[] | null>(null)
-  useEffect(() => {
-    setMembers(null)
-    if (!familyId) return
-    return onSnapshot(query(membersCol(familyId), orderBy('joinedAt', 'asc')), (snap) =>
-      setMembers(
-        snap.docs.map((d) => {
-          const v = d.data({ serverTimestamps: 'estimate' })
-          return {
-            uid: d.id,
-            name: v.name ?? '',
-            email: v.email ?? '',
-            role: v.role === 'owner' ? 'owner' : 'member',
-            joinedAt: v.joinedAt ? (v.joinedAt as Timestamp).toDate() : null,
-          }
-        }),
-      ),
-    )
-  }, [familyId])
-  return members
-}
 
 export function FamilyManagePage() {
   const { current } = useFamily()

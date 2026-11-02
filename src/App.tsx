@@ -9,19 +9,32 @@ import { FamilyManagePage, FamilyManagePageSkeleton } from './pages/family/Famil
 import { NotificationsPage, NotificationsPageSkeleton } from './pages/family/NotificationsPage'
 import { isFirebaseConfigured } from './lib/firebase'
 import { LauncherPage, LauncherPageSkeleton } from './pages/LauncherPage'
+import { ShortcutPickerPage, ShortcutPickerPageSkeleton } from './pages/ShortcutPickerPage'
+import { SidePage, SidePageSkeleton } from './pages/SidePage'
+import { SideSwipe } from './components/SideSwipe'
+import { RefreshIndicator } from './components/RefreshIndicator'
 import { BabyHomePage } from './pages/baby/BabyHomePage'
 import { CardFormPage } from './pages/baby/CardFormPage'
 import { CardListPage } from './pages/baby/CardListPage'
+import { ChildFormPage } from './pages/baby/ChildFormPage'
+import { ChildListPage } from './pages/baby/ChildListPage'
 import { BabyLayout } from './pages/baby/components'
 import { StatsPage } from './pages/baby/StatsPage'
 import { TimelinePage } from './pages/baby/TimelinePage'
 import { FundLayout } from './pages/fund/components'
 import { FundFormPage } from './pages/fund/FundFormPage'
+import { FundActionPage } from './pages/fund/FundActionPage'
 import { FundHomePage } from './pages/fund/FundHomePage'
 import { FundListPage } from './pages/fund/FundListPage'
 import { FundSettingsPage } from './pages/fund/FundSettingsPage'
 import { HistoryPage } from './pages/fund/HistoryPage'
 import { TransactionPage } from './pages/fund/TransactionPage'
+import { TransferPage } from './pages/fund/TransferPage'
+import { OrderListPage } from './pages/fund/OrderListPage'
+import { OrderFormPage } from './pages/fund/OrderFormPage'
+import { ExecutePage } from './pages/fund/ExecutePage'
+import { SalaryPage } from './pages/fund/SalaryPage'
+import { StatsPage as FundStatsPage } from './pages/fund/StatsPage'
 import { StatusLayout } from './pages/status/components'
 import { LiveStatusPage } from './pages/status/LiveStatusPage'
 import { MiniMapPage } from './pages/status/MiniMapPage'
@@ -59,6 +72,76 @@ function FirebaseNotConfigured() {
   )
 }
 
+// Toàn bộ route của app. `location` dùng để vẽ trước màn hình bên cạnh khi đang vuốt (SideSwipe), không có thì theo URL hiện tại
+function AppRoutes({ location }: { location?: string }) {
+  return (
+    <Routes location={location}>
+      <Route path="/" element={<Protected page={<LauncherPage />} skeleton={<LauncherPageSkeleton />} />} />
+      {/* Chọn màn hình để tạo phím tắt / thiết đặt màn hình 2 bên của màn hình chính */}
+      <Route path="/shortcuts" element={<Protected page={<ShortcutPickerPage />} skeleton={<ShortcutPickerPageSkeleton />} />} />
+      {/* Màn hình 2 bên của màn hình chính khi chưa thiết đặt (dấu +) */}
+      <Route path="/side/:side" element={<Protected page={<SidePage />} skeleton={<SidePageSkeleton />} />} />
+      {/* Gia đình: tạo, tham gia, thông báo xin gia nhập */}
+      <Route path="/family/create" element={<Protected page={<FamilyCreatePage />} skeleton={<FamilyCreatePageSkeleton />} />} />
+      <Route path="/family/join" element={<Protected page={<FamilyJoinPage />} skeleton={<FamilyJoinPageSkeleton />} />} />
+      <Route path="/notifications" element={<Protected page={<NotificationsPage />} skeleton={<NotificationsPageSkeleton />} />} />
+      <Route path="/family/manage" element={<Protected page={<FamilyManagePage />} skeleton={<FamilyManagePageSkeleton />} />} />
+      {/* App Quỹ: mỗi trang tự hiện skeleton khi đang đăng nhập / tải dữ liệu */}
+      <Route path="/fund" element={<FundLayout />}>
+        <Route index element={<FundHomePage />} />
+        <Route path="groups" element={<FundListPage />} />
+        <Route path="groups/new" element={<FundFormPage />} />
+        <Route path="groups/:id" element={<FundFormPage />} />
+        <Route path="groups/:id/tx" element={<FundActionPage />} />
+        <Route path="deposit" element={<TransactionPage kind="deposit" />} />
+        <Route path="withdraw" element={<TransactionPage kind="withdraw" />} />
+        <Route path="transfer" element={<TransferPage />} />
+        <Route path="salary" element={<SalaryPage />} />
+        <Route path="orders" element={<OrderListPage />} />
+        <Route path="orders/new" element={<OrderFormPage />} />
+        <Route path="orders/:id" element={<OrderFormPage />} />
+        <Route path="execute" element={<ExecutePage />} />
+        <Route path="history" element={<HistoryPage />} />
+        <Route path="stats" element={<FundStatsPage />} />
+        <Route path="settings" element={<FundSettingsPage />} />
+      </Route>
+      {/* App Chăm con */}
+      <Route path="/baby" element={<BabyLayout />}>
+        <Route index element={<BabyHomePage />} />
+        <Route path="children" element={<ChildListPage />} />
+        <Route path="children/new" element={<ChildFormPage />} />
+        <Route path="children/:id" element={<ChildFormPage />} />
+        <Route path="cards" element={<CardListPage />} />
+        <Route path="cards/new" element={<CardFormPage />} />
+        <Route path="cards/:id" element={<CardFormPage />} />
+        <Route path="timeline" element={<TimelinePage />} />
+        <Route path="stats" element={<StatsPage />} />
+      </Route>
+      {/* App Trạng thái */}
+      <Route path="/status" element={<StatusLayout />}>
+        <Route index element={<StatusHomePage />} />
+        <Route path="places" element={<PlaceListPage />} />
+        <Route path="places/new" element={<PlaceFormPage />} />
+        <Route path="places/:id" element={<PlaceFormPage />} />
+        <Route path="map" element={<MiniMapPage />} />
+        <Route path="live" element={<LiveStatusPage />} />
+      </Route>
+      <Route path="/login" element={<GuestOnly page={<LoginPage />} skeleton={<LoginPageSkeleton />} />} />
+      <Route
+        path="/register"
+        element={<GuestOnly page={<RegisterPage />} skeleton={<RegisterPageSkeleton />} />}
+      />
+      <Route
+        path="/forgot-password"
+        element={<GuestOnly page={<ForgotPasswordPage />} skeleton={<ForgotPasswordPageSkeleton />} />}
+      />
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  )
+}
+
+const renderRoutes = (location?: string) => <AppRoutes location={location} />
+
 export default function App() {
   if (!isFirebaseConfigured) return <FirebaseNotConfigured />
 
@@ -66,53 +149,10 @@ export default function App() {
     <AuthProvider>
       <FamilyProvider>
         <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Protected page={<LauncherPage />} skeleton={<LauncherPageSkeleton />} />} />
-            {/* Gia đình: tạo, tham gia, thông báo xin gia nhập */}
-            <Route path="/family/create" element={<Protected page={<FamilyCreatePage />} skeleton={<FamilyCreatePageSkeleton />} />} />
-            <Route path="/family/join" element={<Protected page={<FamilyJoinPage />} skeleton={<FamilyJoinPageSkeleton />} />} />
-            <Route path="/notifications" element={<Protected page={<NotificationsPage />} skeleton={<NotificationsPageSkeleton />} />} />
-            <Route path="/family/manage" element={<Protected page={<FamilyManagePage />} skeleton={<FamilyManagePageSkeleton />} />} />
-            {/* App Quỹ: mỗi trang tự hiện skeleton khi đang đăng nhập / tải dữ liệu */}
-            <Route path="/fund" element={<FundLayout />}>
-              <Route index element={<FundHomePage />} />
-              <Route path="groups" element={<FundListPage />} />
-              <Route path="groups/new" element={<FundFormPage />} />
-              <Route path="groups/:id" element={<FundFormPage />} />
-              <Route path="deposit" element={<TransactionPage kind="deposit" />} />
-              <Route path="withdraw" element={<TransactionPage kind="withdraw" />} />
-              <Route path="history" element={<HistoryPage />} />
-              <Route path="settings" element={<FundSettingsPage />} />
-            </Route>
-            {/* App Chăm con */}
-            <Route path="/baby" element={<BabyLayout />}>
-              <Route index element={<BabyHomePage />} />
-              <Route path="cards" element={<CardListPage />} />
-              <Route path="cards/new" element={<CardFormPage />} />
-              <Route path="cards/:id" element={<CardFormPage />} />
-              <Route path="timeline" element={<TimelinePage />} />
-              <Route path="stats" element={<StatsPage />} />
-            </Route>
-            {/* App Trạng thái */}
-            <Route path="/status" element={<StatusLayout />}>
-              <Route index element={<StatusHomePage />} />
-              <Route path="places" element={<PlaceListPage />} />
-              <Route path="places/new" element={<PlaceFormPage />} />
-              <Route path="places/:id" element={<PlaceFormPage />} />
-              <Route path="map" element={<MiniMapPage />} />
-              <Route path="live" element={<LiveStatusPage />} />
-            </Route>
-            <Route path="/login" element={<GuestOnly page={<LoginPage />} skeleton={<LoginPageSkeleton />} />} />
-            <Route
-              path="/register"
-              element={<GuestOnly page={<RegisterPage />} skeleton={<RegisterPageSkeleton />} />}
-            />
-            <Route
-              path="/forgot-password"
-              element={<GuestOnly page={<ForgotPasswordPage />} skeleton={<ForgotPasswordPageSkeleton />} />}
-            />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
+          {/* Vuốt ngang giữa màn hình chính và 2 màn hình 2 bên */}
+          <SideSwipe render={renderRoutes} />
+          {/* Vòng xoay nhỏ góc trái dưới khi trang đang hiện dữ liệu nhớ tạm và cập nhật lại từ server */}
+          <RefreshIndicator />
         </BrowserRouter>
       </FamilyProvider>
     </AuthProvider>

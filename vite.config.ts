@@ -5,6 +5,9 @@ import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
   build: {
+    // Hạ cú pháp JS cho Safari / iPhone cũ: three.js dùng "static {}" trong class (chỉ có từ iOS 16.4),
+    // máy iOS 15 gặp lỗi cú pháp nên không tải được các trang mô hình 3D của app Trạng thái
+    target: ['es2020', 'safari14', 'ios14'],
     // Thêm CSS dự phòng cho Safari / iPhone cũ (xem postcss.config.js)
     cssTarget: ['safari14', 'ios14'],
   },

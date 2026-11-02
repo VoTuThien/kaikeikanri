@@ -9,15 +9,21 @@ import { Icon3D } from '../../components/ui/Icon3D'
 import { Skeleton } from '../../components/ui/Skeleton'
 import { BLOCK_3D, GLOSS_3D, TILE_3D, TILE_3D_SELECTED } from '../../components/ui/style3d'
 import { FieldLabel, TextField, TextFieldSkeleton } from '../../components/ui/TextField'
+import { NumberField } from '../../components/ui/NumberField'
 import { SIZE } from '../../components/ui/sizes'
-import { MoneyField } from '../../components/ui/MoneyField'
+import { MoneyField, MoneyFieldSkeleton } from '../../components/ui/MoneyField'
 import { formatDate, formatMoney } from '../../lib/format'
 import { createFund, deleteFund, updateFund } from './data/api'
 import { useFund } from './data/FundContext'
 import { nextInterestDate, projectBalance } from './data/interest'
 import type { Fund } from './data/types'
 
-const ICONS = ['💰', '🏠', '👶', '✈️', '🎓', '🚗', '🏥', '🎁', '🛒', '💍', '📈', '🐷']
+const ICONS = [
+  '💰', '🏠', '👶', '✈️', '🎓', '🚗',
+  '🏥', '🎁', '🛒', '💍', '📈', '🐷',
+  // Hiếu hỉ (ông bà), lì xì Tết, sinh nhật, ăn uống, thú cưng, hoá đơn
+  '👴', '🧧', '🎂', '🍜', '🐶', '🧾',
+]
 const COLORS = [
   'from-amber-400 to-orange-500',
   'from-sky-400 to-blue-600',
@@ -33,6 +39,8 @@ const PICKER_GRID = 'grid grid-cols-6 gap-2'
 const PANEL_CLASS = '!p-5'
 const FORM_CLASS = 'space-y-3'
 const FORM_ID = 'fund-form'
+// Tên (ô rộng) + số thứ tự (ô hẹp) trên 1 hàng
+const NAME_ROW = 'grid grid-cols-[1fr_5.5rem] gap-3'
 
 export function FundFormPage() {
   const { id } = useParams()
@@ -46,15 +54,20 @@ export function FundFormPage() {
 }
 
 function FundForm({ fund }: { fund?: Fund }) {
-  const { actor, settings } = useFund()
+  const { actor, settings, funds } = useFund()
   const navigate = useNavigate()
   const isNew = !fund
+  const ids = funds.map((f) => f.id)
+  // Số thứ tự: tạo mới mặc định = tổng số quỹ tính cả quỹ đang thêm (đứng cuối); gõ lớn hơn thì tự đưa về số đó
+  const count = isNew ? funds.length + 1 : funds.length
+  const [position, setPosition] = useState(fund?.position ?? count)
 
   const [name, setName] = useState(fund?.name ?? '')
   const [icon, setIcon] = useState(fund?.icon ?? ICONS[0])
   const [color, setColor] = useState(fund?.color ?? COLORS[0])
   const [rateText, setRateText] = useState(String(fund?.interestRate ?? settings.defaultInterestRate))
   const [initialBalance, setInitialBalance] = useState(0)
+  const [transferred, setTransferred] = useState(fund?.transferred ?? false)
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
@@ -72,9 +85,9 @@ function FundForm({ fund }: { fund?: Fund }) {
 
     setSaving(true)
     try {
-      const input = { name: name.trim(), icon, color, interestRate: rate }
-      if (isNew) await createFund(input, initialBalance, actor)
-      else await updateFund(fund, input)
+      const input = { name: name.trim(), icon, color, interestRate: rate, transferred }
+      if (isNew) await createFund(input, initialBalance, actor, ids, position)
+      else await updateFund(fund, input, ids, position)
       navigate('/fund/groups')
     } catch (err) {
       console.error(err)
@@ -87,7 +100,7 @@ function FundForm({ fund }: { fund?: Fund }) {
     if (!fund) return
     setDeleting(true)
     try {
-      await deleteFund(fund.id)
+      await deleteFund(fund.id, ids)
       navigate('/fund/groups')
     } catch (err) {
       console.error(err)
@@ -101,14 +114,18 @@ function FundForm({ fund }: { fund?: Fund }) {
       <AppHeader title={isNew ? 'Tạo nhóm quỹ' : 'Sửa nhóm quỹ'} backTo="/fund/groups" />
       <GlassPanel className={`${PANEL_CLASS} ${FIT_CLASS}`}>
         <form id={FORM_ID} onSubmit={handleSubmit} className={FORM_CLASS} noValidate>
-          <TextField
-            id="name"
-            label="Tên nhóm quỹ"
-            placeholder="Ví dụ: Quỹ du lịch"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            maxLength={40}
-          />
+          {/* Tên + số thứ tự trên 1 hàng; đổi số thì các quỹ khác tự dời để số luôn liên tục, không trùng */}
+          <div className={NAME_ROW}>
+            <TextField
+              id="name"
+              label="Tên nhóm quỹ"
+              placeholder="Ví dụ: Quỹ du lịch"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              maxLength={40}
+            />
+            <NumberField id="position" label="Số thứ tự" value={position} onChange={setPosition} max={count} />
+          </div>
 
           <div className="space-y-1.5">
             <FieldLabel>Biểu tượng</FieldLabel>
@@ -171,6 +188,35 @@ function FundForm({ fund }: { fund?: Fund }) {
             )}
           </div>
 
+          {/* Ô check "Đã chuyển đi"; bên phải chừa chỗ cho nút nổi */}
+          <div className={`${SIZE.control} flex items-center pr-36`}>
+            <button
+              type="button"
+              role="checkbox"
+              aria-checked={transferred}
+              onClick={() => setTransferred((v) => !v)}
+              className="flex min-w-0 items-center gap-2.5 text-left"
+            >
+              <span
+                className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md border-2 transition ${
+                  transferred ? 'border-emerald-300 bg-emerald-400' : 'border-white/50 bg-white/5'
+                }`}
+              >
+                {transferred && (
+                  <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="#ffffff" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M5 12.5l4.5 4.5L19 7" />
+                  </svg>
+                )}
+              </span>
+              <span className="min-w-0">
+                <span className="block truncate text-sm leading-5 font-semibold">Đã chuyển đi</span>
+                <span className="block truncate text-xs leading-4 text-white/60">
+                  {transferred ? 'Không tính vào tổng số dư' : 'Tiền vẫn trong tài khoản'}
+                </span>
+              </span>
+            </button>
+          </div>
+
           {/* Luôn 2 dòng để chiều cao không đổi khi nhập */}
           <div className={`${SIZE.hint} text-xs leading-5 text-white/60`}>
             <p className={`truncate ${confirmDelete ? 'text-rose-100' : ''}`}>
@@ -224,12 +270,19 @@ export function FundFormPageSkeleton({ isNew }: { isNew: boolean }) {
       <AppHeaderSkeleton />
       <GlassPanel className={`${PANEL_CLASS} ${FIT_CLASS}`}>
         <div className={FORM_CLASS}>
-          <TextFieldSkeleton />
+          <div className={NAME_ROW}>
+            <TextFieldSkeleton />
+            <TextFieldSkeleton />
+          </div>
           {picker(ICONS.length)}
           {picker(COLORS.length)}
           <div className={isNew ? 'grid grid-cols-2 gap-3' : ''}>
             <TextFieldSkeleton />
-            {isNew && <TextFieldSkeleton />}
+            {isNew && <MoneyFieldSkeleton />}
+          </div>
+          <div className={`${SIZE.control} flex items-center gap-2.5`}>
+            <Skeleton className="h-6 w-6 rounded-md" />
+            <Skeleton className="h-9 w-40 rounded-md" />
           </div>
           <div className={`${SIZE.hint} space-y-1`}>
             <Skeleton className="h-4 w-56 rounded-md" />

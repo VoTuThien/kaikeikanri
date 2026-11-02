@@ -1,4 +1,8 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
+import { BLOCK_3D, GLOSS_3D } from '../../components/ui/style3d'
+import { monthLabel } from '../fund/data/orders'
+import { useSalaryReminders } from '../fund/data/salary'
 import { AppHeader, AppHeaderSkeleton } from '../../components/AppHeader'
 import { Avatar } from '../../components/Avatar'
 import { PageShell, ScrollArea } from '../../components/PageShell'
@@ -21,9 +25,10 @@ function when(d: Date | null) {
   return d.toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })
 }
 
-// Thông báo xin gia nhập gia đình mình tạo; danh sách cập nhật realtime (FamilyContext)
+// Thông báo, cập nhật realtime: nhắc nhập lương thực lãnh (app Quỹ) + xin gia nhập gia đình mình tạo (FamilyContext)
 export function NotificationsPage() {
   const { owned, requests } = useFamily()
+  const { pending } = useSalaryReminders()
   const [busy, setBusy] = useState<string | null>(null)
   const [error, setError] = useState('')
 
@@ -52,16 +57,30 @@ export function NotificationsPage() {
       )}
       {error && <Alert type="error">{error}</Alert>}
       <ScrollArea className={LIST_CLASS}>
-        {!owned || requests.length === 0 ? (
+        {pending.length === 0 && (!owned || requests.length === 0) ? (
           <div className="flex h-full flex-col items-center justify-center gap-2 p-6 text-center">
             <Icon3D emoji="🏠" className="h-12 w-12" />
             <span className="text-sm leading-5 text-white/70">
-              {owned ? 'Chưa có ai xin gia nhập gia đình của bạn.' : 'Bạn chưa tạo gia đình nên chưa có thông báo xin gia nhập.'}
+              {owned ? 'Chưa có thông báo nào.' : 'Chưa có thông báo nào. Bạn chưa tạo gia đình nên không có thông báo xin gia nhập.'}
             </span>
           </div>
         ) : (
           <div className="divide-y divide-white/10">
-            {requests.map((r) => (
+            {/* Nhắc nhập lương thực lãnh: còn hiện cho tới khi nhập xong (useSalaryReminders) */}
+            {pending.map((m) => (
+              <Link key={m} to={`/fund/execute?month=${m}`} className={`${SIZE.listItem} flex items-center gap-3 px-4 transition hover:bg-white/5`}>
+                <span className={`relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-amber-400 to-orange-500 ${BLOCK_3D}`}>
+                  <span className={GLOSS_3D} />
+                  <Icon3D emoji="💰" className="h-7 w-7" />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-sm leading-5 font-semibold">Đến ngày nhận lương · {monthLabel(m)}</span>
+                  <span className="block truncate text-xs leading-4 text-amber-100">Chạm để nhập lương thực lãnh</span>
+                </span>
+                <span className="shrink-0 text-xl text-white/50">›</span>
+              </Link>
+            ))}
+            {owned && requests.map((r) => (
               <div key={r.uid} className={`${SIZE.listItem} flex items-center gap-3 px-4`}>
                 <Avatar uid={r.uid} name={r.name} />
                 <span className="min-w-0 flex-1">

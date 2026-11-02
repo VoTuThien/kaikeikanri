@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { APPS, type AppEntry } from '../apps'
+import { APPS } from '../apps'
+import { AddShortcutIcon, HOME_GRID, HomeIcon, HomeIconSkeleton, REMOVE_BADGE, shortcutLook } from '../components/HomeIcon'
 import { PageShell } from '../components/PageShell'
 import { LinkButton } from '../components/ui/Button'
 import { Fab, FabGroup, FabLink, FabSkeleton } from '../components/ui/Fab'
@@ -9,46 +10,35 @@ import { Icon3D } from '../components/ui/Icon3D'
 import { Select } from '../components/ui/Select'
 import { Skeleton } from '../components/ui/Skeleton'
 import { SIZE } from '../components/ui/sizes'
-import { BLOCK_3D, GLOSS_3D } from '../components/ui/style3d'
 import { useAuth } from '../contexts/AuthContext'
 import { useFamily } from '../contexts/FamilyContext'
+import {
+  clearShortcutEntry,
+  getCachedShortcuts,
+  markShortcutEntry,
+  removeShortcut,
+  setSideScreen,
+  useShortcuts,
+  type Side,
+} from '../lib/shortcuts'
+import { shortcutById } from '../shortcuts'
+import { useSalaryReminders } from './fund/data/salary'
 
-// Lưới 4 cột như màn hình chính iPhone: icon luôn thẳng hàng theo cả hàng và cột
-const GRID = 'grid grid-cols-4 gap-x-2 gap-y-5'
 const HEADER_CLASS = 'space-y-3'
+// Nhiều icon thì chỉ lưới icon cuộn (có thanh cuộn); chừa lề trên cho nút gỡ và icon rung không bị cắt,
+// lề dưới để hàng icon cuối không bị nút nổi che
+const GRID_PANEL_CLASS = 'min-h-0 !shrink overflow-y-auto overscroll-contain scroll-thin !pt-6 !pb-20'
+
+// Ô đổi màn hình 2 bên (hiện khi nhấn giữ): 2 nút bằng nhau
+const SIDES_CLASS = 'grid grid-cols-2 gap-3 !p-3'
+const SIDE_BUTTON = `${SIZE.control} flex min-w-0 items-center gap-2 rounded-xl border border-white/25 bg-white/10 px-3 text-left transition active:scale-95`
+const SIDE_LABEL: Record<Side, string> = { left: 'Bên trái', right: 'Bên phải' }
+const SIDES_HINT = 'h-4 leading-4'
 
 // Lựa chọn đặc biệt trong ô chọn gia đình: chuyển sang màn hình tạo / tham gia / quản lý
 const CREATE = '__create'
 const JOIN = '__join'
 const MANAGE = '__manage'
-
-function AppIcon({ app }: { app: AppEntry }) {
-  const content = (
-    <>
-      <span className={`${SIZE.appIcon} relative flex items-center justify-center rounded-[22%] bg-gradient-to-br ${BLOCK_3D} ${app.gradient}`}>
-        <span className={GLOSS_3D} />
-        <Icon3D emoji={app.icon} className="h-11 w-11" />
-        {!app.path && (
-          <span className="absolute -top-1.5 -right-1.5 rounded-full bg-white/90 px-1.5 text-[10px] leading-4 font-semibold text-slate-700">
-            Sắp có
-          </span>
-        )}
-      </span>
-      <span className={`${SIZE.appLabel} w-full truncate text-center text-xs leading-4 font-medium`}>{app.name}</span>
-    </>
-  )
-  const cls = 'flex flex-col items-center gap-1.5 transition active:scale-95'
-
-  return app.path ? (
-    <Link to={app.path} className={cls}>
-      {content}
-    </Link>
-  ) : (
-    <div className={`${cls} opacity-60`} aria-disabled="true">
-      {content}
-    </div>
-  )
-}
 
 // Mã gia đình (chủ gia đình chạm để sao chép, gửi cho người muốn tham gia)
 function FamilyCode({ code }: { code: string }) {
@@ -73,7 +63,15 @@ function FamilyCode({ code }: { code: string }) {
 export function LauncherPage() {
   const { user, logout } = useAuth()
   const { families, current, selectFamily, owned, requests, sentRequests } = useFamily()
+  // Chuông: số yêu cầu xin gia nhập + số tháng tới ngày nhận lương mà chưa nhập lương thực lãnh
+  const salaryReminders = useSalaryReminders()
   const navigate = useNavigate()
+  const { ids: shortcuts, ...sides } = useShortcuts(user?.uid)
+  // Nhấn giữ 1 icon: vào chế độ gỡ phím tắt (icon rung), bấm nút check để xong
+  const [editing, setEditing] = useState(false)
+  const startEditing = () => setEditing(true)
+  // Về tới màn hình chính: bỏ dấu "mở từ phím tắt" để vào app con bằng icon app thì quay lại như bình thường
+  useEffect(clearShortcutEntry, [])
 
   function onSelect(value: string) {
     if (value === CREATE) return navigate('/family/create')
@@ -83,75 +81,149 @@ export function LauncherPage() {
   }
 
   return (
-    <PageShell>
-      <GlassPanel className={HEADER_CLASS}>
-        <div>
-          <p className={`${SIZE.subtitle} text-sm leading-5 text-white/70`}>Xin chào,</p>
-          <h1 className={`${SIZE.title} truncate text-2xl leading-8 font-bold`}>{user?.displayName || user?.email}</h1>
-        </div>
-        {/* Chọn gia đình ngay tại màn hình chính; dữ liệu các app bên dưới thuộc gia đình đang chọn */}
-        {current && (
-          <div className="space-y-1.5">
-            <Select id="family" label="Gia đình" hideLabel value={current.familyId} onChange={(e) => onSelect(e.target.value)}>
-              {families.map((f) => (
-                <option key={f.familyId} value={f.familyId}>
-                  {f.name}
-                  {f.role === 'owner' ? ' (của bạn)' : ''}
-                </option>
-              ))}
-              <option disabled>──────────</option>
-              <option value={MANAGE}>Quản lý gia đình...</option>
-              {!owned && <option value={CREATE}>+ Tạo gia đình mới</option>}
-              <option value={JOIN}>Tham gia gia đình khác...</option>
-            </Select>
-            <div className={`${SIZE.label} flex items-center gap-2 text-xs leading-5 text-white/60`}>
-              <span className="flex min-w-0 flex-1">
-                {current.role === 'owner' ? <FamilyCode code={current.code} /> : <span className="truncate">Bạn là thành viên</span>}
-              </span>
-              <Link to="/family/manage" className="shrink-0 font-semibold text-fuchsia-200">
-                Quản lý ›
-              </Link>
+    // Đang gỡ phím tắt thì tắt vuốt ngang sang 2 bên (SideSwipe bỏ qua vùng có data-no-swipe)
+    <div className="contents" data-no-swipe={editing || undefined}>
+      <PageShell>
+        <GlassPanel className={HEADER_CLASS}>
+          <div>
+            <p className={`${SIZE.subtitle} text-sm leading-5 text-white/70`}>Xin chào,</p>
+            <h1 className={`${SIZE.title} truncate text-2xl leading-8 font-bold`}>{user?.displayName || user?.email}</h1>
+          </div>
+          {/* Chọn gia đình ngay tại màn hình chính; dữ liệu các app bên dưới thuộc gia đình đang chọn */}
+          {current && (
+            <div className="space-y-1.5">
+              <Select id="family" label="Gia đình" hideLabel value={current.familyId} onChange={(e) => onSelect(e.target.value)}>
+                {families.map((f) => (
+                  <option key={f.familyId} value={f.familyId}>
+                    {f.name}
+                    {f.role === 'owner' ? ' (của bạn)' : ''}
+                  </option>
+                ))}
+                <option disabled>──────────</option>
+                <option value={MANAGE}>Quản lý gia đình...</option>
+                {!owned && <option value={CREATE}>+ Tạo gia đình mới</option>}
+                <option value={JOIN}>Tham gia gia đình khác...</option>
+              </Select>
+              <div className={`${SIZE.label} flex items-center gap-2 text-xs leading-5 text-white/60`}>
+                <span className="flex min-w-0 flex-1">
+                  {current.role === 'owner' ? <FamilyCode code={current.code} /> : <span className="truncate">Bạn là thành viên</span>}
+                </span>
+                <Link to="/family/manage" className="shrink-0 font-semibold text-fuchsia-200">
+                  Quản lý ›
+                </Link>
+              </div>
             </div>
-          </div>
-        )}
-      </GlassPanel>
-
-      {current ? (
-        <GlassPanel>
-          <div className={GRID}>
-            {APPS.map((app) => (
-              <AppIcon key={app.id} app={app} />
-            ))}
-          </div>
-        </GlassPanel>
-      ) : (
-        // Chưa thuộc gia đình nào: tạo mới hoặc tham gia bằng mã
-        <GlassPanel className="space-y-4 text-center">
-          <div className="flex h-12 justify-center">
-            <Icon3D emoji="🏠" className="h-12 w-12" />
-          </div>
-          <p className="text-sm leading-5 text-white/80">
-            Dữ liệu Quỹ, Trạng thái, Chăm con thuộc về từng gia đình. Hãy tạo gia đình mới hoặc tham gia gia đình của người thân bằng mã.
-          </p>
-          {sentRequests.length > 0 && (
-            <p className="text-xs leading-5 text-amber-100">Đang chờ duyệt: {sentRequests.map((r) => r.name).join(', ')}</p>
           )}
-          <div className="grid grid-cols-2 gap-3">
-            <LinkButton to="/family/create" variant="primary">
-              Tạo gia đình
-            </LinkButton>
-            <LinkButton to="/family/join">Tham gia</LinkButton>
-          </div>
         </GlassPanel>
-      )}
 
-      {/* Nút chính (chuông thông báo) sát góc phải, bên trái là nút thoát */}
-      <FabGroup>
-        <Fab icon="logout" label="Đăng xuất" variant="secondary" onClick={logout} />
-        {/* Chuông luôn màu nút chính để khác hẳn nút thoát (xám); có yêu cầu thì thêm số đếm đỏ */}
-        <FabLink to="/notifications" icon="bell" label="Thông báo xin gia nhập" badge={requests.length} />
-      </FabGroup>
-    </PageShell>
+        {/* Đang gỡ phím tắt: đổi / gỡ màn hình bên trái / phải (vuốt ở màn hình chính để mở).
+            Chạm ô để đổi màn hình, chạm nút "−" ở góc để gỡ ngay */}
+        {current && editing && (
+          <GlassPanel className={SIDES_CLASS}>
+            {(['left', 'right'] as const).map((side) => {
+              const s = sides[side] ? shortcutById.get(sides[side]) : undefined
+              return (
+                <div key={side} className="relative">
+                  <Link to={`/shortcuts?side=${side}`} className={SIDE_BUTTON}>
+                    <Icon3D emoji={s?.icon ?? '➕'} className="h-7 w-7 shrink-0" />
+                    <span className="min-w-0">
+                      <span className="block truncate text-[11px] leading-4 text-white/60">{SIDE_LABEL[side]}</span>
+                      <span className="block truncate text-sm leading-5 font-semibold">{s?.name ?? 'Chưa đặt'}</span>
+                    </span>
+                  </Link>
+                  {s && user && (
+                    <button
+                      type="button"
+                      aria-label={`Gỡ màn hình ${SIDE_LABEL[side].toLowerCase()}`}
+                      onClick={() => setSideScreen(user.uid, side, null).catch((e) => console.error('Gỡ màn hình 2 bên thất bại', e))}
+                      className={`${REMOVE_BADGE} -top-2 -left-2`}
+                    >
+                      <span className="-mt-0.5">−</span>
+                    </button>
+                  )}
+                </div>
+              )
+            })}
+            <p className={`${SIDES_HINT} col-span-2 truncate text-center text-xs text-white/60`}>
+              Vuốt ở màn hình chính để mở · chạm ô để đổi · chạm − để gỡ
+            </p>
+          </GlassPanel>
+        )}
+
+        {current ? (
+          <GlassPanel className={GRID_PANEL_CLASS}>
+            <div className={HOME_GRID}>
+              {/* Icon các app con: không gỡ được */}
+              {APPS.map((app, i) => (
+                <HomeIcon
+                  key={app.id}
+                  icon={app.icon}
+                  name={app.name}
+                  gradient={app.gradient}
+                  to={app.path}
+                  soon={!app.path}
+                  editing={editing}
+                  index={i}
+                  onLongPress={startEditing}
+                />
+              ))}
+              {/* Phím tắt riêng của tài khoản này */}
+              {shortcuts.map((id, i) => {
+                const s = shortcutById.get(id)!
+                return (
+                  <HomeIcon
+                    key={id}
+                    icon={s.icon}
+                    name={s.name}
+                    to={s.path}
+                    {...shortcutLook(s)}
+                    editing={editing}
+                    index={APPS.length + i}
+                    onLongPress={startEditing}
+                    onOpen={() => markShortcutEntry(s.path)}
+                    onRemove={() => user && removeShortcut(user.uid, id).catch((e) => console.error('Gỡ phím tắt thất bại', e))}
+                  />
+                )
+              })}
+              <AddShortcutIcon />
+            </div>
+          </GlassPanel>
+        ) : (
+          // Chưa thuộc gia đình nào: tạo mới hoặc tham gia bằng mã
+          <GlassPanel className="space-y-4 text-center">
+            <div className="flex h-12 justify-center">
+              <Icon3D emoji="🏠" className="h-12 w-12" />
+            </div>
+            <p className="text-sm leading-5 text-white/80">
+              Dữ liệu Quỹ, Trạng thái, Chăm con thuộc về từng gia đình. Hãy tạo gia đình mới hoặc tham gia gia đình của người thân bằng mã.
+            </p>
+            {sentRequests.length > 0 && (
+              <p className="text-xs leading-5 text-amber-100">Đang chờ duyệt: {sentRequests.map((r) => r.name).join(', ')}</p>
+            )}
+            <div className="grid grid-cols-2 gap-3">
+              <LinkButton to="/family/create" variant="primary">
+                Tạo gia đình
+              </LinkButton>
+              <LinkButton to="/family/join">Tham gia</LinkButton>
+            </div>
+          </GlassPanel>
+        )}
+
+        {/* Nút chính (chuông thông báo) sát góc phải, bên trái là nút thoát */}
+        {editing ? (
+          // Đang gỡ phím tắt: chỉ còn nút xong (dấu check)
+          <FabGroup>
+            <Fab icon="save" label="Xong" onClick={() => setEditing(false)} />
+          </FabGroup>
+        ) : (
+          <FabGroup>
+            <Fab icon="logout" label="Đăng xuất" variant="secondary" onClick={logout} />
+            {/* Chuông luôn màu nút chính để khác hẳn nút thoát (xám); có yêu cầu thì thêm số đếm đỏ */}
+            <FabLink to="/notifications" icon="bell" label="Thông báo" badge={requests.length + salaryReminders.pending.length} />
+          </FabGroup>
+        )}
+      </PageShell>
+    </div>
   )
 }
 
@@ -168,13 +240,11 @@ export function LauncherPageSkeleton() {
           <Skeleton className={`${SIZE.label} w-52 rounded-md`} />
         </div>
       </GlassPanel>
-      <GlassPanel>
-        <div className={GRID}>
-          {APPS.map((app) => (
-            <div key={app.id} className="flex flex-col items-center gap-1.5">
-              <Skeleton className={`${SIZE.appIcon} rounded-[22%]`} />
-              <Skeleton className={`${SIZE.appLabel} w-10 rounded-md`} />
-            </div>
+      <GlassPanel className={GRID_PANEL_CLASS}>
+        <div className={HOME_GRID}>
+          {/* App con + phím tắt đã lưu lần trước + ô "+" */}
+          {Array.from({ length: APPS.length + getCachedShortcuts().length + 1 }, (_, i) => (
+            <HomeIconSkeleton key={i} />
           ))}
         </div>
       </GlassPanel>
