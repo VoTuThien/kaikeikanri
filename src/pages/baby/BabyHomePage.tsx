@@ -13,7 +13,8 @@ const FEATURES: Feature[] = [
   { icon: '🕒', label: 'Time line', hint: 'Ghi lại trong ngày', to: '/baby/timeline' },
   { icon: '📊', label: 'Thống kê', hint: 'Thời gian trong ngày', to: '/baby/stats' },
   { icon: '🏷️', label: 'Thẻ hoạt động', hint: 'Ăn, ngủ, chơi...', to: '/baby/cards' },
-  { icon: '⚙️', label: 'Cài đặt', hint: 'Tuỳ chỉnh app Chăm con' },
+  { icon: '👶', label: 'Con', hint: 'Thông tin các con', to: '/baby/children' },
+  { icon: '⚙️', label: 'Cài đặt', hint: 'Tuỳ chỉnh app Chăm con', wide: true },
 ]
 
 export function BabyHomePage() {

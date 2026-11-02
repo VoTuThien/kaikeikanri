@@ -22,6 +22,7 @@ import {
   type Side,
 } from '../lib/shortcuts'
 import { shortcutById } from '../shortcuts'
+import { useSalaryReminders } from './fund/data/salary'
 
 const HEADER_CLASS = 'space-y-3'
 // Nhiều icon thì chỉ lưới icon cuộn (có thanh cuộn); chừa lề trên cho nút gỡ và icon rung không bị cắt,
@@ -62,6 +63,8 @@ function FamilyCode({ code }: { code: string }) {
 export function LauncherPage() {
   const { user, logout } = useAuth()
   const { families, current, selectFamily, owned, requests, sentRequests } = useFamily()
+  // Chuông: số yêu cầu xin gia nhập + số tháng tới ngày nhận lương mà chưa nhập lương thực lãnh
+  const salaryReminders = useSalaryReminders()
   const navigate = useNavigate()
   const { ids: shortcuts, ...sides } = useShortcuts(user?.uid)
   // Nhấn giữ 1 icon: vào chế độ gỡ phím tắt (icon rung), bấm nút check để xong
@@ -216,7 +219,7 @@ export function LauncherPage() {
           <FabGroup>
             <Fab icon="logout" label="Đăng xuất" variant="secondary" onClick={logout} />
             {/* Chuông luôn màu nút chính để khác hẳn nút thoát (xám); có yêu cầu thì thêm số đếm đỏ */}
-            <FabLink to="/notifications" icon="bell" label="Thông báo xin gia nhập" badge={requests.length} />
+            <FabLink to="/notifications" icon="bell" label="Thông báo" badge={requests.length + salaryReminders.pending.length} />
           </FabGroup>
         )}
       </PageShell>

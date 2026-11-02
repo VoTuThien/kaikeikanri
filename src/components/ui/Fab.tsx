@@ -35,9 +35,10 @@ const ICON_PATHS: Record<FabIcon, string[]> = {
   send: ['M21 3L10 14', 'M21 3l-7 18-4-7-7-4 18-7z'],
 }
 
-function FabSvg({ icon }: { icon: FabIcon }) {
+// Icon nét trắng đơn giản: dùng trên FAB và cho các nút hiện ra khi trượt thẻ (không dùng icon 3D, xem CLAUDE.md)
+export function LineIcon({ icon, className = 'h-7 w-7' }: { icon: FabIcon; className?: string }) {
   return (
-    <svg viewBox="0 0 24 24" className="h-7 w-7" fill="none" stroke="#ffffff" strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="#ffffff" strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       {ICON_PATHS[icon].map((d) => (
         <path key={d} d={d} />
       ))}
@@ -74,7 +75,7 @@ interface FabProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'childr
 export function Fab({ icon, label, variant = 'primary', loading, disabled, className = '', ...rest }: FabProps) {
   return (
     <button aria-label={label} title={label} className={`${BASE} ${VARIANTS[variant]} ${className}`} disabled={disabled || loading} {...rest}>
-      {loading ? <span className="h-6 w-6 animate-spin rounded-full border-2 border-white/40 border-t-white" /> : <FabSvg icon={icon} />}
+      {loading ? <span className="h-6 w-6 animate-spin rounded-full border-2 border-white/40 border-t-white" /> : <LineIcon icon={icon} />}
     </button>
   )
 }
@@ -82,7 +83,7 @@ export function Fab({ icon, label, variant = 'primary', loading, disabled, class
 export function FabLink({ to, icon, label, variant = 'primary', badge = 0 }: { to: string; icon: FabIcon; label: string; variant?: Variant; badge?: number }) {
   return (
     <Link to={to} aria-label={badge ? `${label} (${badge})` : label} title={label} className={`${BASE} ${VARIANTS[variant]} relative`}>
-      <FabSvg icon={icon} />
+      <LineIcon icon={icon} />
       {/* Số đếm (vd số yêu cầu chưa xử lý) ở góc trên phải */}
       {badge > 0 && (
         <span className="absolute -top-1 -right-1 flex h-6 min-w-6 items-center justify-center rounded-full border-2 border-indigo-950 bg-rose-500 px-1 text-xs leading-none font-bold text-white">

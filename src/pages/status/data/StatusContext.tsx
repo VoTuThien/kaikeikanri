@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
 import { onSnapshot, orderBy, query, type DocumentData, type Timestamp } from 'firebase/firestore'
 import type { Actor } from '../../../lib/firestore'
+import { familyKey, useLiveQuery } from '../../../lib/liveQuery'
 import { placesCol, presenceCol, setMyPlace } from './api'
 import { decidePlace, type Fix } from './presence'
 import type { Place, Presence } from './types'
@@ -49,22 +50,19 @@ function toPresence(id: string, d: DocumentData): Presence {
 const GEO_OPTIONS: PositionOptions = { enableHighAccuracy: true, maximumAge: 15000, timeout: 20000 }
 
 export function StatusProvider({ actor, children }: { actor: Actor | null; children: ReactNode }) {
-  const [places, setPlaces] = useState<Place[] | null>(null)
-  const [presences, setPresences] = useState<Presence[] | null>(null)
   const [gps, setGps] = useState<GpsState>({ kind: 'idle' })
   const uid = actor?.uid
 
-  useEffect(() => {
-    if (!uid) return
-    const opts = { serverTimestamps: 'estimate' } as const
-    const unsubs = [
-      onSnapshot(query(placesCol(), orderBy('createdAt', 'asc')), (snap) =>
-        setPlaces(snap.docs.map((d) => toPlace(d.id, d.data(opts)))),
-      ),
-      onSnapshot(presenceCol(), (snap) => setPresences(snap.docs.map((d) => toPresence(d.id, d.data(opts))))),
-    ]
-    return () => unsubs.forEach((u) => u())
-  }, [uid])
+  // Dữ liệu realtime có nhớ tạm (liveQuery): mở lại app / vuốt qua lại thì hiện ngay, không chớp skeleton
+  const opts = { serverTimestamps: 'estimate' } as const
+  const places = useLiveQuery<Place[]>(uid ? familyKey('places') : null, (on) =>
+    onSnapshot(query(placesCol(), orderBy('createdAt', 'asc')), (snap) =>
+      on(snap.docs.map((d) => toPlace(d.id, d.data(opts))), snap.metadata.fromCache),
+    ),
+  )
+  const presences = useLiveQuery<Presence[]>(uid ? familyKey('presence') : null, (on) =>
+    onSnapshot(presenceCol(), (snap) => on(snap.docs.map((d) => toPresence(d.id, d.data(opts))), snap.metadata.fromCache)),
+  )
 
   // ----- Theo dõi vị trí (cách A: chỉ khi đang mở app Trạng thái) -----
   // Dùng ref để hàm nhận vị trí luôn đọc dữ liệu mới nhất mà không phải đăng ký lại GPS

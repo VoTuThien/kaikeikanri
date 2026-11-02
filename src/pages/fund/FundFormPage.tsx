@@ -9,8 +9,9 @@ import { Icon3D } from '../../components/ui/Icon3D'
 import { Skeleton } from '../../components/ui/Skeleton'
 import { BLOCK_3D, GLOSS_3D, TILE_3D, TILE_3D_SELECTED } from '../../components/ui/style3d'
 import { FieldLabel, TextField, TextFieldSkeleton } from '../../components/ui/TextField'
+import { NumberField } from '../../components/ui/NumberField'
 import { SIZE } from '../../components/ui/sizes'
-import { MoneyField } from '../../components/ui/MoneyField'
+import { MoneyField, MoneyFieldSkeleton } from '../../components/ui/MoneyField'
 import { formatDate, formatMoney } from '../../lib/format'
 import { createFund, deleteFund, updateFund } from './data/api'
 import { useFund } from './data/FundContext'
@@ -38,6 +39,8 @@ const PICKER_GRID = 'grid grid-cols-6 gap-2'
 const PANEL_CLASS = '!p-5'
 const FORM_CLASS = 'space-y-3'
 const FORM_ID = 'fund-form'
+// Tên (ô rộng) + số thứ tự (ô hẹp) trên 1 hàng
+const NAME_ROW = 'grid grid-cols-[1fr_5.5rem] gap-3'
 
 export function FundFormPage() {
   const { id } = useParams()
@@ -51,9 +54,13 @@ export function FundFormPage() {
 }
 
 function FundForm({ fund }: { fund?: Fund }) {
-  const { actor, settings } = useFund()
+  const { actor, settings, funds } = useFund()
   const navigate = useNavigate()
   const isNew = !fund
+  const ids = funds.map((f) => f.id)
+  // Số thứ tự: tạo mới mặc định = tổng số quỹ tính cả quỹ đang thêm (đứng cuối); gõ lớn hơn thì tự đưa về số đó
+  const count = isNew ? funds.length + 1 : funds.length
+  const [position, setPosition] = useState(fund?.position ?? count)
 
   const [name, setName] = useState(fund?.name ?? '')
   const [icon, setIcon] = useState(fund?.icon ?? ICONS[0])
@@ -79,8 +86,8 @@ function FundForm({ fund }: { fund?: Fund }) {
     setSaving(true)
     try {
       const input = { name: name.trim(), icon, color, interestRate: rate, transferred }
-      if (isNew) await createFund(input, initialBalance, actor)
-      else await updateFund(fund, input)
+      if (isNew) await createFund(input, initialBalance, actor, ids, position)
+      else await updateFund(fund, input, ids, position)
       navigate('/fund/groups')
     } catch (err) {
       console.error(err)
@@ -93,7 +100,7 @@ function FundForm({ fund }: { fund?: Fund }) {
     if (!fund) return
     setDeleting(true)
     try {
-      await deleteFund(fund.id)
+      await deleteFund(fund.id, ids)
       navigate('/fund/groups')
     } catch (err) {
       console.error(err)
@@ -107,14 +114,18 @@ function FundForm({ fund }: { fund?: Fund }) {
       <AppHeader title={isNew ? 'Tạo nhóm quỹ' : 'Sửa nhóm quỹ'} backTo="/fund/groups" />
       <GlassPanel className={`${PANEL_CLASS} ${FIT_CLASS}`}>
         <form id={FORM_ID} onSubmit={handleSubmit} className={FORM_CLASS} noValidate>
-          <TextField
-            id="name"
-            label="Tên nhóm quỹ"
-            placeholder="Ví dụ: Quỹ du lịch"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            maxLength={40}
-          />
+          {/* Tên + số thứ tự trên 1 hàng; đổi số thì các quỹ khác tự dời để số luôn liên tục, không trùng */}
+          <div className={NAME_ROW}>
+            <TextField
+              id="name"
+              label="Tên nhóm quỹ"
+              placeholder="Ví dụ: Quỹ du lịch"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              maxLength={40}
+            />
+            <NumberField id="position" label="Số thứ tự" value={position} onChange={setPosition} max={count} />
+          </div>
 
           <div className="space-y-1.5">
             <FieldLabel>Biểu tượng</FieldLabel>
@@ -259,12 +270,15 @@ export function FundFormPageSkeleton({ isNew }: { isNew: boolean }) {
       <AppHeaderSkeleton />
       <GlassPanel className={`${PANEL_CLASS} ${FIT_CLASS}`}>
         <div className={FORM_CLASS}>
-          <TextFieldSkeleton />
+          <div className={NAME_ROW}>
+            <TextFieldSkeleton />
+            <TextFieldSkeleton />
+          </div>
           {picker(ICONS.length)}
           {picker(COLORS.length)}
           <div className={isNew ? 'grid grid-cols-2 gap-3' : ''}>
             <TextFieldSkeleton />
-            {isNew && <TextFieldSkeleton />}
+            {isNew && <MoneyFieldSkeleton />}
           </div>
           <div className={`${SIZE.control} flex items-center gap-2.5`}>
             <Skeleton className="h-6 w-6 rounded-md" />

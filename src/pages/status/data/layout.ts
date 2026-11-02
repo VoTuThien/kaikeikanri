@@ -10,6 +10,7 @@ const FOOTPRINT: Record<PlaceType, number> = {
   bus: 1,
   supermarket: 2,
   hospital: 2,
+  restaurant: 1,
 }
 
 export const footprint = (type: PlaceType) => FOOTPRINT[type]

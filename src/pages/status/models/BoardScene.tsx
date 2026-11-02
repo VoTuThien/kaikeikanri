@@ -59,6 +59,7 @@ const MODEL_TOP: Record<PlaceType, number> = {
   bus: 0.95,
   supermarket: 0.8,
   hospital: 0.85,
+  restaurant: 0.95,
 }
 
 const PREVIEW_COLOR: Record<BoardPreview['status'], string> = {

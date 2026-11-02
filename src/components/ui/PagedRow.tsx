@@ -48,13 +48,15 @@ interface PagedRowProps<T> {
   itemWidth: number // bề rộng tối thiểu 1 mục (px) để hiện đủ thông tin
   empty?: ReactNode // nội dung khi không có mục nào
   className?: string // vd chừa chỗ bên phải cho nút nổi
+  perPage?: number // cố định số mục mỗi trang (bỏ qua cách tính theo bề rộng), vd lưới chọn loại địa điểm 4 mục / trang
+  startIndex?: number // mở sẵn trang chứa mục này (vd mục đang được chọn)
 }
 
-export function PagedRow<T>({ items, getKey, renderItem, itemWidth, empty, className = '' }: PagedRowProps<T>) {
+export function PagedRow<T>({ items, getKey, renderItem, itemWidth, empty, className = '', perPage: fixed, startIndex = 0 }: PagedRowProps<T>) {
   const [ref, width] = useWidth()
-  const [page, setPage] = useState(0)
+  const [page, setPage] = useState(() => (fixed ? Math.floor(startIndex / fixed) : 0))
 
-  const perPage = perPageFor(width, itemWidth)
+  const perPage = fixed ?? perPageFor(width, itemWidth)
   const pages = Math.max(1, Math.ceil(items.length / perPage))
   // Danh sách ngắn lại (vd vừa kéo 1 mục lên bản đồ) thì không để trang hiện tại vượt quá trang cuối
   const current = Math.min(page, pages - 1)
@@ -80,9 +82,19 @@ export function PagedRow<T>({ items, getKey, renderItem, itemWidth, empty, class
 }
 
 // Skeleton: cùng nút tam giác hai bên, mục giữa do trang tự vẽ
-export function PagedRowSkeleton({ itemWidth, renderItem, className = '' }: { itemWidth: number; renderItem: () => ReactNode; className?: string }) {
+export function PagedRowSkeleton({
+  itemWidth,
+  renderItem,
+  className = '',
+  perPage: fixed,
+}: {
+  itemWidth: number
+  renderItem: () => ReactNode
+  className?: string
+  perPage?: number
+}) {
   const [ref, width] = useWidth()
-  const count = width ? perPageFor(width, itemWidth) : 0
+  const count = fixed ?? (width ? perPageFor(width, itemWidth) : 0)
   return (
     <div className={`flex h-full items-center gap-1 px-1 ${className}`}>
       <Skeleton className={`${ARROW} shrink-0 rounded-lg opacity-50`} />

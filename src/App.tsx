@@ -12,20 +12,29 @@ import { LauncherPage, LauncherPageSkeleton } from './pages/LauncherPage'
 import { ShortcutPickerPage, ShortcutPickerPageSkeleton } from './pages/ShortcutPickerPage'
 import { SidePage, SidePageSkeleton } from './pages/SidePage'
 import { SideSwipe } from './components/SideSwipe'
+import { RefreshIndicator } from './components/RefreshIndicator'
 import { BabyHomePage } from './pages/baby/BabyHomePage'
 import { CardFormPage } from './pages/baby/CardFormPage'
 import { CardListPage } from './pages/baby/CardListPage'
+import { ChildFormPage } from './pages/baby/ChildFormPage'
+import { ChildListPage } from './pages/baby/ChildListPage'
 import { BabyLayout } from './pages/baby/components'
 import { StatsPage } from './pages/baby/StatsPage'
 import { TimelinePage } from './pages/baby/TimelinePage'
 import { FundLayout } from './pages/fund/components'
 import { FundFormPage } from './pages/fund/FundFormPage'
+import { FundActionPage } from './pages/fund/FundActionPage'
 import { FundHomePage } from './pages/fund/FundHomePage'
 import { FundListPage } from './pages/fund/FundListPage'
 import { FundSettingsPage } from './pages/fund/FundSettingsPage'
 import { HistoryPage } from './pages/fund/HistoryPage'
 import { TransactionPage } from './pages/fund/TransactionPage'
 import { TransferPage } from './pages/fund/TransferPage'
+import { OrderListPage } from './pages/fund/OrderListPage'
+import { OrderFormPage } from './pages/fund/OrderFormPage'
+import { ExecutePage } from './pages/fund/ExecutePage'
+import { SalaryPage } from './pages/fund/SalaryPage'
+import { StatsPage as FundStatsPage } from './pages/fund/StatsPage'
 import { StatusLayout } from './pages/status/components'
 import { LiveStatusPage } from './pages/status/LiveStatusPage'
 import { MiniMapPage } from './pages/status/MiniMapPage'
@@ -83,15 +92,25 @@ function AppRoutes({ location }: { location?: string }) {
         <Route path="groups" element={<FundListPage />} />
         <Route path="groups/new" element={<FundFormPage />} />
         <Route path="groups/:id" element={<FundFormPage />} />
+        <Route path="groups/:id/tx" element={<FundActionPage />} />
         <Route path="deposit" element={<TransactionPage kind="deposit" />} />
         <Route path="withdraw" element={<TransactionPage kind="withdraw" />} />
         <Route path="transfer" element={<TransferPage />} />
+        <Route path="salary" element={<SalaryPage />} />
+        <Route path="orders" element={<OrderListPage />} />
+        <Route path="orders/new" element={<OrderFormPage />} />
+        <Route path="orders/:id" element={<OrderFormPage />} />
+        <Route path="execute" element={<ExecutePage />} />
         <Route path="history" element={<HistoryPage />} />
+        <Route path="stats" element={<FundStatsPage />} />
         <Route path="settings" element={<FundSettingsPage />} />
       </Route>
       {/* App Chăm con */}
       <Route path="/baby" element={<BabyLayout />}>
         <Route index element={<BabyHomePage />} />
+        <Route path="children" element={<ChildListPage />} />
+        <Route path="children/new" element={<ChildFormPage />} />
+        <Route path="children/:id" element={<ChildFormPage />} />
         <Route path="cards" element={<CardListPage />} />
         <Route path="cards/new" element={<CardFormPage />} />
         <Route path="cards/:id" element={<CardFormPage />} />
@@ -132,6 +151,8 @@ export default function App() {
         <BrowserRouter>
           {/* Vuốt ngang giữa màn hình chính và 2 màn hình 2 bên */}
           <SideSwipe render={renderRoutes} />
+          {/* Vòng xoay nhỏ góc trái dưới khi trang đang hiện dữ liệu nhớ tạm và cập nhật lại từ server */}
+          <RefreshIndicator />
         </BrowserRouter>
       </FamilyProvider>
     </AuthProvider>

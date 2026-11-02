@@ -7,6 +7,7 @@ import { Button } from '../../components/ui/Button'
 import { FabSkeleton, SaveDeleteFabs } from '../../components/ui/Fab'
 import { GlassPanel } from '../../components/ui/GlassPanel'
 import { Icon3D } from '../../components/ui/Icon3D'
+import { PagedRow, PagedRowSkeleton } from '../../components/ui/PagedRow'
 import { Skeleton } from '../../components/ui/Skeleton'
 import { FieldLabel, TextField, TextFieldSkeleton } from '../../components/ui/TextField'
 import { SIZE } from '../../components/ui/sizes'
@@ -24,8 +25,12 @@ const PANEL_CLASS = '!p-5'
 const FORM_CLASS = 'space-y-3'
 const FORM_ID = 'place-form'
 const PREVIEW_HEIGHT = 'h-28'
-// 7 loại địa điểm trên 1 hàng, ô bằng nhau
-const TYPE_GRID = 'grid grid-cols-7 gap-1.5'
+// Chọn loại địa điểm: hàng ngang phân trang, 4 loại mỗi trang, CHỈ ICON (tên loại hiện ở khung xem trước phía trên)
+// để tiết kiệm chỗ; thêm loại mới chỉ thêm trang
+const TYPES_PER_PAGE = 4
+const TYPE_ITEM_WIDTH = 48
+const TYPE_ROW = SIZE.control
+const TYPE_TILE = SIZE.control
 // Ô tọa độ chiếm 2 cột, nút lấy vị trí 1 cột, căn đáy để thẳng hàng với ô nhập
 const COORD_ROW = 'grid grid-cols-3 items-end gap-3'
 
@@ -130,22 +135,29 @@ function PlaceForm({ place }: { place?: Place }) {
 
           <div className="space-y-1.5">
             <FieldLabel>Loại địa điểm</FieldLabel>
-            <div className={TYPE_GRID}>
-              {PLACE_TYPES.map((t) => (
-                <button
-                  key={t.value}
-                  type="button"
-                  onClick={() => setType(t.value)}
-                  aria-pressed={t.value === type}
-                  aria-label={t.label}
-                  title={t.label}
-                  className={`${SIZE.control} flex items-center justify-center rounded-xl transition duration-150 ${
-                    t.value === type ? TILE_3D_SELECTED : TILE_3D
-                  }`}
-                >
-                  <Icon3D emoji={t.emoji} className={`h-7 w-7 transition-transform ${t.value === type ? 'scale-110' : ''}`} />
-                </button>
-              ))}
+            {/* Hàng ngang phân trang (4 loại / trang, nút tam giác 2 bên) để sau này thêm loại mới vẫn thoáng */}
+            <div className={TYPE_ROW}>
+              <PagedRow
+                items={PLACE_TYPES}
+                getKey={(t) => t.value}
+                itemWidth={TYPE_ITEM_WIDTH}
+                perPage={TYPES_PER_PAGE}
+                startIndex={PLACE_TYPES.findIndex((t) => t.value === type)}
+                renderItem={(t) => (
+                  <button
+                    type="button"
+                    onClick={() => setType(t.value)}
+                    aria-pressed={t.value === type}
+                    aria-label={t.label}
+                    title={t.label}
+                    className={`${TYPE_TILE} flex w-full items-center justify-center rounded-xl transition duration-150 ${
+                      t.value === type ? TILE_3D_SELECTED : TILE_3D
+                    }`}
+                  >
+                    <Icon3D emoji={t.emoji} className={`h-8 w-8 transition-transform ${t.value === type ? 'scale-110' : ''}`} />
+                  </button>
+                )}
+              />
             </div>
           </div>
 
@@ -218,10 +230,12 @@ export function PlaceFormPageSkeleton({ isNew }: { isNew: boolean }) {
           <Skeleton className={`${PREVIEW_HEIGHT} w-full rounded-2xl`} />
           <div className="space-y-1.5">
             <Skeleton className={`${SIZE.label} w-28 rounded-md`} />
-            <div className={TYPE_GRID}>
-              {PLACE_TYPES.map((t) => (
-                <Skeleton key={t.value} className={SIZE.control} />
-              ))}
+            <div className={TYPE_ROW}>
+              <PagedRowSkeleton
+                itemWidth={TYPE_ITEM_WIDTH}
+                perPage={TYPES_PER_PAGE}
+                renderItem={() => <Skeleton className={`${TYPE_TILE} w-full rounded-xl`} />}
+              />
             </div>
           </div>
           <TextFieldSkeleton />

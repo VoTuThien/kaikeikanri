@@ -1,4 +1,4 @@
-export type PlaceType = 'house' | 'market' | 'company' | 'tram' | 'bus' | 'supermarket' | 'hospital'
+export type PlaceType = 'house' | 'market' | 'company' | 'tram' | 'bus' | 'supermarket' | 'hospital' | 'restaurant'
 
 // Các loại địa điểm: mỗi loại có 1 mô hình 3D (models/PlaceModels.tsx) và 1 icon 3D ảnh
 export const PLACE_TYPES: { value: PlaceType; label: string; emoji: string }[] = [
@@ -9,6 +9,7 @@ export const PLACE_TYPES: { value: PlaceType; label: string; emoji: string }[] =
   { value: 'bus', label: 'Trạm xe buýt', emoji: '🚏' },
   { value: 'supermarket', label: 'Siêu thị', emoji: '🛒' },
   { value: 'hospital', label: 'Bệnh viện', emoji: '🏥' },
+  { value: 'restaurant', label: 'Quán ăn', emoji: '🍜' },
 ]
 
 export const placeTypeInfo = (type: PlaceType) => PLACE_TYPES.find((t) => t.value === type) ?? PLACE_TYPES[0]

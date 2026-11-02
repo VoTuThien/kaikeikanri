@@ -14,9 +14,13 @@ export interface ShortcutEntry {
 export const SHORTCUTS: ShortcutEntry[] = [
   // App Quỹ
   { id: 'fund-history', appId: 'fund', name: 'Tra cứu', icon: '🔍', path: '/fund/history' },
+  { id: 'fund-stats', appId: 'fund', name: 'Thống kê', icon: '📊', path: '/fund/stats' },
   { id: 'fund-withdraw', appId: 'fund', name: 'Rút quỹ', icon: '➖', path: '/fund/withdraw' },
   { id: 'fund-deposit', appId: 'fund', name: 'Nạp quỹ', icon: '➕', path: '/fund/deposit' },
   { id: 'fund-transfer', appId: 'fund', name: 'Chuyển quỹ', icon: '🔄', path: '/fund/transfer' },
+  { id: 'fund-salary', appId: 'fund', name: 'Lương', icon: '💼', path: '/fund/salary' },
+  { id: 'fund-orders', appId: 'fund', name: 'Lệnh chuyển', icon: '📝', path: '/fund/orders' },
+  { id: 'fund-execute', appId: 'fund', name: 'Thực thi', icon: '🚀', path: '/fund/execute' },
   { id: 'fund-groups', appId: 'fund', name: 'Nhóm quỹ', icon: '🗂️', path: '/fund/groups' },
   // App Trạng thái
   { id: 'status-live', appId: 'status', name: 'Trạng thái', icon: '👥', path: '/status/live' },
@@ -25,6 +29,7 @@ export const SHORTCUTS: ShortcutEntry[] = [
   // App Chăm con
   { id: 'baby-timeline', appId: 'baby', name: 'Time line', icon: '🕒', path: '/baby/timeline' },
   { id: 'baby-stats', appId: 'baby', name: 'Thống kê', icon: '📊', path: '/baby/stats' },
+  { id: 'baby-children', appId: 'baby', name: 'Con', icon: '👶', path: '/baby/children' },
   { id: 'baby-cards', appId: 'baby', name: 'Thẻ hoạt động', icon: '🏷️', path: '/baby/cards' },
 ]
 

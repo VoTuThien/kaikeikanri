@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { AppHeader, AppHeaderSkeleton } from '../../components/AppHeader'
 import { PageShell, ScrollArea } from '../../components/PageShell'
@@ -12,7 +12,7 @@ import { PagedRow, PagedRowSkeleton } from '../../components/ui/PagedRow'
 import { Skeleton } from '../../components/ui/Skeleton'
 import { TextField } from '../../components/ui/TextField'
 import { SIZE } from '../../components/ui/sizes'
-import { CardIcon, DayBar, DayBarSkeleton } from './components'
+import { CardIcon, ChildSelect, ChildSelectSkeleton, DayBar, DayBarSkeleton } from './components'
 import { createEntry, deleteEntry, updateEntry, type EntryTiming } from './data/api'
 import { useBaby, useDayEntries } from './data/BabyContext'
 import {
@@ -55,8 +55,11 @@ export function TimelinePage() {
 }
 
 function Timeline({ day, setDay, entries }: { day: Date; setDay: (d: Date) => void; entries: BabyEntry[] | null }) {
-  const { cards } = useBaby()
+  const { cards, child } = useBaby()
   const [sheet, setSheet] = useState<Sheet | null>(null)
+  // Đổi con thì đóng khung nhập đang mở (khung đó thuộc con cũ)
+  const childId = child?.id
+  useEffect(() => setSheet(null), [childId])
 
   function changeDay(next: Date) {
     setSheet(null)
@@ -68,6 +71,8 @@ function Timeline({ day, setDay, entries }: { day: Date; setDay: (d: Date) => vo
   return (
     <PageShell>
       <AppHeader title="Time line" backTo="/baby" />
+      {/* Chọn con (giống chọn gia đình ở màn hình chính); dữ liệu bên dưới là của con này */}
+      <ChildSelect />
 
       <DayBar day={day} onChange={changeDay} />
 
@@ -215,7 +220,7 @@ function linkNeighbors(
 }
 
 function EntrySheet({ sheet, day, entries, onClose }: { sheet: Sheet; day: Date; entries: BabyEntry[]; onClose: () => void }) {
-  const { actor } = useBaby()
+  const { actor, child } = useBaby()
   const isNew = sheet.mode === 'new'
   const look = isNew ? sheet.card : sheet.entry
   // Hoạt động cuối cùng trong danh sách; nếu nó chưa kết thúc thì khi lưu hoạt động mới sẽ kết thúc nó
@@ -293,7 +298,8 @@ function EntrySheet({ sheet, day, entries, onClose }: { sheet: Sheet; day: Date;
     setSaving(true)
     try {
       const card = isNew ? sheet.card : { id: sheet.entry.cardId, name: sheet.entry.name, icon: sheet.entry.icon, color: sheet.entry.color }
-      const input = { card, start, minutes: completed ? minutes : null }
+      // Hoạt động thuộc con đang chọn; sửa hoạt động cũ chưa gắn con thì gắn luôn vào con đang chọn
+      const input = { childId: isNew ? (child?.id ?? null) : (sheet.entry.childId ?? child?.id ?? null), card, start, minutes: completed ? minutes : null }
       if (isNew) await createEntry(input, actor, unfinished)
       else await updateEntry(sheet.entry.id, input, link?.linked)
       onClose()
@@ -447,6 +453,7 @@ export function TimelinePageSkeleton() {
   return (
     <PageShell>
       <AppHeaderSkeleton />
+      <ChildSelectSkeleton />
       <DayBarSkeleton />
       <ScrollArea className={`${TABLE_CLASS} !overflow-hidden`}>
         <TimelineRowsSkeleton />

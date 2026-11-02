@@ -1,16 +1,19 @@
-import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, useRef, type ReactNode } from 'react'
 import { limit, onSnapshot, orderBy, query, type DocumentData, type Timestamp } from 'firebase/firestore'
 import { formatMoney } from '../../../lib/format'
+import { familyKey, useLiveQuery } from '../../../lib/liveQuery'
 import type { Actor } from '../../../lib/firestore'
 import { applyDueInterest, fundsCol, settingsDoc, txCol } from './api'
 import { nextInterestDate } from './interest'
-import { DEFAULT_SETTINGS, type Fund, type FundSettings, type FundTransaction } from './types'
+import { ordersCol, runDoc, runsCol, salariesCol } from './orders'
+import { DEFAULT_SETTINGS, type Fund, type FundOrder, type FundRun, type FundSettings, type FundTransaction, type Salary } from './types'
 
 interface FundData {
   // Người đang đăng nhập (quỹ và giao dịch là dữ liệu dùng chung, cài đặt là của riêng người này)
   actor: Actor
   funds: Fund[]
   transactions: FundTransaction[]
+  orders: FundOrder[] // lệnh chuyển soạn sẵn, xếp theo số thứ tự (position 1, 2, 3...)
   settings: FundSettings
   loading: boolean
   // Hiển thị số tiền, tự ẩn nếu bật "Ẩn số dư" trong cài đặt
@@ -31,6 +34,8 @@ export function getCachedSettings(): FundSettings {
   }
 }
 
+const OPTS = { serverTimestamps: 'estimate' } as const
+
 const toDate = (v: unknown) => (v ? (v as Timestamp).toDate() : null)
 
 function toFund(id: string, d: DocumentData): Fund {
@@ -44,8 +49,37 @@ function toFund(id: string, d: DocumentData): Fund {
     transferred: d.transferred ?? false,
     interestAnchor: toDate(d.interestAnchor),
     interestPeriods: d.interestPeriods ?? 0,
+    position: d.position ?? Number.MAX_SAFE_INTEGER,
     createdAt: toDate(d.createdAt),
   }
+}
+
+// Xếp nhóm quỹ theo số thứ tự (quỹ cũ chưa có số thì theo lúc tạo), rồi đánh lại 1, 2, 3... cho liên tục
+function sortFunds(list: Fund[]): Fund[] {
+  return [...list]
+    .sort((a, b) => a.position - b.position || (a.createdAt?.getTime() ?? 0) - (b.createdAt?.getTime() ?? 0))
+    .map((f, i) => ({ ...f, position: i + 1 }))
+}
+
+function toOrder(id: string, d: DocumentData): FundOrder {
+  return {
+    id,
+    type: d.type ?? 'transfer',
+    fromFundId: d.fromFundId ?? null,
+    toFundId: d.toFundId ?? null,
+    amount: d.amount ?? 0,
+    allBalance: !!d.allBalance,
+    note: d.note ?? '',
+    position: d.position ?? Number.MAX_SAFE_INTEGER,
+    createdAt: toDate(d.createdAt),
+  }
+}
+
+// Xếp lệnh theo số thứ tự (lệnh cũ chưa có số thì theo lúc tạo), rồi đánh lại 1, 2, 3... cho liên tục
+function sortOrders(list: FundOrder[]): FundOrder[] {
+  return [...list]
+    .sort((a, b) => a.position - b.position || (a.createdAt?.getTime() ?? 0) - (b.createdAt?.getTime() ?? 0))
+    .map((o, i) => ({ ...o, position: i + 1 }))
 }
 
 function toTransaction(id: string, d: DocumentData): FundTransaction {
@@ -57,38 +91,50 @@ function toTransaction(id: string, d: DocumentData): FundTransaction {
     note: d.note ?? '',
     date: toDate(d.date) ?? new Date(),
     createdByName: d.createdByName ?? '',
+    peerFundId: d.peerFundId ?? null,
+    pairId: d.pairId ?? null,
+    orderId: d.orderId ?? null,
+    runId: d.runId ?? null,
+    deleted: !!d.deleted,
+    deletedByName: d.deletedByName ?? '',
+    createdAt: toDate(d.createdAt),
   }
 }
 
 export function FundProvider({ actor, children }: { actor: Actor | null; children: ReactNode }) {
   const uid = actor?.uid
-  const [funds, setFunds] = useState<Fund[] | null>(null)
-  const [transactions, setTransactions] = useState<FundTransaction[] | null>(null)
-  const [settings, setSettings] = useState<FundSettings | null>(null)
   const interestTried = useRef(new Set<string>())
 
-  useEffect(() => {
-    if (!uid) return
-    const opts = { serverTimestamps: 'estimate' } as const
-    const unsubs = [
-      onSnapshot(query(fundsCol(), orderBy('createdAt', 'asc')), (snap) =>
-        setFunds(snap.docs.map((d) => toFund(d.id, d.data(opts)))),
+  // Dữ liệu realtime có nhớ tạm (liveQuery): mở lại app Quỹ / vuốt qua lại thì hiện ngay dữ liệu đã có, không chớp skeleton
+  const funds = useLiveQuery<Fund[]>(uid ? familyKey('funds') : null, (on) =>
+    onSnapshot(query(fundsCol(), orderBy('createdAt', 'asc')), (snap) =>
+      on(sortFunds(snap.docs.map((d) => toFund(d.id, d.data(OPTS)))), snap.metadata.fromCache),
+    ),
+  )
+  const transactions = useLiveQuery<FundTransaction[]>(uid ? familyKey('transactions') : null, (on) =>
+    onSnapshot(query(txCol(), orderBy('date', 'desc'), limit(1000)), (snap) =>
+      on(
+        snap.docs.map((d) => toTransaction(d.id, d.data(OPTS))),
+        snap.metadata.fromCache,
       ),
-      onSnapshot(query(txCol(), orderBy('date', 'desc'), limit(1000)), (snap) =>
-        setTransactions(snap.docs.map((d) => toTransaction(d.id, d.data(opts)))),
-      ),
-      onSnapshot(settingsDoc(uid), (snap) => {
-        const s = { ...DEFAULT_SETTINGS, ...snap.data() }
-        setSettings(s)
-        try {
-          localStorage.setItem(SETTINGS_CACHE_KEY, JSON.stringify(s))
-        } catch {
-          // Không lưu được cache thì skeleton dùng cài đặt mặc định
-        }
-      }),
-    ]
-    return () => unsubs.forEach((u) => u())
-  }, [uid])
+    ),
+  )
+  const orders = useLiveQuery<FundOrder[]>(uid ? familyKey('fundOrders') : null, (on) =>
+    onSnapshot(query(ordersCol(), orderBy('createdAt', 'asc')), (snap) =>
+      on(sortOrders(snap.docs.map((d) => toOrder(d.id, d.data(OPTS)))), snap.metadata.fromCache),
+    ),
+  )
+  const settings = useLiveQuery<FundSettings>(uid ? `user:${uid}:fundSettings` : null, (on) =>
+    onSnapshot(settingsDoc(uid!), (snap) => {
+      const v = { ...DEFAULT_SETTINGS, ...snap.data() }
+      on(v, snap.metadata.fromCache)
+      try {
+        localStorage.setItem(SETTINGS_CACHE_KEY, JSON.stringify(v))
+      } catch {
+        // Không lưu được cache thì skeleton dùng cài đặt mặc định
+      }
+    }),
+  )
 
   // Tự cộng lãi cho các quỹ đã đến hạn (mỗi quỹ thử 1 lần mỗi lần mở app)
   useEffect(() => {
@@ -108,8 +154,9 @@ export function FundProvider({ actor, children }: { actor: Actor | null; childre
     actor: actor ?? { uid: '', name: '' },
     funds: funds ?? [],
     transactions: transactions ?? [],
+    orders: orders ?? [],
     settings: s,
-    loading: !uid || !funds || !transactions || !settings,
+    loading: !uid || !funds || !transactions || !orders || !settings,
     showMoney: (n) => (s.hideBalance ? '•••••• ₫' : formatMoney(n)),
   }
 
@@ -120,4 +167,45 @@ export function useFund() {
   const ctx = useContext(FundContext)
   if (!ctx) throw new Error('useFund phải được dùng bên trong FundProvider')
   return ctx
+}
+
+// Đợt thực thi của 1 tháng (màn hình Thực thi): trạng thái đợt + lương từng người, cập nhật realtime. null = đang tải.
+export function useFundRun(month: string): { run: FundRun; salaries: Salary[] } | null {
+  const run = useLiveQuery<FundRun>(familyKey('fundRuns', month), (on) =>
+    onSnapshot(runDoc(month), (snap) => on(toRun(month, snap.data(OPTS) ?? {}), snap.metadata.fromCache)),
+  )
+  const salaries = useLiveQuery<Salary[]>(familyKey('fundRuns', month, 'salaries'), (on) =>
+    onSnapshot(salariesCol(month), (snap) =>
+      on(
+        snap.docs.map((d) => {
+          const v = d.data(OPTS)
+          return { uid: d.id, name: v.name ?? '', amount: v.amount ?? 0, fundId: v.fundId ?? null, updatedAt: toDate(v.updatedAt) }
+        }),
+        snap.metadata.fromCache,
+      ),
+    ),
+  )
+  return run && salaries ? { run, salaries } : null
+}
+
+function toRun(month: string, d: DocumentData): FundRun {
+  const executed: Record<string, Date> = {}
+  for (const [id, at] of Object.entries(d.executed ?? {})) if (at) executed[id] = (at as Timestamp).toDate()
+  return {
+    month,
+    summarizedByName: d.summarizedByName ?? null,
+    summarizedAt: toDate(d.summarizedAt),
+    executed,
+    balances: d.balances ?? null,
+    total: d.total ?? null,
+  }
+}
+
+// Mọi đợt thực thi đã có (mỗi tháng 1 đợt), realtime; dùng cho màn hình Thống kê. null = đang tải.
+export function useFundRuns(): Map<string, FundRun> | null {
+  return useLiveQuery<Map<string, FundRun>>(familyKey('fundRuns'), (on) =>
+    onSnapshot(runsCol(), (snap) =>
+      on(new Map(snap.docs.map((d) => [d.id, toRun(d.id, d.data(OPTS))])), snap.metadata.fromCache),
+    ),
+  )
 }

@@ -1,11 +1,12 @@
 import { addDoc, deleteDoc, doc, serverTimestamp, Timestamp, updateDoc, writeBatch } from 'firebase/firestore'
 import { familyCol } from '../../../lib/family'
 import { commit, requireDb, type Actor } from '../../../lib/firestore'
-import { addMinutes, type BabyCardInput, type BabyEntry, type BabyEntryInput } from './types'
+import { addMinutes, type BabyCardInput, type BabyEntry, type BabyEntryInput, type ChildInput } from './types'
 
 // Cấu trúc dữ liệu trên Firestore (chỉ thành viên gia đình xem / sửa được):
 //   families/{familyId}/babyCards/{cardId}     thẻ hoạt động (tên, icon, màu, thời gian mặc định)
-//   families/{familyId}/babyEntries/{entryId}  hoạt động trên time line (bắt đầu, số phút, kết thúc; chưa hoàn thành thì số phút / kết thúc = null)
+//   families/{familyId}/children/{childId}     con (tên, ngày / giờ sinh, giới tính, avatar)
+//   families/{familyId}/babyEntries/{entryId}  hoạt động trên time line, có childId = của con nào (bắt đầu, số phút, kết thúc; chưa hoàn thành thì số phút / kết thúc = null)
 
 export const cardsCol = () => familyCol('babyCards')
 export const entriesCol = () => familyCol('babyEntries')
@@ -30,8 +31,24 @@ const timing = (start: Date, minutes: number | null) => ({
   end: minutes === null ? null : Timestamp.fromDate(addMinutes(start, minutes)), // kết thúc = bắt đầu + thời gian hoạt động
 })
 
-function entryData({ card, start, minutes }: BabyEntryInput) {
-  return { cardId: card.id, name: card.name, icon: card.icon, color: card.color, ...timing(start, minutes) }
+function entryData({ childId, card, start, minutes }: BabyEntryInput) {
+  return { childId, cardId: card.id, name: card.name, icon: card.icon, color: card.color, ...timing(start, minutes) }
+}
+
+// ---- Con ----
+export const childrenCol = () => familyCol('children')
+
+export async function createChild(input: ChildInput, by: Actor) {
+  await commit(addDoc(childrenCol(), { ...input, createdAt: serverTimestamp(), createdBy: by.uid }))
+}
+
+export async function updateChild(id: string, input: ChildInput) {
+  await commit(updateDoc(doc(childrenCol(), id), { ...input }))
+}
+
+// Xoá con không xoá các hoạt động đã ghi (chỉ không còn hiện trên time line / thống kê)
+export async function deleteChild(id: string) {
+  await commit(deleteDoc(doc(childrenCol(), id)))
 }
 
 /**

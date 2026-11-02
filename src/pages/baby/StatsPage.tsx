@@ -5,7 +5,7 @@ import { GLASS_CLASS, GlassPanel } from '../../components/ui/GlassPanel'
 import { Icon3D } from '../../components/ui/Icon3D'
 import { Skeleton } from '../../components/ui/Skeleton'
 import { SIZE } from '../../components/ui/sizes'
-import { CardIcon, DayBar, DayBarSkeleton } from './components'
+import { CardIcon, ChildSelect, ChildSelectSkeleton, DayBar, DayBarSkeleton } from './components'
 import { useBaby, useDayEntries } from './data/BabyContext'
 import { compactDuration, dayStats, niceScale, type ActivityStat } from './data/stats'
 import { formatDuration, startOfDay, type BabyEntry } from './data/types'
@@ -57,6 +57,8 @@ function Stats({ day, setDay, entries }: { day: Date; setDay: (d: Date) => void;
   return (
     <PageShell>
       <AppHeader title="Thống kê" backTo="/baby" />
+      {/* Chọn con (giống chọn gia đình ở màn hình chính); dữ liệu bên dưới là của con này */}
+      <ChildSelect />
       <DayBar day={day} onChange={changeDay} />
 
       <div className="grid grid-cols-2 gap-3">
@@ -270,6 +272,7 @@ export function StatsPageSkeleton() {
   return (
     <PageShell>
       <AppHeaderSkeleton />
+      <ChildSelectSkeleton />
       <DayBarSkeleton />
       <div className="grid grid-cols-2 gap-3">
         <Skeleton className={`${SIZE.stat} rounded-2xl`} />

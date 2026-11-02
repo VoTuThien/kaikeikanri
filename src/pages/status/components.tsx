@@ -27,6 +27,7 @@ const TYPE_COLOR: Record<PlaceType, string> = {
   bus: 'from-yellow-300 to-amber-500',
   supermarket: 'from-orange-400 to-orange-600',
   hospital: 'from-slate-200 to-slate-400',
+  restaurant: 'from-amber-400 to-red-500',
 }
 
 export function PlaceIcon({ type, box = 'h-12 w-12', img = 'h-9 w-9' }: { type: PlaceType; box?: string; img?: string }) {

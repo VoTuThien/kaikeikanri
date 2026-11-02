@@ -10,9 +10,9 @@ import { Select } from '../../components/ui/Select'
 import { Skeleton } from '../../components/ui/Skeleton'
 import { TextField, TextFieldSkeleton } from '../../components/ui/TextField'
 import { SIZE } from '../../components/ui/sizes'
-import { MoneyField } from '../../components/ui/MoneyField'
-import { formatMoney, fromDateInputValue, toDateInputValue } from '../../lib/format'
-import { EmptyState } from './components'
+import { MoneyField, MoneyFieldSkeleton } from '../../components/ui/MoneyField'
+import { formatMoney, fromDateInputValue } from '../../lib/format'
+import { EmptyState, prefillAmount, prefillDate } from './components'
 import { transferFunds } from './data/api'
 import { getCachedSettings, useFund } from './data/FundContext'
 import type { Fund } from './data/types'
@@ -55,10 +55,14 @@ function TransferForm() {
     const fromUrl = params.get('fund')
     return funds.some((f) => f.id === fromUrl) ? fromUrl! : funds[0].id
   })
-  const [toId, setToId] = useState(() => funds.find((f) => f.id !== fromId)!.id)
-  const [amount, setAmount] = useState(0)
-  const [dateText, setDateText] = useState(() => toDateInputValue(new Date()))
-  const [note, setNote] = useState('')
+  const [toId, setToId] = useState(() => {
+    const toUrl = params.get('to')
+    return toUrl && toUrl !== fromId && funds.some((f) => f.id === toUrl) ? toUrl : funds.find((f) => f.id !== fromId)!.id
+  })
+  // Mở từ thẻ đã xoá ở Tra cứu: điền sẵn số tiền / ngày / ghi chú (lưu sẽ tạo giao dịch MỚI)
+  const [amount, setAmount] = useState(() => prefillAmount(params))
+  const [dateText, setDateText] = useState(() => prefillDate(params))
+  const [note, setNote] = useState(() => params.get('note') ?? '')
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [saving, setSaving] = useState(false)
@@ -173,7 +177,7 @@ export function TransferPageSkeleton() {
           {fundSelect}
           {fundSelect}
           <div className="space-y-2">
-            <TextFieldSkeleton />
+            <MoneyFieldSkeleton />
             {showQuickAmounts && <SegmentedSkeleton count={QUICK_AMOUNTS.length} />}
           </div>
           <div className="grid grid-cols-2 gap-3">
