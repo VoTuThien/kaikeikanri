@@ -17,7 +17,12 @@ import { useFund } from './data/FundContext'
 import { nextInterestDate, projectBalance } from './data/interest'
 import type { Fund } from './data/types'
 
-const ICONS = ['💰', '🏠', '👶', '✈️', '🎓', '🚗', '🏥', '🎁', '🛒', '💍', '📈', '🐷']
+const ICONS = [
+  '💰', '🏠', '👶', '✈️', '🎓', '🚗',
+  '🏥', '🎁', '🛒', '💍', '📈', '🐷',
+  // Hiếu hỉ (ông bà), lì xì Tết, sinh nhật, ăn uống, thú cưng, hoá đơn
+  '👴', '🧧', '🎂', '🍜', '🐶', '🧾',
+]
 const COLORS = [
   'from-amber-400 to-orange-500',
   'from-sky-400 to-blue-600',
@@ -55,6 +60,7 @@ function FundForm({ fund }: { fund?: Fund }) {
   const [color, setColor] = useState(fund?.color ?? COLORS[0])
   const [rateText, setRateText] = useState(String(fund?.interestRate ?? settings.defaultInterestRate))
   const [initialBalance, setInitialBalance] = useState(0)
+  const [transferred, setTransferred] = useState(fund?.transferred ?? false)
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
@@ -72,7 +78,7 @@ function FundForm({ fund }: { fund?: Fund }) {
 
     setSaving(true)
     try {
-      const input = { name: name.trim(), icon, color, interestRate: rate }
+      const input = { name: name.trim(), icon, color, interestRate: rate, transferred }
       if (isNew) await createFund(input, initialBalance, actor)
       else await updateFund(fund, input)
       navigate('/fund/groups')
@@ -171,6 +177,35 @@ function FundForm({ fund }: { fund?: Fund }) {
             )}
           </div>
 
+          {/* Ô check "Đã chuyển đi"; bên phải chừa chỗ cho nút nổi */}
+          <div className={`${SIZE.control} flex items-center pr-36`}>
+            <button
+              type="button"
+              role="checkbox"
+              aria-checked={transferred}
+              onClick={() => setTransferred((v) => !v)}
+              className="flex min-w-0 items-center gap-2.5 text-left"
+            >
+              <span
+                className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md border-2 transition ${
+                  transferred ? 'border-emerald-300 bg-emerald-400' : 'border-white/50 bg-white/5'
+                }`}
+              >
+                {transferred && (
+                  <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="#ffffff" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M5 12.5l4.5 4.5L19 7" />
+                  </svg>
+                )}
+              </span>
+              <span className="min-w-0">
+                <span className="block truncate text-sm leading-5 font-semibold">Đã chuyển đi</span>
+                <span className="block truncate text-xs leading-4 text-white/60">
+                  {transferred ? 'Không tính vào tổng số dư' : 'Tiền vẫn trong tài khoản'}
+                </span>
+              </span>
+            </button>
+          </div>
+
           {/* Luôn 2 dòng để chiều cao không đổi khi nhập */}
           <div className={`${SIZE.hint} text-xs leading-5 text-white/60`}>
             <p className={`truncate ${confirmDelete ? 'text-rose-100' : ''}`}>
@@ -230,6 +265,10 @@ export function FundFormPageSkeleton({ isNew }: { isNew: boolean }) {
           <div className={isNew ? 'grid grid-cols-2 gap-3' : ''}>
             <TextFieldSkeleton />
             {isNew && <TextFieldSkeleton />}
+          </div>
+          <div className={`${SIZE.control} flex items-center gap-2.5`}>
+            <Skeleton className="h-6 w-6 rounded-md" />
+            <Skeleton className="h-9 w-40 rounded-md" />
           </div>
           <div className={`${SIZE.hint} space-y-1`}>
             <Skeleton className="h-4 w-56 rounded-md" />

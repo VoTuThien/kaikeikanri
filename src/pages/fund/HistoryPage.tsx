@@ -13,22 +13,35 @@ import { formatDate, formatMoney, formatMoneyCompact, formatMonth } from '../../
 import { useFund } from './data/FundContext'
 import type { FundTransaction, TxType } from './data/types'
 
-type TypeFilter = 'all' | TxType
+// "Chuyển" gồm cả chuyển đi và nhận về giữa các quỹ
+type TypeFilter = 'all' | 'deposit' | 'withdraw' | 'interest' | 'transfer'
 
 const TYPE_OPTIONS: { value: TypeFilter; label: string }[] = [
   { value: 'all', label: 'Tất cả' },
   { value: 'deposit', label: 'Nạp' },
   { value: 'withdraw', label: 'Rút' },
+  { value: 'transfer', label: 'Chuyển' },
   { value: 'interest', label: 'Lãi' },
 ]
+
+const matchType = (filter: TypeFilter, type: TxType) =>
+  filter === 'all' || filter === type || (filter === 'transfer' && (type === 'transfer_out' || type === 'transfer_in'))
 
 const TYPE_STYLE: Record<TxType, { icon: string; badge: string; sign: string; amount: string }> = {
   deposit: { icon: '💵', badge: 'from-emerald-400/60 to-emerald-700/60', sign: '+', amount: 'text-emerald-200' },
   withdraw: { icon: '💸', badge: 'from-rose-400/60 to-rose-700/60', sign: '−', amount: 'text-rose-200' },
   interest: { icon: '📈', badge: 'from-amber-300/60 to-amber-600/60', sign: '+', amount: 'text-amber-200' },
+  transfer_out: { icon: '📤', badge: 'from-sky-400/60 to-blue-700/60', sign: '−', amount: 'text-sky-200' },
+  transfer_in: { icon: '📥', badge: 'from-sky-400/60 to-blue-700/60', sign: '+', amount: 'text-sky-200' },
 }
 
-const TYPE_LABEL: Record<TxType, string> = { deposit: 'Nạp tiền', withdraw: 'Rút tiền', interest: 'Tiền lãi' }
+const TYPE_LABEL: Record<TxType, string> = {
+  deposit: 'Nạp tiền',
+  withdraw: 'Rút tiền',
+  interest: 'Tiền lãi',
+  transfer_out: 'Chuyển đi',
+  transfer_in: 'Nhận chuyển',
+}
 
 // Bộ lọc thu gọn (ẩn nhãn, padding nhỏ) để dành chỗ cho bảng
 const FILTER_CLASS = 'space-y-2 !p-3'
@@ -51,7 +64,7 @@ function History() {
 
   const fundById = new Map(funds.map((f) => [f.id, f]))
   const byFund = transactions.filter((t) => fundFilter === 'all' || t.fundId === fundFilter)
-  const shown = byFund.filter((t) => typeFilter === 'all' || t.type === typeFilter)
+  const shown = byFund.filter((t) => matchType(typeFilter, t.type))
 
   // Tổng theo quỹ đang chọn (không phụ thuộc bộ lọc loại)
   const total = (type: TxType) => byFund.filter((t) => t.type === type).reduce((s, t) => s + t.amount, 0)

@@ -213,8 +213,9 @@ function MiniMap() {
             renderItem={(p) => (
               <button
                 type="button"
-                // Khay không cuộn nên chạm là kéo được ngay
+                // Khay không cuộn nên chạm là kéo được ngay; kéo ngang ở đây không tính là vuốt về màn hình chính
                 style={{ touchAction: 'none' }}
+                data-no-swipe
                 onPointerDown={(e) => beginDrag(p.id, 'tray', e.clientX, e.clientY)}
                 className={`flex w-full flex-col items-center gap-1 transition ${drag?.started && drag.placeId === p.id ? 'opacity-40' : ''}`}
               >

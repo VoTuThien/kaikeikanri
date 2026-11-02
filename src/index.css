@@ -40,3 +40,20 @@ body {
   overscroll-behavior: none;
   -webkit-tap-highlight-color: transparent;
 }
+
+/* Icon rung khi nhấn giữ ở màn hình chính (chế độ gỡ phím tắt, giống iPhone); 2 nhịp lệch nhau cho tự nhiên */
+@keyframes jiggle {
+  0%,
+  100% {
+    transform: rotate(-2deg);
+  }
+  50% {
+    transform: rotate(2deg);
+  }
+}
+@utility animate-jiggle {
+  animation: jiggle 0.28s ease-in-out infinite;
+}
+@utility animate-jiggle-alt {
+  animation: jiggle 0.28s ease-in-out -0.14s infinite;
+}

@@ -42,10 +42,14 @@ export function FundCard({ fund }: { fund: Fund }) {
       <span className="min-w-0 flex-1">
         <span className="block truncate text-base leading-6 font-semibold">{fund.name}</span>
         <span className="block truncate text-xs leading-5 text-white/60">
+          {fund.transferred && 'Đã chuyển đi · '}
           {fund.interestRate > 0 ? `Lãi kép ${formatPercent(fund.interestRate)}/năm` : 'Không tính lãi'}
         </span>
       </span>
-      <span className="shrink-0 text-right text-sm font-bold">{showMoney(fund.balance)}</span>
+      {/* Quỹ đã chuyển đi: số dư mờ, gạch ngang vì không tính vào tổng */}
+      <span className={`shrink-0 text-right text-sm font-bold ${fund.transferred ? 'text-white/50 line-through' : ''}`}>
+        {showMoney(fund.balance)}
+      </span>
     </Link>
   )
 }

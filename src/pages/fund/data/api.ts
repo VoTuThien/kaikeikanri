@@ -100,6 +100,42 @@ export async function addTransaction(
   await commit(batch.commit())
 }
 
+// Chuyển tiền từ quỹ này sang quỹ khác: ghi 2 giao dịch và cập nhật 2 số dư trong cùng 1 batch
+export async function transferFunds(
+  from: Fund,
+  to: Fund,
+  amount: number,
+  date: Date,
+  note: string,
+  by: Actor,
+) {
+  const batch = writeBatch(requireDb())
+  const base = {
+    amount,
+    date: Timestamp.fromDate(date),
+    createdAt: serverTimestamp(),
+    createdBy: by.uid,
+    createdByName: by.name,
+  }
+  batch.set(doc(txCol()), {
+    ...base,
+    fundId: from.id,
+    peerFundId: to.id,
+    type: 'transfer_out',
+    note: note ? `${note} · sang ${to.name}` : `Chuyển sang ${to.name}`,
+  })
+  batch.set(doc(txCol()), {
+    ...base,
+    fundId: to.id,
+    peerFundId: from.id,
+    type: 'transfer_in',
+    note: note ? `${note} · từ ${from.name}` : `Nhận từ ${from.name}`,
+  })
+  batch.update(doc(fundsCol(), from.id), { balance: increment(-amount) })
+  batch.update(doc(fundsCol(), to.id), { balance: increment(amount) })
+  await commit(batch.commit())
+}
+
 export async function saveSettings(uid: string, settings: Partial<FundSettings>) {
   await commit(setDoc(settingsDoc(uid), settings, { merge: true }))
 }

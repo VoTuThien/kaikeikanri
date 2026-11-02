@@ -1,16 +1,19 @@
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
+import { isShortcutEntry } from '../lib/shortcuts'
 import { GlassPanel } from './ui/GlassPanel'
 import { Skeleton } from './ui/Skeleton'
 import { SIZE } from './ui/sizes'
 
 const BACK = `${SIZE.control} w-12 shrink-0`
 
-// Thanh tiêu đề của mỗi app con, có nút quay về màn hình chính
+// Thanh tiêu đề của mỗi app con, có nút quay về màn hình chính.
+// Màn hình được mở từ phím tắt ở màn hình chính thì nút quay lại về thẳng màn hình chính.
 export function AppHeader({ title, backTo = '/' }: { title: string; backTo?: string }) {
+  const { pathname } = useLocation()
   return (
     <GlassPanel className="flex items-center gap-3 !p-3">
       <Link
-        to={backTo}
+        to={isShortcutEntry(pathname) ? '/' : backTo}
         aria-label="Quay lại"
         className={`${BACK} flex items-center justify-center rounded-xl border border-white/25 bg-white/10 text-2xl transition hover:bg-white/20 active:scale-95`}
       >

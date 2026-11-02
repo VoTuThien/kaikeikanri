@@ -41,6 +41,7 @@ function toFund(id: string, d: DocumentData): Fund {
     color: d.color ?? 'from-amber-400 to-orange-500',
     interestRate: d.interestRate ?? 0,
     balance: d.balance ?? 0,
+    transferred: d.transferred ?? false,
     interestAnchor: toDate(d.interestAnchor),
     interestPeriods: d.interestPeriods ?? 0,
     createdAt: toDate(d.createdAt),

@@ -5,6 +5,8 @@
 - Công nghệ: React + TypeScript + Vite, vite-plugin-pwa, Tailwind CSS
 - Database / backend: Firebase (Firestore, Authentication, Hosting)
 - Trả lời người dùng bằng tiếng Việt
+- Phải chạy được trên **iPhone cũ (iOS 15.1)**: `vite.config.ts` hạ cú pháp JS (`build.target`) và CSS (`cssTarget`),
+  `postcss.config.js` bỏ `@layer`, thêm màu rgb dự phòng cho oklch và bỏ `in oklab` trong gradient
 
 ## Chức năng
 App là một "hệ thống nhiều app con": sau khi đăng nhập, màn hình chính hiện lưới icon giống màn hình iPhone,
@@ -13,6 +15,23 @@ mỗi icon là một app con (Quỹ, sau này thêm các app quản lý khác). 
 
 - [x] Đăng nhập / Tạo tài khoản / Quên mật khẩu (Firebase Auth, email + mật khẩu)
 - [x] Màn hình chính dạng lưới icon (`/`), đăng xuất ở màn hình này
+- [x] **Phím tắt (shortcut)** ở màn hình chính: sau icon các app con là các phím tắt, cuối cùng là ô **"+"** mở `/shortcuts`
+  (liệt kê theo nhóm các màn hình **mở trực tiếp từ ô chức năng ở trang chính của app con**, trừ Cài đặt; chạm để thêm). Phím tắt có màu nền của app con + icon nhỏ của app ở góc.
+  **Mở màn hình từ phím tắt thì nút quay lại (‹) của màn hình đó về thẳng màn hình chính** (`markShortcutEntry` / `isShortcutEntry` trong `AppHeader`, lưu ở sessionStorage;
+  màn hình chính xoá dấu này mỗi khi hiện ra).
+  **Nhấn giữ** 1 icon (~0.5 giây, `useLongPress`) thì vào chế độ gỡ giống iPhone: icon rung, phím tắt có nút "−" để gỡ, FAB check để xong;
+  lúc này hiện thêm 2 nút "Bên trái" / "Bên phải": chạm để đổi màn hình 2 bên, đã thiết đặt thì có nút "−" ở góc để gỡ ngay (`REMOVE_BADGE`). Nhiều icon thì chỉ lưới icon cuộn (có thanh cuộn).
+- [x] **Màn hình 2 bên** của màn hình chính (`src/components/SideSwipe.tsx`, vẽ `AppRoutes` trong `App.tsx`; khi kéo thì vẽ sẵn màn hình bên cạnh ở mép (`<Routes location>`) và cho 2 màn hình đi theo ngón tay, thả tay thì trượt nốt — kéo quá 30% hoặc vuốt nhanh thì chuyển): ở màn hình chính **vuốt sang phải** mở màn hình **bên trái**,
+  **vuốt sang trái** mở màn hình **bên phải**. Chưa thiết đặt thì mở `/side/left|right` có dấu **"+"** để chọn (`/shortcuts?side=…`, cùng danh sách `SHORTCUTS`;
+  đã thiết đặt thì có FAB xoá để bỏ). Đang ở màn hình được thiết đặt (**vào từ đâu cũng vậy**: menu của app con, phím tắt, vuốt) thì vuốt ngược lại để về màn hình chính.
+  Lưu riêng từng tài khoản ở `left` / `right` của `users/{uid}/settings/launcher`.
+  **Nhớ người dùng đang ở màn hình giữa / bên trái / bên phải** (localStorage `home-screen:{uid}`, `loadHomeScreen` / `saveHomeScreen`):
+  mở lại app ở `/` thì tự chuyển tới màn hình đã lưu; vào các trang khác (app con…) thì giữ nguyên lựa chọn. Vuốt bắt đầu trên canvas 3D, ô nhập, hoặc phần tử có `data-no-swipe` thì bỏ qua
+  (vd khay kéo thả của bản đồ mini, chế độ gỡ phím tắt) — **thêm `data-no-swipe` cho vùng kéo ngang mới**.
+  **Icon các app con không gỡ được.** Phím tắt là dữ liệu **riêng từng tài khoản** (`users/{uid}/settings/launcher` `{ shortcuts: string[], left, right }`,
+  `src/lib/shortcuts.ts`), không ảnh hưởng màn hình chính của người khác. Code: `src/components/HomeIcon.tsx`, `src/pages/ShortcutPickerPage.tsx`.
+  - **QUY ƯỚC: thêm màn hình mới vào app con (mở trực tiếp từ ô chức năng ở trang chính của app con) thì phải thêm dữ liệu phím tắt của màn hình đó (icon + tên màn hình) vào `SHORTCUTS` trong `src/shortcuts.ts`**,
+    trừ màn hình Cài đặt (mỗi app con đều có). **Không** thêm màn hình con mở từ bên trong (vd Tạo / Sửa địa điểm từ màn hình Địa điểm). Không đổi `id` của dòng đã có.
 
 ### Gia đình (bảo mật dữ liệu)
 **Dữ liệu Quỹ, Trạng thái, Chăm con thuộc về từng GIA ĐÌNH, KHÔNG chia sẻ cho mọi người dùng.**
@@ -41,15 +60,18 @@ Dữ liệu gia đình (xem `src/pages/family/data/api.ts`):
   (`allow ...: if isMember(fid)`) vào `firestore.rules`. Không tạo dữ liệu dùng chung ngoài gia đình.
 
 ### App Quỹ (`/fund`)
-- [x] Quản lý nhóm quỹ (`/fund/groups`): tạo các nhóm quỹ (chi tiêu hàng tháng, quỹ cho con, quỹ du lịch…). Nhóm quỹ có thể có **lãi suất**; khi có lãi suất thì số dư tự tăng theo **lãi kép hàng tháng**
+- [x] Quản lý nhóm quỹ (`/fund/groups`): tạo các nhóm quỹ (chi tiêu hàng tháng, quỹ cho con, quỹ du lịch…). Nhóm quỹ có thể có **lãi suất**; khi có lãi suất thì số dư tự tăng theo **lãi kép hàng tháng**.
+  Ô check **"Đã chuyển đi"** (`transferred`): tiền của quỹ không còn trong tài khoản nên **không tính vào tổng số dư** ở màn hình app Quỹ (thẻ quỹ hiện số dư gạch ngang)
 - [x] Nạp vào quỹ (`/fund/deposit`)
 - [x] Rút từ quỹ (`/fund/withdraw`)
-- [x] Tra cứu quỹ (`/fund/history`): lịch sử nạp / rút / lãi, lọc theo quỹ và loại
+- [x] Chuyển quỹ (`/fund/transfer`): chuyển tiền từ quỹ A sang quỹ B (giao diện giống nạp / rút, có 2 ô chọn "Từ quỹ" / "Sang quỹ",
+  chọn trùng thì tự đổi chỗ 2 quỹ). Ghi 2 giao dịch `transfer_out` / `transfer_in` (có `peerFundId`) và cập nhật 2 số dư trong cùng 1 batch (`transferFunds`)
+- [x] Tra cứu quỹ (`/fund/history`): lịch sử nạp / rút / chuyển / lãi, lọc theo quỹ và loại
 - [x] Cài đặt của app Quỹ (`/fund/settings`)
 
 Dữ liệu Firestore (xem `src/pages/fund/data/api.ts`), thuộc gia đình đang chọn:
 - `families/{familyId}/funds/{fundId}`: nhóm quỹ, `balance` là số dư hiện tại (VND, số nguyên)
-- `families/{familyId}/transactions/{txId}`: giao dịch `deposit` / `withdraw` / `interest`, `amount` luôn dương, có `createdByName` (người thực hiện)
+- `families/{familyId}/transactions/{txId}`: giao dịch `deposit` / `withdraw` / `interest` / `transfer_out` / `transfer_in`, `amount` luôn dương, có `createdByName` (người thực hiện)
 - `users/{uid}/settings/fund`: cài đặt hiển thị của app Quỹ, RIÊNG từng tài khoản
 - Security Rules ở `firestore.rules`
 
@@ -98,6 +120,10 @@ Ghi lại hoạt động hằng ngày của bé theo time line.
   Ô check **"Đã hoàn thành"**: có check mới nhập số phút / kết thúc; không check = hoạt động **đang diễn ra / sắp bắt đầu** (lưu `minutes` = `end` = null),
   trên time line hiện nhãn "Đang diễn ra" / "Sắp bắt đầu". Thêm mới mặc định là chưa hoàn thành.
   thời gian hoạt động mặc định lấy từ thẻ; **giờ kết thúc tự tính = bắt đầu + thời gian**. **Giờ kết thúc cũng sửa được**: sửa kết thúc thì số phút tự tính lại (kết thúc trước giờ bắt đầu = sang hôm sau), sửa bắt đầu thì giữ số phút và dời kết thúc. Chạm hoạt động đã có để sửa / xoá.
+  **Sửa hoạt động thì các hoạt động liền kề đổi theo cho time line nối liền, không chồng lên nhau** (`linkNeighbors`, cùng 1 batch trong `updateEntry`):
+  đổi giờ bắt đầu thì hoạt động **liền trước** kết thúc đúng giờ bắt đầu mới; đổi giờ kết thúc thì hoạt động **liền sau** bắt đầu đúng giờ kết thúc mới
+  (giữ giờ kết thúc của nó, số phút tính lại). Khung sửa báo trước dòng "… kết thúc lúc / bắt đầu lúc …"; dời quá giờ bắt đầu của hoạt động trước
+  hoặc quá giờ kết thúc của hoạt động sau thì báo lỗi.
 - [x] Thống kê (`/baby/stats`): chọn ngày (thanh chọn ngày dùng chung `DayBar` trong `components.tsx`); 2 ô tổng thời gian / số lần;
   **biểu đồ cột** thời gian theo từng hoạt động (thẻ) trong ngày, xếp giảm dần, màu cột theo màu thẻ, icon thẻ ở trục ngang, chạm cột để xem chi tiết;
   bên dưới là bảng số liệu (số lần, %, thời lượng) chiếm phần còn lại. Cách tính ở `data/stats.ts` (`dayStats`):
@@ -113,6 +139,7 @@ Dữ liệu Firestore (xem `src/pages/baby/data/api.ts`), thuộc gia đình đa
 ## Cấu trúc code
 - `src/components/ui/sizes.ts`: kích thước dùng chung giữa giao diện thật và skeleton
 - Mỗi app con nằm trong thư mục riêng `src/pages/<app>/`, trang con dùng `AppHeader` (có nút quay lại)
+- Thêm màn hình mới mở trực tiếp từ trang chính của app con (không phải Cài đặt) thì thêm 1 dòng vào `SHORTCUTS` (`src/shortcuts.ts`) để tạo được phím tắt ở màn hình chính
 - Dữ liệu của app con nằm trong `src/pages/<app>/data/` (types, api, Context dùng chung cho các trang của app)
 - Mỗi trang export cả component thật và `XxxSkeleton` trong cùng file; `App.tsx` hiển thị skeleton khi đang loading
 - Cấu hình Firebase đọc từ `.env` (xem `.env.example`)

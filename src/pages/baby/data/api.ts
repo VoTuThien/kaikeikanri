@@ -48,8 +48,22 @@ export async function createEntry(input: BabyEntryInput, by: Actor, unfinished: 
   await commit(batch.commit())
 }
 
-export async function updateEntry(id: string, input: BabyEntryInput) {
-  await commit(updateDoc(doc(entriesCol(), id), entryData(input)))
+// Giờ mới của 1 hoạt động liền kề (minutes = null: chưa hoàn thành, chỉ dời giờ bắt đầu)
+export interface EntryTiming {
+  id: string
+  start: Date
+  minutes: number | null
+}
+
+/**
+ * Sửa hoạt động, đồng thời cập nhật các hoạt động liền trước / liền sau (`linked`) để time line nối liền,
+ * không chồng lên nhau. Ghi cùng lúc trong 1 batch.
+ */
+export async function updateEntry(id: string, input: BabyEntryInput, linked: EntryTiming[] = []) {
+  const batch = writeBatch(requireDb())
+  batch.update(doc(entriesCol(), id), entryData(input))
+  for (const l of linked) batch.update(doc(entriesCol(), l.id), timing(l.start, l.minutes))
+  await commit(batch.commit())
 }
 
 export async function deleteEntry(id: string) {
