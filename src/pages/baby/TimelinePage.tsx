@@ -191,7 +191,7 @@ function linkNeighbors(
   end: Date | null,
   prev: BabyEntry | null,
   next: BabyEntry | null,
-): { linked: EntryTiming[]; notes: string[]; error: string } {
+): { linked: EntryTiming[]; notes: string[]; error: string; minutes?: number | null } {
   const linked: EntryTiming[] = []
   const notes: string[] = []
   if (prev && start.getTime() !== entry.start.getTime() && start.getTime() !== prev.end?.getTime()) {
@@ -217,13 +217,55 @@ function linkNeighbors(
   return { linked, notes, error: '' }
 }
 
+// Thêm hoạt động mới ở vị trí bất kỳ theo giờ bắt đầu (cuối danh sách hoặc chèn vào giữa), time line luôn nối liền:
+// - Hoạt động liền TRƯỚC (bắt đầu trước giờ mới) kết thúc đúng bằng giờ bắt đầu mới; không có thì chèn lên đầu
+// - Hoạt động liền SAU (bắt đầu từ giờ mới trở đi) bắt đầu đúng bằng giờ kết thúc mới (giữ nguyên giờ kết thúc của nó)
+// - Chèn vào giữa mà chưa hoàn thành (không nhập kết thúc) thì tự kết thúc lúc hoạt động liền sau bắt đầu
+function linkInsert(
+  entries: BabyEntry[],
+  start: Date,
+  end: Date | null,
+): { linked: EntryTiming[]; notes: string[]; error: string; minutes: number | null } {
+  const linked: EntryTiming[] = []
+  const notes: string[] = []
+  const sorted = [...entries].sort((a, b) => a.start.getTime() - b.start.getTime())
+  const prev = sorted.filter((e) => e.start < start).pop() ?? null
+  const [next = null, afterNext = null] = sorted.filter((e) => e.start >= start)
+  const fail = (error: string) => ({ linked, notes, error, minutes: null })
+
+  let finish = end
+  if (next && !finish) {
+    if (minutesBetween(start, next.start) < 1) {
+      return fail(`Giờ bắt đầu phải trước ${formatTime(next.start)} (lúc bắt đầu "${next.name}"), hoặc nhập giờ kết thúc.`)
+    }
+    finish = next.start
+    notes.push(`Kết thúc lúc ${formatTime(finish)} (nối "${next.name}")`)
+  }
+  if (prev && start.getTime() !== prev.end?.getTime()) {
+    const m = minutesBetween(prev.start, start)
+    if (m > MAX_MINUTES) return fail(`"${prev.name}" sẽ dài quá 24 giờ. Vui lòng chọn giờ bắt đầu khác.`)
+    linked.push({ id: prev.id, start: prev.start, minutes: m })
+    notes.push(`"${prev.name}" kết thúc lúc ${formatTime(start)}`)
+  }
+  if (next && finish && finish.getTime() !== next.start.getTime()) {
+    // Không được trùm hết hoạt động liền sau
+    const limit = next.end ?? afterNext?.start ?? null
+    if (limit && finish >= limit) {
+      const what = next.end ? `lúc kết thúc "${next.name}"` : `lúc bắt đầu "${afterNext!.name}"`
+      return fail(`Giờ kết thúc phải trước ${formatTime(limit)} (${what}).`)
+    }
+    linked.push({ id: next.id, start: finish, minutes: next.end ? minutesBetween(finish, next.end) : null })
+    notes.push(`"${next.name}" bắt đầu lúc ${formatTime(finish)}`)
+  }
+  return { linked, notes, error: '', minutes: finish ? minutesBetween(start, finish) : null }
+}
+
 function EntrySheet({ sheet, day, entries, onClose }: { sheet: Sheet; day: Date; entries: BabyEntry[]; onClose: () => void }) {
   const { actor, child } = useBaby()
   const isNew = sheet.mode === 'new'
   const look = isNew ? sheet.card : sheet.entry
-  // Hoạt động cuối cùng trong danh sách; nếu nó chưa kết thúc thì khi lưu hoạt động mới sẽ kết thúc nó
+  // Hoạt động cuối cùng trong danh sách: giờ bắt đầu mặc định nối tiếp nó (đổi giờ bắt đầu để chèn vào giữa)
   const [last] = useState(() => (isNew ? lastEntry(entries) : null))
-  const unfinished = last && !last.end ? last : null
   // Sửa: hoạt động liền trước / liền sau trong ngày (danh sách đã xếp theo giờ bắt đầu)
   const [neighbors] = useState(() => {
     const i = isNew ? -1 : entries.findIndex((e) => e.id === sheet.entry.id)
@@ -247,7 +289,11 @@ function EntrySheet({ sheet, day, entries, onClose }: { sheet: Sheet; day: Date;
   const start = fromTimeInput(baseDay, startText)
   const minutes = Number(minutesText) || 0
   const end = start && minutes > 0 ? addMinutes(start, minutes) : null
-  const link = !isNew && start ? linkNeighbors(sheet.entry, start, completed ? end : null, neighbors.prev, neighbors.next) : null
+  const link = !start
+    ? null
+    : isNew
+      ? linkInsert(entries, start, completed ? end : null)
+      : linkNeighbors(sheet.entry, start, completed ? end : null, neighbors.prev, neighbors.next)
 
   // Bấm "Đã hoàn thành": nếu chưa có số phút thì điền sẵn
   // (sửa hoạt động đang diễn ra: kết thúc = bây giờ; còn lại: thời gian mặc định của thẻ, hoặc 30 phút)
@@ -289,16 +335,16 @@ function EntrySheet({ sheet, day, entries, onClose }: { sheet: Sheet; day: Date;
     setError('')
     if (!start) return setError('Vui lòng chọn giờ bắt đầu.')
     if (completed && (minutes < 1 || minutes > MAX_MINUTES)) return setError('Thời gian phải từ 1 phút đến 24 giờ.')
-    if (unfinished && start <= unfinished.start) {
-      return setError(`Giờ bắt đầu phải sau ${formatTime(unfinished.start)} (lúc bắt đầu "${unfinished.name}").`)
-    }
     if (link?.error) return setError(link.error)
+    // Chèn vào giữa mà chưa hoàn thành: tự kết thúc lúc hoạt động liền sau bắt đầu
+    const saveMinutes: number | null = completed ? minutes : isNew ? (link?.minutes ?? null) : null
+    if (saveMinutes !== null && saveMinutes > MAX_MINUTES) return setError('Thời gian phải từ 1 phút đến 24 giờ.')
     setSaving(true)
     try {
       const card = isNew ? sheet.card : { id: sheet.entry.cardId, name: sheet.entry.name, icon: sheet.entry.icon, color: sheet.entry.color }
       // Hoạt động thuộc con đang chọn; sửa hoạt động cũ chưa gắn con thì gắn luôn vào con đang chọn
-      const input = { childId: isNew ? (child?.id ?? null) : (sheet.entry.childId ?? child?.id ?? null), card, start, minutes: completed ? minutes : null }
-      if (isNew) await createEntry(input, actor, unfinished)
+      const input = { childId: isNew ? (child?.id ?? null) : (sheet.entry.childId ?? child?.id ?? null), card, start, minutes: saveMinutes }
+      if (isNew) await createEntry(input, actor, link?.linked)
       else await updateEntry(sheet.entry.id, input, link?.linked)
       onClose()
     } catch (err) {
@@ -400,14 +446,8 @@ function EntrySheet({ sheet, day, entries, onClose }: { sheet: Sheet; day: Date;
               </span>
             </button>
           </div>
-          {/* Thêm khi hoạt động trước chưa kết thúc: báo trước sẽ tự kết thúc nó */}
-          {unfinished && (
-            <p className="truncate text-xs leading-4 text-amber-100">
-              "{unfinished.name}" sẽ kết thúc lúc {start ? formatTime(start) : '--:--'}
-            </p>
-          )}
-          {/* Sửa giờ: báo trước các hoạt động liền kề sẽ đổi theo cho nối liền */}
-          {link && link.notes.length > 0 && <p className="truncate text-xs leading-4 text-amber-100">{link.notes.join(' · ')}</p>}
+          {/* Thêm / chèn vào giữa / sửa giờ: báo trước các hoạt động liền kề sẽ đổi theo cho nối liền */}
+          {link && link.notes.length > 0 && <p className="line-clamp-2 text-xs leading-4 text-amber-100">{link.notes.join(' · ')}</p>}
         </form>
       </GlassPanel>
 

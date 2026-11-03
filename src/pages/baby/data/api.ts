@@ -1,7 +1,7 @@
 import { addDoc, deleteDoc, doc, serverTimestamp, Timestamp, updateDoc, writeBatch } from 'firebase/firestore'
 import { familyCol } from '../../../lib/family'
 import { commit, requireDb, type Actor } from '../../../lib/firestore'
-import { addMinutes, type BabyCardInput, type BabyEntry, type BabyEntryInput, type ChildInput } from './types'
+import { addMinutes, type BabyCardInput, type BabyEntryInput, type ChildInput } from './types'
 
 // Cấu trúc dữ liệu trên Firestore (chỉ thành viên gia đình xem / sửa được):
 //   families/{familyId}/babyCards/{cardId}     thẻ hoạt động (tên, icon, màu, thời gian mặc định)
@@ -51,25 +51,22 @@ export async function deleteChild(id: string) {
   await commit(deleteDoc(doc(childrenCol(), id)))
 }
 
-/**
- * Thêm hoạt động mới. Nếu hoạt động cuối cùng đang chưa kết thúc (`unfinished`) thì kết thúc nó luôn
- * bằng giờ bắt đầu của hoạt động mới (ghi cùng lúc trong 1 batch).
- */
-export async function createEntry(input: BabyEntryInput, by: Actor, unfinished: BabyEntry | null) {
-  const batch = writeBatch(requireDb())
-  batch.set(doc(entriesCol()), { ...entryData(input), createdAt: serverTimestamp(), createdBy: by.uid, createdByName: by.name })
-  if (unfinished && input.start > unfinished.start) {
-    const minutes = Math.round((input.start.getTime() - unfinished.start.getTime()) / 60000)
-    batch.update(doc(entriesCol(), unfinished.id), timing(unfinished.start, minutes))
-  }
-  await commit(batch.commit())
-}
-
 // Giờ mới của 1 hoạt động liền kề (minutes = null: chưa hoàn thành, chỉ dời giờ bắt đầu)
 export interface EntryTiming {
   id: string
   start: Date
   minutes: number | null
+}
+
+/**
+ * Thêm hoạt động mới (ở cuối hoặc chèn vào giữa time line), đồng thời cập nhật hoạt động liền trước
+ * (kết thúc = giờ bắt đầu mới) / liền sau (bắt đầu = giờ kết thúc mới) trong `linked`. Ghi cùng lúc trong 1 batch.
+ */
+export async function createEntry(input: BabyEntryInput, by: Actor, linked: EntryTiming[] = []) {
+  const batch = writeBatch(requireDb())
+  batch.set(doc(entriesCol()), { ...entryData(input), createdAt: serverTimestamp(), createdBy: by.uid, createdByName: by.name })
+  for (const l of linked) batch.update(doc(entriesCol(), l.id), timing(l.start, l.minutes))
+  await commit(batch.commit())
 }
 
 /**
