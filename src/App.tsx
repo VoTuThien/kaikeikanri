@@ -35,6 +35,14 @@ import { OrderFormPage } from './pages/fund/OrderFormPage'
 import { ExecutePage } from './pages/fund/ExecutePage'
 import { SalaryPage } from './pages/fund/SalaryPage'
 import { StatsPage as FundStatsPage } from './pages/fund/StatsPage'
+import { NoteLayout } from './pages/note/components'
+import { NoteCardsPage } from './pages/note/NoteCardsPage'
+import { NoteFormPage } from './pages/note/NoteFormPage'
+import { NoteHomePage } from './pages/note/NoteHomePage'
+import { NoteInboxPage } from './pages/note/NoteInboxPage'
+import { NoteSentPage } from './pages/note/NoteSentPage'
+import { NoteSettingsPage } from './pages/note/NoteSettingsPage'
+import { NoteViewPage } from './pages/note/NoteViewPage'
 import { StatusLayout } from './pages/status/components'
 import { LiveStatusPage } from './pages/status/LiveStatusPage'
 import { MiniMapPage } from './pages/status/MiniMapPage'
@@ -116,6 +124,17 @@ function AppRoutes({ location }: { location?: string }) {
         <Route path="cards/:id" element={<CardFormPage />} />
         <Route path="timeline" element={<TimelinePage />} />
         <Route path="stats" element={<StatsPage />} />
+      </Route>
+      {/* App Ghi chú */}
+      <Route path="/note" element={<NoteLayout />}>
+        <Route index element={<NoteHomePage />} />
+        <Route path="inbox" element={<NoteInboxPage />} />
+        <Route path="inbox/:id" element={<NoteViewPage />} />
+        <Route path="sent" element={<NoteSentPage />} />
+        <Route path="sent/new" element={<NoteFormPage />} />
+        <Route path="sent/:id" element={<NoteFormPage />} />
+        <Route path="cards" element={<NoteCardsPage />} />
+        <Route path="settings" element={<NoteSettingsPage />} />
       </Route>
       {/* App Trạng thái */}
       <Route path="/status" element={<StatusLayout />}>

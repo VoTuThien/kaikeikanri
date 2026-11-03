@@ -55,7 +55,6 @@ const TABLE_CLASS = `${GLASS_CLASS} !p-0`
 // Số dòng skeleton: đủ lấp đầy bảng trên iPhone 11 / 12, phần thừa bị che bởi khung bảng
 const SKELETON_ROWS = 8
 // Dòng gợi ý thao tác kéo ở đầu bảng
-const SWIPE_HINT = 'h-8 truncate border-b border-white/10 px-6 text-[11px] leading-8 text-white/50'
 
 export function HistoryPage() {
   const { loading } = useFund()
@@ -145,7 +144,6 @@ function History() {
       {message && <Alert type={message.type}>{message.text}</Alert>}
 
       <ScrollArea className={TABLE_CLASS}>
-        {groups.length > 0 && <p className={SWIPE_HINT}>Trượt trái: xoá giao dịch nhập sai (chưa tổng kết) · thẻ xám: nhập lại</p>}
         {groups.length === 0 ? (
           <div className="flex h-full flex-col items-center justify-center gap-2 p-6 text-center">
             <Icon3D emoji="🔍" className="h-12 w-12" />

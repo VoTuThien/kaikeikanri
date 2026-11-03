@@ -34,7 +34,7 @@ mỗi icon là một app con (Quỹ, sau này thêm các app quản lý khác). 
     trừ màn hình Cài đặt (mỗi app con đều có). **Không** thêm màn hình con mở từ bên trong (vd Tạo / Sửa địa điểm từ màn hình Địa điểm). Không đổi `id` của dòng đã có.
 
 ### Gia đình (bảo mật dữ liệu)
-**Dữ liệu Quỹ, Trạng thái, Chăm con thuộc về từng GIA ĐÌNH, KHÔNG chia sẻ cho mọi người dùng.**
+**Dữ liệu Quỹ, Trạng thái, Chăm con, Ghi chú thuộc về từng GIA ĐÌNH, KHÔNG chia sẻ cho mọi người dùng.**
 Chỉ thành viên trong cùng gia đình mới xem / sửa được; Security Rules (`firestore.rules`) chặn ở phía server.
 - Sau khi đăng nhập: **tạo gia đình mới** (`/family/create`, sinh **mã 6 ký tự**) hoặc **tham gia** bằng mã (`/family/join`, gửi yêu cầu).
   Người xin tham gia chỉ thành thành viên (và xem được dữ liệu) **sau khi chủ gia đình duyệt**.
@@ -176,14 +176,29 @@ Ghi lại hoạt động hằng ngày của bé theo time line. **Mỗi gia đì
   `useDayEntries` chỉ trả hoạt động của con đang chọn; **hoạt động cũ chưa gắn con (`childId` = null) tính là của con đầu tiên**
   (sửa lại thì gắn luôn vào con đang chọn). Chưa thêm con nào thì time line vẫn dùng được (hoạt động có `childId` = null).
 - [x] Thẻ hoạt động (`/baby/cards`): tên thẻ, màu, icon (bắt buộc có **ăn 🍼, ngủ 😴, chơi 🧸, đi vệ sinh 🚽**, thêm vài icon khác), thời gian mặc định (phút)
-- [x] Time line (`/baby/timeline`): chọn ngày; danh sách hoạt động trong ngày theo giờ bắt đầu (cuộn trong bảng);
+- [x] Time line (`/baby/timeline`): chọn ngày; danh sách **thẻ CAO BẰNG NHAU** (`CARD_PX`, không theo tỉ lệ thời gian, **không có cột giờ**) xếp theo giờ bắt đầu
+  (`TimelineView.tsx`, tính toán ở `data/timeline.ts`, `layout`). Thẻ **chồng giờ với thẻ trước thì vẽ ĐÈ lên thẻ đó**, lệch xuống theo tỉ lệ
+  (bắt đầu giữa thẻ trước = đè nửa dưới; cùng giờ bắt đầu = đè trọn); không chồng thì nằm dưới, cách `GAP_PX`.
+  Thẻ chưa kết thúc: đuôi nét đứt; khi tính chồng nhau thì đang diễn ra tính tới bây giờ, sắp bắt đầu tính tạm 30 phút.
+  **Các hoạt động ĐƯỢC CHỒNG THỜI GIAN lên nhau, nhưng chỉ tạo ra bằng 2 cách** (nhập / chèn / sửa giờ trong khung nhập vẫn nối liền như dưới đây):
+  1. **Nhấn giữ ~0.5 giây rồi kéo thẻ**: thẻ đi theo ngón tay, **kéo lên hay xuống đều DỜI CẢ THẺ** (giữ số phút; chưa có giờ kết thúc thì vẫn chưa có),
+     không đẩy các thẻ khác — **thả đè lên thẻ khác = chồng giờ, kéo ra lại = hết chồng**. Giờ bắt đầu **tính theo chỗ thả so với các thẻ khác** (`timeAt` / `dragTiming`:
+     đầu thẻ = giờ bắt đầu, đáy thẻ = giờ kết thúc, nội suy ở giữa; trên thẻ đầu / dưới thẻ cuối thì 1 chiều cao thẻ = 30 phút), bước 5 phút, trong ngày đang xem;
+     lưu bằng `updateEntry` không có `linked`. Trong lúc kéo, **bóng giờ (giờ bắt đầu–kết thúc sẽ lưu) hiện trên đầu thẻ**; gần mép trên / dưới thì tự cuộn.
+     Nhấn giữ vào **nhãn** để kéo đúng thẻ nằm dưới khi 2 thẻ trùng nhau.
+  2. **Trượt thẻ sang TRÁI hiện nút nhân bản** (`LineIcon` `copy`): chạm → chọn thẻ ở khay (có dòng nhắc + nút Huỷ) → khung nhập điền sẵn **cùng giờ bắt đầu / kết thúc**
+     với thẻ gốc (sửa được), lưu thì **không đẩy hoạt động liền kề** (`Sheet.overlap`).
+  **Phần giao nhau tô màu trộn** của các thẻ (nhân màu như pha màu vẽ: vàng + xanh dương ra xanh lá, 2 màu giống nhau thì đậm hơn; `mixedBackground`,
+  bảng mã màu `PALETTE` — thêm màu thẻ mới vào `CARD_COLORS` thì thêm mã RGB vào `PALETTE`). Nhãn (icon, tên, giờ) ở đầu thẻ, các thẻ bắt đầu gần nhau thì chia làn ngang (giờ xuống dòng 2).
+  **Chạm vùng chồng nhau** (kể cả chạm vào nhãn) thì **hiện tag các thẻ đang chồng ở phía trên chỗ chạm**, chạm tag để sửa đúng thẻ đó; chạm vùng chỉ có 1 thẻ thì sửa thẻ đó.
+  Vùng time line có `data-no-swipe`, chặn cuộn trang (touchmove không passive) khi đang kéo / trượt thẻ.
   khay thẻ bên dưới, chạm 1 thẻ để mở khung nhập. **Giờ bắt đầu mặc định** dựa vào hoạt động cuối cùng trong danh sách (giờ bắt đầu muộn nhất):
   đã kết thúc thì lấy **giờ kết thúc** của nó; **chưa kết thúc thì lấy giờ hiện tại, và khi lưu sẽ tự kết thúc hoạt động cuối bằng giờ bắt đầu của hoạt động mới**
   (cùng 1 batch); chưa có hoạt động nào thì giờ hiện tại / 7:00. Sửa được.
   **Chèn vào giữa bằng cách nhập giờ bắt đầu** (`linkInsert`, ghi cùng 1 batch trong `createEntry`): hoạt động **liền trước** (bắt đầu trước giờ mới)
   kết thúc đúng giờ bắt đầu mới, hoạt động **liền sau** bắt đầu đúng giờ kết thúc mới (giữ giờ kết thúc của nó); không có hoạt động liền trước thì chèn lên đầu.
   Chèn vào giữa mà không check "Đã hoàn thành" thì tự kết thúc lúc hoạt động liền sau bắt đầu. Kết thúc trùm qua hết hoạt động liền sau thì báo lỗi;
-  time line luôn nối liền, không chồng lên nhau.
+  khi nhập trong khung nhập thì time line nối liền, không tự tạo chồng lên nhau.
   Ô check **"Đã hoàn thành"**: có check mới nhập số phút / kết thúc; không check = hoạt động **đang diễn ra / sắp bắt đầu** (lưu `minutes` = `end` = null),
   trên time line hiện nhãn "Đang diễn ra" / "Sắp bắt đầu". Thêm mới mặc định là chưa hoàn thành.
   thời gian hoạt động mặc định lấy từ thẻ; **giờ kết thúc tự tính = bắt đầu + thời gian**. **Giờ kết thúc cũng sửa được**: sửa kết thúc thì số phút tự tính lại (kết thúc trước giờ bắt đầu = sang hôm sau), sửa bắt đầu thì giữ số phút và dời kết thúc. Chạm hoạt động đã có để sửa / xoá.
@@ -204,14 +219,60 @@ Dữ liệu Firestore (xem `src/pages/baby/data/api.ts`), thuộc gia đình đa
 - `families/{familyId}/babyEntries/{entryId}`: hoạt động (`childId` = của con nào, `cardId`, `start`, `minutes`, `end`, `createdByName`; chưa hoàn thành thì `minutes` / `end` = null) + lưu sẵn `name` / `icon` / `color` của thẻ
   để sửa / xoá thẻ không làm mất lịch sử
 
+### App Ghi chú (`/note`)
+Gửi ghi chú cho 1 thành viên trong gia đình hoặc cho chính mình. **Dữ liệu 2 bậc: ghi chú → các thẻ nội dung**,
+vd ghi chú "Đi chợ" gồm "Mua cà chua", "Mua cá"; ghi chú "Việc vặt" gồm "Mua pin", "Đi lấy đồ".
+Ghi chú có **tên** và **số thứ tự** (ưu tiên giữa các ghi chú của cùng 1 người nhận, liên tục 1..n); **mọi thẻ đã xong = ghi chú hoàn thành** (`noteDone`).
+Code: `src/pages/note/` (`components.tsx`: `NoteLayout`, `MemberPicker`, `EditableList`, `TrashButton`, `ListInfo`; dữ liệu ở `data/`).
+**Mọi danh sách của app Ghi chú là THẺ TÁCH RỜI giống thẻ Nhóm quỹ** (mỗi thẻ 1 khối glass bo góc có bóng đổ, cách nhau; `LIST_CARD`, `LIST_CARDS_GAP` trong `listStyle.ts`), không đặt chung trong 1 bảng glass;
+  **thông tin của danh sách (vd "Gửi cho: …", số ghi chú) nằm ở `ListInfo` ngay dưới thanh tiêu đề màn hình**, đứng yên, không phải tiêu đề dính trong bảng;
+  thẻ đang kéo thả phóng to nhẹ (`LIST_CARD_DRAGGING`), thẻ trượt dùng `radius={LIST_CARD_RADIUS}` (quy ước mục 16).
+- **Cả Tạo ghi chú và Xem ghi chú đều 2 bước: danh sách ghi chú → chạm 1 ghi chú mới hiện các thẻ nội dung bên trong.**
+  Danh sách ghi chú dùng chung `NoteList` (`components.tsx`): kéo ≡ / sửa số để đổi thứ tự (`reorderNotes`), trượt trái để xoá (`deleteNote`).
+- [x] Tạo ghi chú, bước 1 (`/note/sent?to=uid`, `NoteSentPage`): danh sách ghi chú **gửi cho người nhận đang chọn**; chọn người nhận bằng `MemberPicker`
+  **trên thanh tiêu đề** (giống chọn con ở Time line: avatar tròn, chạm mở popup), **mặc định là bản thân**, lưu trên URL `?to=`;
+  **"Gửi cho: …" (trái) + "n ghi chú · m đã hoàn thành" (phải, luôn hiện đủ) nằm ngay dưới thanh tiêu đề** (`ListInfo`). FAB + mở bước 2 để tạo mới.
+- [x] Tạo ghi chú, bước 2 (`/note/sent/new?to=uid` tạo mới, `/note/sent/:id` sửa, `NoteFormPage`): nội dung bên trong 1 ghi chú.
+  Dưới thanh tiêu đề là **[số thứ tự `NumberField`] [tên ghi chú]** (cùng kiểu hàng thẻ; tạo mới mặc định = số ghi chú của người nhận + 1, đứng cuối; sửa giữ số hiện tại; tên bắt buộc);
+  "Gửi cho: …" (`ListInfo`) nằm ngay dưới thanh tiêu đề, trên hàng số + tên. Lưu xong quay về bước 1. Sửa thì thẻ cũ **giữ trạng thái đã xong** (`updateNote`), thẻ mới chưa xong.
+  Danh sách thẻ `EditableList` (thẻ tách rời, cuộn trong vùng danh sách): mỗi thẻ 1 hàng **[≡ kéo lên / xuống] [số thứ tự `NumberField inline`, xem mục 14] [ô nhập nội dung trực tiếp]**;
+  số thứ tự = mức độ ưu tiên (sửa số rồi rời ô thì thẻ chuyển tới vị trí đó); **trượt thẻ sang trái** hiện thùng rác (chạm 2 lần mới xoá, giống Tra cứu).
+  FAB [+ thêm thẻ] [gửi / lưu]: thẻ mới thêm vào cuối, **số thứ tự = tổng số thẻ tính cả thẻ mới**. **Đang gõ thì gợi ý** ngay dưới thẻ từ các Thẻ ghi chú
+  (chứa chữ đang gõ, không phân biệt dấu / hoa thường `foldKey`, theo thứ tự ưu tiên, tối đa 4; chưa gõ thì gợi ý các thẻ đầu; bỏ thẻ đã có trong ghi chú).
+  Gửi / lưu: bỏ thẻ trống / trùng, ghi chú (chèn đúng số thứ tự, đánh số lại các ghi chú khác của người nhận) + **thẻ có nội dung mới được lưu vào Thẻ ghi chú** (thêm cuối danh sách) cùng 1 batch (`createNote` / `updateNote`).
+- [x] Thẻ ghi chú (`/note/cards`): quản lý thẻ đã từng nhập, **giao diện giống Tạo ghi chú** (`EditableList`); sửa nội dung trực tiếp, **rời ô là lưu**;
+  thêm / kéo thả / sửa số / xoá đều đánh số lại cả danh sách. **Không lưu thẻ trùng nội dung** (`sameKey`: bỏ khoảng trắng thừa, không phân biệt hoa thường).
+  **Thứ tự ở đây = thứ tự ưu tiên trong danh sách gợi ý** ở Tạo ghi chú.
+- [x] Xem ghi chú (bước 1 `/note/inbox`, bước 2 `/note/inbox/:id`): danh sách ghi chú **gửi đến mình theo số thứ tự** (`NoteList`), **"n ghi chú gửi đến bạn · m đã hoàn thành" nằm ngay dưới thanh tiêu đề** (`ListInfo`, giống Tạo ghi chú); **thao tác giống thẻ nội dung**:
+  kéo ≡ / sửa số để đổi thứ tự, trượt trái hiện thùng rác để xoá (đánh số lại); mỗi dòng hiện tên, các thẻ, số thẻ đã xong / tổng
+  hoặc "Xong" (gạch ngang tên) khi ghi chú hoàn thành. Ghi chú cũ chưa có tên thì hiện nội dung các thẻ, chưa có số thì xếp sau.
+  Chi tiết: thanh tiêu đề = tên ghi chú, **dòng phụ ngay dưới tiêu đề** (`AppHeader subtitle`) = người gửi / "Bạn tự ghi" · giờ ngày · số thẻ đã xong (hoặc "Đã hoàn thành").
+  Các thẻ theo thứ tự ưu tiên; **chạm ô vuông bên phải để đánh dấu đã làm xong** / bỏ đánh dấu (`setItemDone`, transaction, lưu tên người đánh dấu).
+  **Nạp / rút quỹ gắn với TỪNG THẺ, không phải cả ghi chú**: chạm phần nội dung của thẻ để mở ô nạp / rút ngay dưới thẻ đó (mỗi lần 1 thẻ;
+  `Segmented` Rút / Nạp, chọn quỹ, `MoneyField`, FAB check lưu — FAB chỉ hiện khi có thẻ đang mở); **quỹ chọn sẵn = quỹ mặc định trong Cài đặt**,
+  **ghi chú của giao dịch = "Tên ghi chú: nội dung thẻ"** (`itemMemo`, vd "Đi chợ: Mua cà chua"). `addItemMoney` (1 transaction): ghi giao dịch ở app Quỹ
+  (có `noteId`, `noteItemId`), cập nhật số dư (rút quá số dư thì báo lỗi), thêm lần nạp / rút vào `money` của thẻ. Dòng phụ của thẻ hiện tổng đã nạp / rút,
+  ô đang mở liệt kê từng lần. Danh sách quỹ dùng `useFundList` (chung nhớ tạm với app Quỹ).
+- [x] Cài đặt (`/note/settings`): **quỹ mặc định** khi nạp / rút ở Xem ghi chú, chọn là lưu ngay.
+
+Dữ liệu Firestore (xem `src/pages/note/data/api.ts`), thuộc gia đình đang chọn:
+- `families/{familyId}/notes/{noteId}`: ghi chú (`name`, `position` = số thứ tự trong các ghi chú của người nhận, `toUid`, `toName`, `fromUid`, `fromName`, `createdAt`, `items` = mảng thẻ theo thứ tự ưu tiên `{ id, text, done, doneByName, money }`;
+  `money` = các lần nạp / rút của riêng thẻ `{ type, amount, fundId, fundName, txId, byName, at }`)
+- `families/{familyId}/noteCards/{cardId}`: thẻ ghi chú đã từng nhập (`text`, `position` 1..n = thứ tự ưu tiên gợi ý), không trùng nội dung
+- `users/{uid}/settings/note`: `{ defaultFundId }`, RIÊNG từng tài khoản
+
 ## Cấu trúc code
 - `src/components/ui/sizes.ts`: kích thước dùng chung giữa giao diện thật và skeleton
-- Mỗi app con nằm trong thư mục riêng `src/pages/<app>/`, trang con dùng `AppHeader` (có nút quay lại)
+- Mỗi app con nằm trong thư mục riêng `src/pages/<app>/`, trang con dùng `AppHeader` (có nút quay lại; `subtitle` = dòng phụ nhỏ dưới tiêu đề, không làm thanh cao thêm)
 - Thêm màn hình mới mở trực tiếp từ trang chính của app con (không phải Cài đặt) thì thêm 1 dòng vào `SHORTCUTS` (`src/shortcuts.ts`) để tạo được phím tắt ở màn hình chính
 - Dữ liệu của app con nằm trong `src/pages/<app>/data/` (types, api, Context dùng chung cho các trang của app)
 - Mỗi trang export cả component thật và `XxxSkeleton` trong cùng file; `App.tsx` hiển thị skeleton khi đang loading
 - Thao tác dùng chung: **kéo thả sắp xếp** danh sách dọc bằng tay cầm ≡ → `useDragReorder` (`src/components/useDragReorder.ts`);
   **trượt thẻ sang trái hiện nút** → `SwipeActions` (`src/components/ui/SwipeActions.tsx`, icon trên nút dùng `LineIcon`, không dùng 3D).
+  Thẻ glass thì nền nút **lấn sang phía thẻ, nằm dưới thẻ** (`overlap`, xem quy ước mục 16); **thẻ bo góc** (vd thẻ Nhóm quỹ `rounded-2xl`)
+  thì truyền thêm `radius` = độ bo góc (px, vd 16) để khung ngoài bo tròn khớp thẻ và 2 góc bo bên phải cũng có màu nút (không bị hở góc).
+  Khi thả tay, **nền nút đổi bề rộng CÙNG chuyển động với thẻ** (`MOTION` trong `SwipeActions.tsx`: cùng thời gian + đường cong), vùng nút luôn có mặt (rộng 0 khi đóng)
+  để kéo mạnh rồi thả / đóng lại không hở mép nền nút; nội dung nút vẽ lại mỗi lần mở (trạng thái "Xoá?" không bị giữ lại). Sửa chuyển động của thẻ thì sửa cả vùng nút.
   Vùng có các thao tác này phải gắn `data-no-swipe` để không bị nhầm thành vuốt sang màn hình 2 bên.
 - Cấu hình Firebase đọc từ `.env` (xem `.env.example`)
 
@@ -315,3 +376,30 @@ Dữ liệu Firestore (xem `src/pages/baby/data/api.ts`), thuộc gia đình đa
 - Chưa có ảnh: khối tròn màu nổi 3D (`BLOCK_3D` + `GLOSS_3D` có `rounded-full`) với icon 3D bên trong; ô "chọn ảnh" / "thêm" cũng là hình tròn (viền nét đứt).
 - Skeleton của avatar cũng là `rounded-full`, cùng kích thước với avatar thật.
 - Dùng lại component có sẵn (vd `ChildAvatar` trong `src/pages/baby/components.tsx`) thay vì tự viết lại.
+
+### 14. Ô số (số thứ tự…) nằm trên thẻ nhập trực tiếp
+- Thẻ / hàng trong danh sách cho **nhập dữ liệu trực tiếp** mà có ô số (vd số thứ tự của thẻ nội dung, của ghi chú ở app Ghi chú):
+  **chưa nhấn vào thì hiển thị như 1 con số bình thường trên thẻ** (không khung viền, không nền ô nhập, chữ đậm ở giữa);
+  **nhấn vào để nhập thì mới hiện khung viền / nền** của ô nhập.
+- Dùng `NumberField` với **`inline`** (`INLINE_FIELD` trong `src/components/ui/NumberField.tsx`: `not-focus:border-transparent not-focus:bg-transparent`),
+  không tự viết lại. Skeleton của ô này là 1 con số nhỏ (khối nhỏ ở giữa), không phải khối ô nhập.
+- Không áp dụng cho ô số trong form Tạo / Sửa (vd "Số thứ tự" ở form Lệnh chuyển, Nhóm quỹ, tên + số của ghi chú): các ô đó vẫn hiện khung như ô nhập thường.
+
+### 15. Màu nền trong bảng / danh sách: kiểu glass gradient, không dùng màu đặc
+- **Header của bảng** (tiêu đề dính trên đầu bảng khi cuộn) và **thẻ / hàng trong bảng** dùng nền **glass gradient giống các thẻ nổi khác**,
+  **không dùng nền màu đặc** (vd `bg-[#2a2766]`, `bg-indigo-950/70`).
+- Dùng các class dùng chung trong `src/components/ui/listStyle.ts`, không tự viết lại:
+  - `LIST_HEADER`: header dính (`bg-white/10` + `backdrop-blur-xl`, nội dung cuộn bên dưới bị làm mờ; thêm `px-*` theo lề của bảng). Skeleton của header cũng có `bg-white/10`.
+  - `LIST_ROW_BG`: thẻ / hàng trong suốt để hiện nền glass của bảng. Thẻ có trượt (`SwipeActions`) cũng dùng nền này
+    (`SwipeActions` chỉ vẽ vùng nút đúng bằng phần thẻ đã trượt ra nên không cần nền đặc để che nút phía sau).
+  - `LIST_DRAGGING`: hàng đang kéo thả (`useDragReorder`), nền glass sáng hơn + viền mảnh + bóng đổ để nổi lên.
+- **Ngoại lệ: màn hình Tra cứu của app Quỹ** (`/fund/history`): dòng giao dịch có 2 màu nền (thường / đã xoá màu xám) nên giữ nền đặc như hiện tại.
+
+### 16. Thẻ glass trượt sang trái: nền nút lấn sang phía thẻ, nằm dưới thẻ
+- Danh sách có **thẻ nền gradient glass** mà thẻ **trượt sang trái để hiện nút chức năng** (`SwipeActions`): **nền của nút phải lấn sang phía thẻ 1 chút
+  và nằm DƯỚI thẻ** (thẻ vẽ đè lên), không để nền nút bắt đầu đúng ở mép phải thẻ.
+- Cách làm: truyền **`overlap={SWIPE_OVERLAP}`** (16px, `src/components/ui/listStyle.ts`) cho `SwipeActions`; nút trong `actions` thêm lề trái
+  **`SWIPE_OVERLAP_PAD`** (`pl-4`) để icon / chữ nằm giữa phần lộ ra. Thẻ **bo góc** thì truyền `radius` = độ bo góc
+  (`overlap` mặc định bằng `radius`, khung ngoài bo tròn khớp thẻ) để 2 góc bo bên phải của thẻ cũng có màu nút.
+- Đang áp dụng: Nhóm quỹ (`radius={16}`), các danh sách thẻ của app Ghi chú (`EditableList`, `NoteList`, `radius={LIST_CARD_RADIUS}`).
+- Không áp dụng cho thẻ nền đặc (vd Tra cứu của app Quỹ, ngoại lệ ở mục 15).

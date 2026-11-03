@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { formatNumber, MAX_MONEY, moneyToWords, parseMoney } from '../../lib/format'
 import { Skeleton } from './Skeleton'
+import { SIZE } from './sizes'
 import { TextField, TextFieldSkeleton, type TextFieldProps } from './TextField'
 
 interface MoneyFieldProps extends Omit<TextFieldProps, 'value' | 'onChange' | 'suffix' | 'inputMode'> {
@@ -46,10 +47,11 @@ export function MoneyField({ value, onChange, onFocus, onBlur, ...rest }: MoneyF
   )
 }
 
-export function MoneyFieldSkeleton() {
+// hideLabel: ô thật ẩn nhãn thì skeleton cũng bỏ dòng nhãn
+export function MoneyFieldSkeleton({ hideLabel }: { hideLabel?: boolean } = {}) {
   return (
     <div className="space-y-1">
-      <TextFieldSkeleton />
+      {hideLabel ? <Skeleton className={`${SIZE.control} w-full`} /> : <TextFieldSkeleton />}
       <div className="h-8">
         <Skeleton className="h-3 w-40 rounded-md" />
       </div>

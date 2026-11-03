@@ -1,4 +1,4 @@
-import type { InputHTMLAttributes } from 'react'
+import type { InputHTMLAttributes, Ref } from 'react'
 import { Skeleton } from './Skeleton'
 import { SIZE } from './sizes'
 
@@ -17,12 +17,20 @@ export function FieldLabel({ htmlFor, children }: { htmlFor?: string; children: 
 export interface TextFieldProps extends InputHTMLAttributes<HTMLInputElement> {
   label: string
   suffix?: string // chữ hiển thị cuối ô, vd "₫", "%/năm"
+  hideLabel?: boolean // ẩn nhãn để ô gọn trong 1 hàng (vẫn đọc được bằng trình đọc màn hình)
+  ref?: Ref<HTMLInputElement> // React 19: ref là prop thường, chuyển thẳng vào <input>
 }
 
-export function TextField({ label, id, suffix, className = '', ...rest }: TextFieldProps) {
+export function TextField({ label, id, suffix, hideLabel, className = '', ...rest }: TextFieldProps) {
   return (
-    <div className="space-y-1.5">
-      <FieldLabel htmlFor={id}>{label}</FieldLabel>
+    <div className={hideLabel ? '' : 'space-y-1.5'}>
+      {hideLabel ? (
+        <label htmlFor={id} className="sr-only">
+          {label}
+        </label>
+      ) : (
+        <FieldLabel htmlFor={id}>{label}</FieldLabel>
+      )}
       <div className="relative">
         <input
           id={id}

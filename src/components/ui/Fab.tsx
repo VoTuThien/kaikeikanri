@@ -18,7 +18,7 @@ const FAB_SIZE = 'h-14 w-14'
 export const FAB_SPACE = 'pb-20'
 
 // Icon nét trắng theo chức năng
-export type FabIcon = 'add' | 'delete' | 'save' | 'edit' | 'cancel' | 'logout' | 'locate' | 'bell' | 'send'
+export type FabIcon = 'add' | 'delete' | 'save' | 'edit' | 'cancel' | 'logout' | 'locate' | 'bell' | 'send' | 'copy'
 
 const ICON_PATHS: Record<FabIcon, string[]> = {
   add: ['M12 5v14', 'M5 12h14'],
@@ -33,6 +33,8 @@ const ICON_PATHS: Record<FabIcon, string[]> = {
   bell: ['M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15L6 16z', 'M10 20.5a2 2 0 0 0 4 0'],
   // Máy bay giấy: gửi yêu cầu
   send: ['M21 3L10 14', 'M21 3l-7 18-4-7-7-4 18-7z'],
+  // 2 tờ giấy chồng nhau: nhân bản (thêm hoạt động chồng lên thời gian của hoạt động hiện tại)
+  copy: ['M9 9h10a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1V10a1 1 0 0 1 1-1z', 'M5 15H4.5A1.5 1.5 0 0 1 3 13.5V4.5A1.5 1.5 0 0 1 4.5 3h9A1.5 1.5 0 0 1 15 4.5V5'],
 }
 
 // Icon nét trắng đơn giản: dùng trên FAB và cho các nút hiện ra khi trượt thẻ (không dùng icon 3D, xem CLAUDE.md)

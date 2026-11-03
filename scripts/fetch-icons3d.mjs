@@ -20,6 +20,8 @@ const EMOJIS = [
   '🏪', '🏢', '🚋', '🚏',
   // App Chăm con: icon thẻ hoạt động (ăn, ngủ, chơi, đi vệ sinh...) và các ô chức năng
   '🍼', '🥣', '😴', '🧸', '🚽', '🛁', '💊', '🌳', '📚', '🎵', '🩺', '🧷', '🏷️', '🕒', '📊',
+  // App Ghi chú: icon app, ô chức năng (xem, tạo ghi chú) và trạng thái
+  '🗒️', '📬', '✍️', '✅',
 ]
 
 const SOURCE = 'https://cdn.jsdelivr.net/npm/@lobehub/fluent-emoji-3d@1.1.0/assets/'

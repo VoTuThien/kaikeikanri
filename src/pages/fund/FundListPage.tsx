@@ -23,6 +23,8 @@ const LIST_CLASS = `-mx-1 px-1 py-1 ${FAB_SPACE}`
 const CARD = `${SIZE.listItem} flex items-center rounded-2xl border border-white/20 bg-white/10 pr-4 shadow-lg shadow-black/20 backdrop-blur-xl`
 const HANDLE = 'flex h-full w-9 shrink-0 cursor-grab touch-none items-center justify-center text-lg text-white/50 active:cursor-grabbing'
 const EDIT_WIDTH = 80
+// Độ bo góc của thẻ (rounded-2xl = 16px): nền nút "Sửa" lấn sang trái bằng chừng này để góc bo của thẻ cũng có màu nút (nút thêm pl-4 cho chữ nằm giữa)
+const CARD_RADIUS = 16
 
 export function FundListPage() {
   const { loading, funds } = useFund()
@@ -70,12 +72,13 @@ export function FundListPage() {
                   onOpen={() => setOpenId(f.id)}
                   onClose={() => setOpenId((id) => (id === f.id ? null : id))}
                   className="rounded-2xl"
+                  radius={CARD_RADIUS}
                   actions={() => (
                     <button
                       type="button"
                       aria-label={`Sửa nhóm quỹ ${f.name}`}
                       onClick={() => navigate(`/fund/groups/${f.id}`)}
-                      className="flex h-full w-full flex-col items-center justify-center gap-0.5 rounded-r-2xl bg-sky-500/90 text-[11px] font-semibold"
+                      className="flex h-full w-full flex-col items-center justify-center gap-0.5 bg-sky-500/90 pl-4 text-[11px] font-semibold"
                     >
                       <LineIcon icon="edit" className="h-6 w-6" />
                       Sửa

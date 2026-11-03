@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import type { ReactNode, Ref } from 'react'
 
 // Khung chung cho các trang sau khi đăng nhập: cao đúng bằng màn hình, trang không bao giờ cuộn.
 // Phần cần cuộn (bảng / danh sách) đặt trong <ScrollArea>, phần còn lại đứng yên.
@@ -12,9 +12,9 @@ export function PageShell({ children }: { children: ReactNode }) {
 }
 
 // Vùng chiếm hết chiều cao còn lại của trang, chỉ nội dung bên trong được cuộn
-export function ScrollArea({ children, className = '' }: { children: ReactNode; className?: string }) {
+export function ScrollArea({ children, className = '', ref }: { children: ReactNode; className?: string; ref?: Ref<HTMLDivElement> }) {
   return (
-    <div className={`min-h-0 flex-1 !shrink overflow-y-auto overscroll-contain scroll-thin ${className}`}>{children}</div>
+    <div ref={ref} className={`min-h-0 flex-1 !shrink overflow-y-auto overscroll-contain scroll-thin ${className}`}>{children}</div>
   )
 }
 

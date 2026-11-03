@@ -6,6 +6,7 @@ import { PageShell, ScrollArea } from '../../components/PageShell'
 import { Alert } from '../../components/ui/Alert'
 import { FAB_SPACE, FabGroup, FabLink, FabSkeleton } from '../../components/ui/Fab'
 import { GLASS_CLASS } from '../../components/ui/GlassPanel'
+import { LIST_DRAGGING } from '../../components/ui/listStyle'
 import { Skeleton } from '../../components/ui/Skeleton'
 import { SIZE } from '../../components/ui/sizes'
 import { EmptyState, OrderInfo, OrderRowSkeleton, orderValid } from './components'
@@ -63,7 +64,7 @@ export function OrderListPage() {
               return (
                 <div
                   key={o.id}
-                  className={`${SIZE.row} relative flex items-center ${dragging ? 'z-10 rounded-xl bg-indigo-900/90 shadow-xl shadow-black/40' : 'transition-transform duration-150'}`}
+                  className={`${SIZE.row} relative flex items-center ${dragging ? LIST_DRAGGING : 'transition-transform duration-150'}`}
                   style={{ transform: `translateY(${reorder.offsetOf(i)}px)` }}
                 >
                   <button type="button" aria-label={`Kéo để đổi thứ tự lệnh số ${i + 1}`} className={HANDLE} {...reorder.handleProps(i)}>

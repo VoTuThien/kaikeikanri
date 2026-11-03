@@ -12,4 +12,5 @@ export const APPS: AppEntry[] = [
   { id: 'fund', name: 'Quỹ', icon: '💰', gradient: 'from-amber-400 to-orange-500', path: '/fund' },
   { id: 'status', name: 'Trạng thái', icon: '🗺️', gradient: 'from-emerald-400 to-teal-600', path: '/status' },
   { id: 'baby', name: 'Chăm con', icon: '👶', gradient: 'from-pink-300 to-rose-500', path: '/baby' },
+  { id: 'note', name: 'Ghi chú', icon: '🗒️', gradient: 'from-sky-400 to-indigo-600', path: '/note' },
 ]

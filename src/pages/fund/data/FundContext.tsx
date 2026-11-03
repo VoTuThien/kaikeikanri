@@ -101,16 +101,22 @@ function toTransaction(id: string, d: DocumentData): FundTransaction {
   }
 }
 
+// Danh sách nhóm quỹ realtime, xếp theo số thứ tự. null = đang tải.
+// Dùng chung cho app Quỹ và app Ghi chú (nạp / rút quỹ ở màn hình Xem ghi chú), cùng khoá nhớ tạm.
+export function useFundList(uid: string | undefined): Fund[] | null {
+  return useLiveQuery<Fund[]>(uid ? familyKey('funds') : null, (on) =>
+    onSnapshot(query(fundsCol(), orderBy('createdAt', 'asc')), (snap) =>
+      on(sortFunds(snap.docs.map((d) => toFund(d.id, d.data(OPTS)))), snap.metadata.fromCache),
+    ),
+  )
+}
+
 export function FundProvider({ actor, children }: { actor: Actor | null; children: ReactNode }) {
   const uid = actor?.uid
   const interestTried = useRef(new Set<string>())
 
   // Dữ liệu realtime có nhớ tạm (liveQuery): mở lại app Quỹ / vuốt qua lại thì hiện ngay dữ liệu đã có, không chớp skeleton
-  const funds = useLiveQuery<Fund[]>(uid ? familyKey('funds') : null, (on) =>
-    onSnapshot(query(fundsCol(), orderBy('createdAt', 'asc')), (snap) =>
-      on(sortFunds(snap.docs.map((d) => toFund(d.id, d.data(OPTS)))), snap.metadata.fromCache),
-    ),
-  )
+  const funds = useFundList(uid)
   const transactions = useLiveQuery<FundTransaction[]>(uid ? familyKey('transactions') : null, (on) =>
     onSnapshot(query(txCol(), orderBy('date', 'desc'), limit(1000)), (snap) =>
       on(

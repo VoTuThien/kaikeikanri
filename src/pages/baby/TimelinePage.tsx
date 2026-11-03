@@ -1,12 +1,11 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { AppHeader, AppHeaderSkeleton } from '../../components/AppHeader'
-import { PageShell, ScrollArea } from '../../components/PageShell'
+import { PageShell } from '../../components/PageShell'
 import { Alert } from '../../components/ui/Alert'
 import { Button } from '../../components/ui/Button'
 import { SaveDeleteFabs } from '../../components/ui/Fab'
-import { GLASS_CLASS, GlassPanel } from '../../components/ui/GlassPanel'
-import { Icon3D } from '../../components/ui/Icon3D'
+import { GlassPanel } from '../../components/ui/GlassPanel'
 import { MinutesField } from '../../components/ui/MinutesField'
 import { PagedRow, PagedRowSkeleton } from '../../components/ui/PagedRow'
 import { Skeleton } from '../../components/ui/Skeleton'
@@ -15,9 +14,9 @@ import { SIZE } from '../../components/ui/sizes'
 import { CardIcon, ChildPicker, ChildPickerSkeleton, DayBar, DayBarSkeleton } from './components'
 import { createEntry, deleteEntry, updateEntry, type EntryTiming } from './data/api'
 import { useBaby, useDayEntries } from './data/BabyContext'
+import { TimelineView, TimelineViewSkeleton } from './TimelineView'
 import {
   addMinutes,
-  entryState,
   formatDuration,
   formatTime,
   fromTimeInput,
@@ -30,8 +29,6 @@ import {
   type BabyEntry,
 } from './data/types'
 
-// Danh sách hoạt động: chiếm hết phần còn lại của màn hình, chỉ danh sách được cuộn
-const TABLE_CLASS = `${GLASS_CLASS} !p-0`
 const TRAY_CLASS = `${SIZE.tray} !p-0`
 // Bề rộng 1 thẻ trong khay (icon + tên tối đa 3 dòng)
 const TRAY_ITEM_WIDTH = 64
@@ -40,11 +37,9 @@ const FORM_ID = 'baby-entry-form'
 const TIME_FIELD = '!px-2.5'
 // Ô bị khoá khi chưa hoàn thành: mờ đi
 const LOCKED = 'disabled:opacity-40 disabled:cursor-not-allowed'
-// Số dòng skeleton trong danh sách
-const SKELETON_ROWS = 6
-
-// Khung nhập đang mở: thêm từ 1 thẻ, hoặc sửa 1 hoạt động đã có
-type Sheet = { mode: 'new'; card: BabyCard } | { mode: 'edit'; entry: BabyEntry }
+// Khung nhập đang mở: thêm từ 1 thẻ, hoặc sửa 1 hoạt động đã có.
+// overlap: thêm bằng nút NHÂN BẢN của 1 hoạt động -> cùng giờ với hoạt động đó và được chồng thời gian lên nó (không đẩy hoạt động liền kề)
+type Sheet = { mode: 'new'; card: BabyCard; overlap?: BabyEntry } | { mode: 'edit'; entry: BabyEntry }
 
 export function TimelinePage() {
   const { loading } = useBaby()
@@ -57,13 +52,32 @@ export function TimelinePage() {
 function Timeline({ day, setDay, entries }: { day: Date; setDay: (d: Date) => void; entries: BabyEntry[] | null }) {
   const { cards, child } = useBaby()
   const [sheet, setSheet] = useState<Sheet | null>(null)
+  // Đã bấm nút nhân bản của 1 hoạt động: chọn thẻ ở khay để thêm hoạt động chồng lên thời gian của nó
+  const [copyOf, setCopyOf] = useState<BabyEntry | null>(null)
+  const [error, setError] = useState('')
   // Đổi con thì đóng khung nhập đang mở (khung đó thuộc con cũ)
   const childId = child?.id
-  useEffect(() => setSheet(null), [childId])
+  useEffect(() => {
+    setSheet(null)
+    setCopyOf(null)
+  }, [childId])
 
   function changeDay(next: Date) {
     setSheet(null)
+    setCopyOf(null)
     setDay(next)
+  }
+
+  // Kéo thẻ (nhấn giữ rồi kéo): dời cả thẻ (giữ số phút), không đẩy các hoạt động khác (được phép chồng thời gian)
+  function move(entry: BabyEntry, start: Date) {
+    const minutes = entry.minutes
+    setError('')
+    if (sheet?.mode === 'edit' && sheet.entry.id === entry.id) setSheet(null)
+    const card = { id: entry.cardId, name: entry.name, icon: entry.icon, color: entry.color }
+    updateEntry(entry.id, { childId: entry.childId ?? child?.id ?? null, card, start, minutes }).catch((err) => {
+      console.error(err)
+      setError('Lưu giờ mới thất bại. Vui lòng thử lại.')
+    })
   }
 
   const editingId = sheet?.mode === 'edit' ? sheet.entry.id : null
@@ -73,46 +87,47 @@ function Timeline({ day, setDay, entries }: { day: Date; setDay: (d: Date) => vo
       <AppHeader title="Time line" backTo="/baby" right={<ChildPicker />} />
 
       <DayBar day={day} onChange={changeDay} />
+      {error && <Alert type="error">{error}</Alert>}
 
-      {/* Danh sách hoạt động trong ngày, theo giờ bắt đầu */}
-      <ScrollArea className={TABLE_CLASS}>
-        {entries === null ? (
-          <TimelineRowsSkeleton />
-        ) : entries.length === 0 ? (
-          <div className="flex h-full flex-col items-center justify-center gap-2 p-6 text-center">
-            <Icon3D emoji="🕒" className="h-12 w-12" />
-            <span className="text-sm leading-5 text-white/70">Chưa có hoạt động nào. Chạm một thẻ bên dưới để ghi lại.</span>
+      {/* Trục thời gian của ngày: thẻ cao theo số phút, được phép chồng nhau */}
+      {entries === null ? (
+        <TimelineViewSkeleton />
+      ) : (
+        <TimelineView
+          key={`${day.getTime()}-${childId ?? ''}`}
+          day={day}
+          entries={entries}
+          editingId={editingId}
+          onEdit={(entry) => {
+            setCopyOf(null)
+            setSheet({ mode: 'edit', entry })
+          }}
+          onCopy={(entry) => {
+            setSheet(null)
+            setCopyOf(entry)
+          }}
+          onMove={move}
+        />
+      )}
+
+      {/* Đang nhân bản: nhắc chọn thẻ ở khay bên dưới */}
+      {!sheet && copyOf && (
+        <GlassPanel className="flex h-12 items-center gap-3 !px-3 !py-0">
+          <span className="min-w-0 flex-1 truncate text-xs leading-4 text-white/80">
+            Chọn hoạt động chồng lên <span className="font-semibold text-white">"{copyOf.name}"</span> ({formatTime(copyOf.start)}–
+            {copyOf.end ? formatTime(copyOf.end) : '...'})
+          </span>
+          <div className="w-16 shrink-0">
+            <Button type="button" variant="secondary" className="!h-9" onClick={() => setCopyOf(null)}>
+              Huỷ
+            </Button>
           </div>
-        ) : (
-          <div className="divide-y divide-white/10">
-            {entries.map((e) => (
-              <button
-                key={e.id}
-                type="button"
-                onClick={() => setSheet({ mode: 'edit', entry: e })}
-                className={`${SIZE.row} flex w-full items-center gap-3 px-4 text-left transition ${editingId === e.id ? 'bg-white/15' : 'hover:bg-white/5'}`}
-              >
-                <span className="w-12 shrink-0 text-right">
-                  <span className="block text-sm leading-5 font-bold tabular-nums">{formatTime(e.start)}</span>
-                  <span className="block text-xs leading-4 text-white/50 tabular-nums">{e.end ? formatTime(e.end) : '...'}</span>
-                </span>
-                <CardIcon icon={e.icon} color={e.color} box="h-10 w-10" img="h-7 w-7" />
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm leading-5 font-semibold">{e.name}</span>
-                  <span className="flex items-center gap-1.5 truncate text-xs leading-5 text-white/60">
-                    <StateLabel entry={e} />
-                    {e.createdByName && <span className="truncate">· {e.createdByName}</span>}
-                  </span>
-                </span>
-              </button>
-            ))}
-          </div>
-        )}
-      </ScrollArea>
+        </GlassPanel>
+      )}
 
       {sheet ? (
         <EntrySheet
-          key={sheet.mode === 'new' ? `new-${sheet.card.id}` : sheet.entry.id}
+          key={sheet.mode === 'new' ? `new-${sheet.card.id}-${sheet.overlap?.id ?? ''}` : sheet.entry.id}
           sheet={sheet}
           day={day}
           entries={entries ?? []}
@@ -136,7 +151,10 @@ function Timeline({ day, setDay, entries }: { day: Date; setDay: (d: Date) => vo
             renderItem={(c) => (
               <button
                 type="button"
-                onClick={() => setSheet({ mode: 'new', card: c })}
+                onClick={() => {
+                  setSheet({ mode: 'new', card: c, overlap: copyOf ?? undefined })
+                  setCopyOf(null)
+                }}
                 className="flex w-full flex-col items-center gap-1 transition active:scale-95"
               >
                 <CardIcon icon={c.icon} color={c.color} />
@@ -147,18 +165,6 @@ function Timeline({ day, setDay, entries }: { day: Date; setDay: (d: Date) => vo
         </GlassPanel>
       )}
     </PageShell>
-  )
-}
-
-// Trạng thái của hoạt động: thời lượng nếu đã xong, còn lại là "Đang diễn ra" / "Sắp bắt đầu"
-function StateLabel({ entry }: { entry: BabyEntry }) {
-  const state = entryState(entry)
-  if (state === 'done') return <span className="shrink-0">{formatDuration(entry.minutes ?? 0)}</span>
-  return (
-    <span className={`flex shrink-0 items-center gap-1 font-semibold ${state === 'ongoing' ? 'text-emerald-300' : 'text-amber-200'}`}>
-      <span className={`h-1.5 w-1.5 rounded-full ${state === 'ongoing' ? 'animate-pulse bg-emerald-300' : 'bg-amber-200'}`} />
-      {state === 'ongoing' ? 'Đang diễn ra' : 'Sắp bắt đầu'}
-    </span>
   )
 }
 
@@ -263,6 +269,8 @@ function linkInsert(
 function EntrySheet({ sheet, day, entries, onClose }: { sheet: Sheet; day: Date; entries: BabyEntry[]; onClose: () => void }) {
   const { actor, child } = useBaby()
   const isNew = sheet.mode === 'new'
+  // Nhân bản: hoạt động mới cùng giờ với hoạt động này, chồng thời gian lên nó
+  const overlap = sheet.mode === 'new' ? (sheet.overlap ?? null) : null
   const look = isNew ? sheet.card : sheet.entry
   // Hoạt động cuối cùng trong danh sách: giờ bắt đầu mặc định nối tiếp nó (đổi giờ bắt đầu để chèn vào giữa)
   const [last] = useState(() => (isNew ? lastEntry(entries) : null))
@@ -271,14 +279,15 @@ function EntrySheet({ sheet, day, entries, onClose }: { sheet: Sheet; day: Date;
     const i = isNew ? -1 : entries.findIndex((e) => e.id === sheet.entry.id)
     return i < 0 ? { prev: null, next: null } : { prev: entries[i - 1] ?? null, next: entries[i + 1] ?? null }
   })
-  const initialStart = isNew ? defaultStart(day, last) : sheet.entry.start
+  const initialStart = overlap ? overlap.start : isNew ? defaultStart(day, last) : sheet.entry.start
 
   // Ngày của giờ bắt đầu (nối tiếp qua nửa đêm thì là ngày hôm sau)
   const [baseDay] = useState(() => startOfDay(initialStart))
-  const initialMinutes = isNew ? sheet.card.defaultMinutes : sheet.entry.minutes
+  const initialMinutes = overlap?.minutes ?? (isNew ? sheet.card.defaultMinutes : sheet.entry.minutes)
   const [startText, setStartText] = useState(() => toTimeInput(initialStart))
-  // Đã hoàn thành: mới nhập số phút / kết thúc. Thêm mới thì mặc định là chưa hoàn thành (đang diễn ra / sắp bắt đầu)
-  const [completed, setCompleted] = useState(!isNew && sheet.entry.end !== null)
+  // Đã hoàn thành: mới nhập số phút / kết thúc. Thêm mới thì mặc định là chưa hoàn thành (đang diễn ra / sắp bắt đầu);
+  // nhân bản thì giống hoạt động gốc
+  const [completed, setCompleted] = useState(overlap ? overlap.end !== null : !isNew && sheet.entry.end !== null)
   const [minutesText, setMinutesText] = useState(initialMinutes === null ? '' : String(initialMinutes))
   const [endText, setEndText] = useState(() => (initialMinutes === null ? '' : toTimeInput(addMinutes(initialStart, initialMinutes))))
   const [error, setError] = useState('')
@@ -291,7 +300,10 @@ function EntrySheet({ sheet, day, entries, onClose }: { sheet: Sheet; day: Date;
   const end = start && minutes > 0 ? addMinutes(start, minutes) : null
   const link = !start
     ? null
-    : isNew
+    : overlap
+      ? // Nhân bản: được chồng thời gian, không đẩy các hoạt động liền kề
+        { linked: [], notes: [`Chồng lên "${overlap.name}"`], error: '', minutes: null }
+      : isNew
       ? linkInsert(entries, start, completed ? end : null)
       : linkNeighbors(sheet.entry, start, completed ? end : null, neighbors.prev, neighbors.next)
 
@@ -375,7 +387,7 @@ function EntrySheet({ sheet, day, entries, onClose }: { sheet: Sheet; day: Date;
             <CardIcon icon={look.icon} color={look.color} box="h-10 w-10" img="h-7 w-7" />
             <span className="min-w-0 flex-1">
               <span className="block truncate text-sm leading-5 font-semibold">{look.name}</span>
-              <span className="block truncate text-xs leading-4 text-white/60">{isNew ? 'Thêm hoạt động' : 'Sửa hoạt động'}</span>
+              <span className="block truncate text-xs leading-4 text-white/60">{overlap ? `Thêm chồng lên "${overlap.name}"` : isNew ? 'Thêm hoạt động' : 'Sửa hoạt động'}</span>
             </span>
             <div className="w-16 shrink-0">
               <Button type="button" variant="secondary" className="!h-10" onClick={onClose}>
@@ -467,34 +479,12 @@ function EntrySheet({ sheet, day, entries, onClose }: { sheet: Sheet; day: Date;
   )
 }
 
-function TimelineRowsSkeleton() {
-  return (
-    <div className="divide-y divide-white/10">
-      {Array.from({ length: SKELETON_ROWS }, (_, i) => (
-        <div key={i} className={`${SIZE.row} flex items-center gap-3 px-4`}>
-          <div className="w-12 space-y-1">
-            <Skeleton className="ml-auto h-4 w-10 rounded-md" />
-            <Skeleton className="ml-auto h-3 w-8 rounded-md" />
-          </div>
-          <Skeleton className="h-10 w-10 rounded-[22%]" />
-          <div className="flex-1 space-y-1">
-            <Skeleton className="h-4 w-24 rounded-md" />
-            <Skeleton className="h-3 w-32 rounded-md" />
-          </div>
-        </div>
-      ))}
-    </div>
-  )
-}
-
 export function TimelinePageSkeleton() {
   return (
     <PageShell>
       <AppHeaderSkeleton right={<ChildPickerSkeleton />} />
       <DayBarSkeleton />
-      <ScrollArea className={`${TABLE_CLASS} !overflow-hidden`}>
-        <TimelineRowsSkeleton />
-      </ScrollArea>
+      <TimelineViewSkeleton />
       <GlassPanel className={TRAY_CLASS}>
         <PagedRowSkeleton
           itemWidth={TRAY_ITEM_WIDTH}
