@@ -331,6 +331,9 @@ Dữ liệu Firestore (xem `src/pages/note/data/api.ts`), thuộc gia đình đa
 - Mọi màn hình phải hiển thị gọn trong **iPhone 11 (414×896)** và **iPhone 12 (390×844)**, tính cả vùng tai thỏ / thanh home khi cài lên màn hình chính (vùng dùng được trên iPhone 12 khoảng 390×760).
 - **Trang không được cuộn, không xuất hiện thanh cuộn.** Khung trang (`PageShell`, `AuthLayout`) cao đúng màn hình (`h-full`, theo `html`/`body`/`#root` 100%) và `overflow-hidden`.
   **Không dùng đơn vị `dvh` / `svh` / `lvh`** (iOS 15.1 chưa hỗ trợ: khung mất chiều cao, danh sách không cuộn được); cần theo màn hình thì dùng `h-full` hoặc `vh`.
+  **Mở từ màn hình chính iPhone (standalone)**: iOS 17–18 tính `100%` thiếu đúng bằng vùng tai thỏ (dải đen ở đáy) → `index.css` dùng
+  `@media (display-mode: standalone) { height: max(100%, 100vh) }` cho `html`/`body`/`#root`, `html` có nền tím; JS cần chiều cao màn hình thì lấy
+  `Math.max(innerHeight, documentElement.clientHeight)` (vd `viewH` trong `NotificationBubble.tsx`), không dùng riêng `innerHeight`.
 - Nếu nội dung dài, ưu tiên thu gọn: đặt các ô nhập ngắn cạnh nhau (grid 2 cột), giảm khoảng cách, rút gọn chữ, thay vì để trang dài ra.
 
 ### 7. Màn hình có bảng / danh sách dữ liệu

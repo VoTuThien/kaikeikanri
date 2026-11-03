@@ -11,6 +11,22 @@ body,
   height: 100%;
 }
 
+/* Mở từ màn hình chính iPhone (standalone, thanh trạng thái black-translucent): iOS 17–18 tính 100% thiếu đúng bằng vùng tai thỏ,
+   để lại 1 dải ĐEN ở đáy màn hình. Ở chế độ này không có thanh địa chỉ nên 100vh = đúng cả màn hình -> lấy số lớn hơn.
+   (Trong Safari thường vẫn dùng 100% vì 100vh tính cả phần bị thanh địa chỉ che.) */
+@media (display-mode: standalone) {
+  html,
+  body,
+  #root {
+    height: max(100%, 100vh);
+  }
+}
+
+/* Có lộ ra chỗ nào ngoài khung app thì vẫn là màu nền tím, không phải màu đen */
+html {
+  background-color: #1e1b4b;
+}
+
 /* Ẩn thanh cuộn nhưng vẫn cuộn được (dùng cho vùng dự phòng khi màn hình quá nhỏ) */
 @utility no-scrollbar {
   scrollbar-width: none;

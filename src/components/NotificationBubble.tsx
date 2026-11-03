@@ -84,7 +84,10 @@ function frame() {
   return { left: left + MARGIN, right: left + w - SIZE - MARGIN }
 }
 
-const clampY = (y: number) => Math.max(TOP_MIN, Math.min(window.innerHeight - BOTTOM_RESERVE - SIZE, y))
+// Chiều cao màn hình: lấy theo khung app (html) vì ở chế độ màn hình chính iOS innerHeight có thể thiếu phần tai thỏ
+const viewH = () => Math.max(window.innerHeight, document.documentElement.clientHeight)
+
+const clampY = (y: number) => Math.max(TOP_MIN, Math.min(viewH() - BOTTOM_RESERVE - SIZE, y))
 
 export function NotificationBubble() {
   const { user } = useAuth()
@@ -186,10 +189,10 @@ function Bubble({ uid, count }: { uid: string; count: number }) {
   const openTop = safe.top + 12
   const rest =
     phase === 'closed'
-      ? { x: saved.side === 'left' ? edges.left : edges.right, y: clampY(saved.y * window.innerHeight) }
+      ? { x: saved.side === 'left' ? edges.left : edges.right, y: clampY(saved.y * viewH()) }
       : { x: saved.side === 'left' ? edges.left : edges.right, y: openTop }
   const pos = drag ?? rest
-  const xCenter = { x: window.innerWidth / 2, y: window.innerHeight - X_BOTTOM - X_SIZE / 2 }
+  const xCenter = { x: window.innerWidth / 2, y: viewH() - X_BOTTOM - X_SIZE / 2 }
   const near = (x: number, y: number) => Math.hypot(x + SIZE / 2 - xCenter.x, y + SIZE / 2 - xCenter.y) < X_HIT
 
   function onPointerDown(e: PointerEvent<HTMLButtonElement>) {
@@ -230,7 +233,7 @@ function Bubble({ uid, count }: { uid: string; count: number }) {
     }
     // Dính vào mép gần hơn
     const mid = (edges.left + edges.right) / 2
-    update({ ...saved, side: x < mid ? 'left' : 'right', y: clampY(y) / window.innerHeight })
+    update({ ...saved, side: x < mid ? 'left' : 'right', y: clampY(y) / viewH() })
   }
 
   function onPointerCancel() {
@@ -369,7 +372,7 @@ function NotificationPopup({
             ? 'scale-100 opacity-100 transition-[transform,opacity] duration-[420ms] ease-[cubic-bezier(0.34,1.36,0.64,1)]'
             : 'scale-[0.35] opacity-0 transition-[transform,opacity] duration-200 ease-in'
         }`}
-        style={{ top, left, width: w, maxHeight: window.innerHeight - top - bottom, transformOrigin: `${arrow}px -10px` }}
+        style={{ top, left, width: w, maxHeight: viewH() - top - bottom, transformOrigin: `${arrow}px -10px` }}
       >
         {/* Mũi nhọn chỉ vào bong bóng */}
         <span
