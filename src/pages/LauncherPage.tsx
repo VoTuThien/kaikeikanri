@@ -2,10 +2,11 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { APPS } from '../apps'
 import { AddShortcutIcon, HOME_GRID, HomeIcon, HomeIconSkeleton, REMOVE_BADGE, shortcutLook } from '../components/HomeIcon'
+import { Avatar } from '../components/Avatar'
 import { revealBubble, useBubbleHidden } from '../components/NotificationBubble'
 import { PageShell } from '../components/PageShell'
 import { LinkButton } from '../components/ui/Button'
-import { Fab, FabGroup, FabSkeleton } from '../components/ui/Fab'
+import { Fab, FabGroup, FabSkeleton, LineIcon } from '../components/ui/Fab'
 import { GlassPanel } from '../components/ui/GlassPanel'
 import { Icon3D } from '../components/ui/Icon3D'
 import { Select } from '../components/ui/Select'
@@ -25,6 +26,10 @@ import {
 import { shortcutById } from '../shortcuts'
 
 const HEADER_CLASS = 'space-y-3'
+// Hàng lời chào: [avatar] [Xin chào, tên] [nút sửa thông tin cá nhân]; nút và avatar cao bằng 2 dòng chữ (h-12)
+const GREETING = 'flex items-center gap-3'
+const EDIT_BUTTON = `${SIZE.control} flex w-12 shrink-0 items-center justify-center rounded-xl border border-white/25 bg-white/10 transition hover:bg-white/20 active:scale-95`
+const ME_AVATAR = 'h-12 w-12 text-sm'
 // Nhiều icon thì chỉ lưới icon cuộn (có thanh cuộn); chừa lề trên cho nút gỡ và icon rung không bị cắt,
 // lề dưới để hàng icon cuối không bị nút nổi che
 const GRID_PANEL_CLASS = 'min-h-0 !shrink overflow-y-auto overscroll-contain scroll-thin !pt-6 !pb-20'
@@ -85,9 +90,17 @@ export function LauncherPage() {
     <div className="contents" data-no-swipe={editing || undefined}>
       <PageShell>
         <GlassPanel className={HEADER_CLASS}>
-          <div>
-            <p className={`${SIZE.subtitle} text-sm leading-5 text-white/70`}>Xin chào,</p>
-            <h1 className={`${SIZE.title} truncate text-2xl leading-8 font-bold`}>{user?.displayName || user?.email}</h1>
+          <div className={GREETING}>
+            {/* Avatar của mình (ảnh trong Thông tin cá nhân, chưa có thì 2 chữ cái) */}
+            {user && <Avatar uid={user.uid} name={user.displayName || user.email || ''} size={ME_AVATAR} />}
+            <div className="min-w-0 flex-1">
+              <p className={`${SIZE.subtitle} text-sm leading-5 text-white/70`}>Xin chào,</p>
+              <h1 className={`${SIZE.title} truncate text-2xl leading-8 font-bold`}>{user?.displayName || user?.email}</h1>
+            </div>
+            {/* Sửa thông tin cá nhân: icon nét thường (không 3D) */}
+            <Link to="/profile" aria-label="Sửa thông tin cá nhân" title="Sửa thông tin cá nhân" className={EDIT_BUTTON}>
+              <LineIcon icon="edit" className="h-5 w-5" />
+            </Link>
           </div>
           {/* Chọn gia đình ngay tại màn hình chính; dữ liệu các app bên dưới thuộc gia đình đang chọn */}
           {current && (
@@ -233,9 +246,13 @@ export function LauncherPageSkeleton() {
   return (
     <PageShell>
       <GlassPanel className={HEADER_CLASS}>
-        <div>
-          <Skeleton className={`${SIZE.subtitle} w-20 rounded-md`} />
-          <Skeleton className={`${SIZE.title} w-48`} />
+        <div className={GREETING}>
+          <Skeleton className={`${ME_AVATAR} shrink-0 rounded-full`} />
+          <div className="min-w-0 flex-1">
+            <Skeleton className={`${SIZE.subtitle} w-20 rounded-md`} />
+            <Skeleton className={`${SIZE.title} w-48`} />
+          </div>
+          <Skeleton className={`${SIZE.control} w-12 shrink-0`} />
         </div>
         <div className="space-y-1.5">
           <Skeleton className={`${SIZE.control} w-full`} />

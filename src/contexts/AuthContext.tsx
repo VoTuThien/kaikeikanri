@@ -18,6 +18,8 @@ interface AuthContextValue {
   register: (displayName: string, email: string, password: string) => Promise<void>
   resetPassword: (email: string) => Promise<void>
   logout: () => Promise<void>
+  // Đổi tên hiển thị (màn hình Thông tin cá nhân); các thao tác sau đó ghi tên mới
+  updateName: (displayName: string) => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
@@ -57,6 +59,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     logout: async () => {
       await signOut(requireAuth())
+    },
+    updateName: async (displayName) => {
+      const u = requireAuth().currentUser
+      if (!u || u.displayName === displayName) return
+      await updateProfile(u, { displayName })
+      setRefreshTick((t) => t + 1)
     },
   }
 

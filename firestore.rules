@@ -81,6 +81,13 @@ service cloud.firestore {
 
     // Tra mã gia đình: chỉ đọc được đúng 1 mã khi biết mã (không liệt kê được);
     // chỉ chủ gia đình tạo; không ghi đè (mã trùng thì bị từ chối, app thử mã khác)
+    // Thông tin cá nhân (tên, nickname, ngày sinh, giới tính, nghề nghiệp, avatar): đọc theo đúng uid để hiện avatar thật
+    // của thành viên (không liệt kê được), mỗi người chỉ sửa hồ sơ của mình. Xem src/lib/profile.ts
+    match /profiles/{uid} {
+      allow get: if signedIn();
+      allow write: if signedIn() && uid == me();
+    }
+
     match /familyCodes/{code} {
       allow get: if signedIn();
       allow create: if signedIn() && isOwnerAfter(request.resource.data.familyId);

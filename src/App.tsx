@@ -9,6 +9,7 @@ import { FamilyManagePage, FamilyManagePageSkeleton } from './pages/family/Famil
 import { NotificationsPage, NotificationsPageSkeleton } from './pages/family/NotificationsPage'
 import { isFirebaseConfigured } from './lib/firebase'
 import { LauncherPage, LauncherPageSkeleton } from './pages/LauncherPage'
+import { ProfilePage, ProfilePageSkeleton } from './pages/ProfilePage'
 import { ShortcutPickerPage, ShortcutPickerPageSkeleton } from './pages/ShortcutPickerPage'
 import { SidePage, SidePageSkeleton } from './pages/SidePage'
 import { SideSwipe } from './components/SideSwipe'
@@ -95,6 +96,8 @@ function AppRoutes({ location }: { location?: string }) {
       <Route path="/family/join" element={<Protected page={<FamilyJoinPage />} skeleton={<FamilyJoinPageSkeleton />} />} />
       <Route path="/notifications" element={<Protected page={<NotificationsPage />} skeleton={<NotificationsPageSkeleton />} />} />
       <Route path="/family/manage" element={<Protected page={<FamilyManagePage />} skeleton={<FamilyManagePageSkeleton />} />} />
+      {/* Thông tin cá nhân (nút cây bút cạnh lời chào ở màn hình chính) */}
+      <Route path="/profile" element={<Protected page={<ProfilePage />} skeleton={<ProfilePageSkeleton />} />} />
       {/* App Quỹ: mỗi trang tự hiện skeleton khi đang đăng nhập / tải dữ liệu */}
       <Route path="/fund" element={<FundLayout />}>
         <Route index element={<FundHomePage />} />

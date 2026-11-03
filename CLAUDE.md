@@ -14,7 +14,14 @@ mỗi icon là một app con (Quỹ, sau này thêm các app quản lý khác). 
 **Mỗi app con có màn hình Cài đặt riêng của nó** bên trong app, không có màn hình cài đặt chung cho tất cả.
 
 - [x] Đăng nhập / Tạo tài khoản / Quên mật khẩu (Firebase Auth, email + mật khẩu)
-- [x] Màn hình chính dạng lưới icon (`/`), đăng xuất ở màn hình này
+- [x] Màn hình chính dạng lưới icon (`/`), đăng xuất ở màn hình này. Hàng lời chào: **[avatar của mình] [Xin chào, tên] [nút cây bút]**
+  (nút bút là icon nét `LineIcon edit`, không 3D) → mở **Thông tin cá nhân**
+- [x] **Thông tin cá nhân** (`/profile`, `src/pages/ProfilePage.tsx`, giống form thông tin con): **tên, nickname, ngày sinh, giới tính (Nam / Nữ), nghề nghiệp, avatar**.
+  Chạm avatar tròn ở đầu form để chọn / đổi ảnh (có "Bỏ ảnh"); ảnh **không dùng Storage**, cắt vuông + thu nhỏ 256px (`fileToSquareDataUrl`) lưu thẳng vào `photo`.
+  Lưu ở `profiles/{uid}` (`src/lib/profile.ts`; người đã đăng nhập **get** được theo uid để hiện avatar của thành viên, không liệt kê được; mỗi người chỉ sửa của mình)
+  và đổi luôn tên hiển thị của tài khoản (`updateName` trong `AuthContext`). Lưu xong về màn hình chính.
+  **Mọi avatar người dùng dùng chung `Avatar`** (`src/components/Avatar.tsx`): có ảnh trong hồ sơ thì hiện ảnh thật trong khung tròn,
+  chưa có thì vòng tròn 2 chữ cái như cũ (`useProfile(uid)`: theo dõi realtime, dùng chung giữa mọi chỗ hiện cùng 1 người). Không tự vẽ avatar 2 chữ ở nơi khác.
 - [x] **Phím tắt (shortcut)** ở màn hình chính: sau icon các app con là các phím tắt, cuối cùng là ô **"+"** mở `/shortcuts`
   (liệt kê theo nhóm các màn hình **mở trực tiếp từ ô chức năng ở trang chính của app con**, trừ Cài đặt; chạm để thêm). Phím tắt có màu nền của app con + icon nhỏ của app ở góc.
   **Mở màn hình từ phím tắt thì nút quay lại (‹) của màn hình đó về thẳng màn hình chính** (`markShortcutEntry` / `isShortcutEntry` trong `AppHeader`, lưu ở sessionStorage;
