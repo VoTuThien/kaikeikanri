@@ -5,9 +5,8 @@ import { Alert } from '../../components/ui/Alert'
 import { FabGroup, FabLink, FabSkeleton } from '../../components/ui/Fab'
 import { GlassPanel } from '../../components/ui/GlassPanel'
 import { Icon3D } from '../../components/ui/Icon3D'
-import { LIST_CLASS, ListInfo, ListInfoSkeleton, NoteList, NoteListSkeleton } from './components'
+import { doneSummary, LIST_CLASS, NoteList, NoteListSkeleton } from './components'
 import { useNote } from './data/NoteContext'
-import { noteDone } from './data/types'
 
 // Xem ghi chú (bước 1): danh sách các ghi chú gửi đến mình, theo số thứ tự (ưu tiên).
 // Chạm 1 ghi chú để mở danh sách thẻ nội dung bên trong (đánh dấu xong, nạp / rút quỹ) ở /note/inbox/:id.
@@ -20,11 +19,8 @@ export function NoteInboxPage() {
 
   return (
     <PageShell>
-      <AppHeader title="Xem ghi chú" backTo="/note" />
-      {/* Ngay dưới thanh tiêu đề, đứng yên khi cuộn danh sách (giống "Gửi cho: …" ở Tạo ghi chú) */}
-      <ListInfo right={`${inbox.filter(noteDone).length} đã hoàn thành`}>
-        <span className="font-semibold text-white">{inbox.length} ghi chú</span> gửi đến bạn
-      </ListInfo>
+      {/* Dòng phụ dưới tiêu đề: số ghi chú đã hoàn thành / tổng số ghi chú gửi đến mình */}
+      <AppHeader title="Xem ghi chú" subtitle={doneSummary(inbox)} backTo="/note" />
       {error && <Alert type="error">{error}</Alert>}
       {inbox.length === 0 ? (
         <GlassPanel className="space-y-3 text-center">
@@ -48,8 +44,7 @@ export function NoteInboxPage() {
 export function NoteInboxPageSkeleton() {
   return (
     <PageShell>
-      <AppHeaderSkeleton />
-      <ListInfoSkeleton width="w-56" />
+      <AppHeaderSkeleton subtitle />
       <ScrollArea className={`${LIST_CLASS} !overflow-hidden`}>
         <NoteListSkeleton />
       </ScrollArea>

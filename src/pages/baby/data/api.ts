@@ -1,6 +1,7 @@
 import { addDoc, deleteDoc, doc, serverTimestamp, Timestamp, updateDoc, writeBatch } from 'firebase/firestore'
 import { familyCol } from '../../../lib/family'
 import { commit, requireDb, type Actor } from '../../../lib/firestore'
+import { setBabyNotice } from '../../../lib/notifications'
 import { addMinutes, type BabyCardInput, type BabyEntryInput, type ChildInput } from './types'
 
 // Cấu trúc dữ liệu trên Firestore (chỉ thành viên gia đình xem / sửa được):
@@ -58,12 +59,20 @@ export interface EntryTiming {
   minutes: number | null
 }
 
+// Time line vừa được cập nhật: báo cho các thành viên khác (mỗi con 1 thông báo, ghi đè; xem src/lib/notifications.ts)
+export interface TimelineNotice {
+  child: { id: string; name: string } | null
+  by: Actor
+  detail: string // vd "Thêm Ăn lúc 07:00"
+}
+
 /**
  * Thêm hoạt động mới (ở cuối hoặc chèn vào giữa time line), đồng thời cập nhật hoạt động liền trước
  * (kết thúc = giờ bắt đầu mới) / liền sau (bắt đầu = giờ kết thúc mới) trong `linked`. Ghi cùng lúc trong 1 batch.
  */
-export async function createEntry(input: BabyEntryInput, by: Actor, linked: EntryTiming[] = []) {
+export async function createEntry(input: BabyEntryInput, by: Actor, linked: EntryTiming[] = [], notice?: TimelineNotice) {
   const batch = writeBatch(requireDb())
+  if (notice) setBabyNotice(batch, notice.child, notice.by, notice.detail)
   batch.set(doc(entriesCol()), { ...entryData(input), createdAt: serverTimestamp(), createdBy: by.uid, createdByName: by.name })
   for (const l of linked) batch.update(doc(entriesCol(), l.id), timing(l.start, l.minutes))
   await commit(batch.commit())
@@ -73,13 +82,17 @@ export async function createEntry(input: BabyEntryInput, by: Actor, linked: Entr
  * Sửa hoạt động, đồng thời cập nhật các hoạt động liền trước / liền sau (`linked`) để time line nối liền,
  * không chồng lên nhau. Ghi cùng lúc trong 1 batch.
  */
-export async function updateEntry(id: string, input: BabyEntryInput, linked: EntryTiming[] = []) {
+export async function updateEntry(id: string, input: BabyEntryInput, linked: EntryTiming[] = [], notice?: TimelineNotice) {
   const batch = writeBatch(requireDb())
+  if (notice) setBabyNotice(batch, notice.child, notice.by, notice.detail)
   batch.update(doc(entriesCol(), id), entryData(input))
   for (const l of linked) batch.update(doc(entriesCol(), l.id), timing(l.start, l.minutes))
   await commit(batch.commit())
 }
 
-export async function deleteEntry(id: string) {
-  await commit(deleteDoc(doc(entriesCol(), id)))
+export async function deleteEntry(id: string, notice?: TimelineNotice) {
+  const batch = writeBatch(requireDb())
+  batch.delete(doc(entriesCol(), id))
+  if (notice) setBabyNotice(batch, notice.child, notice.by, notice.detail)
+  await commit(batch.commit())
 }

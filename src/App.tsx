@@ -13,6 +13,7 @@ import { ShortcutPickerPage, ShortcutPickerPageSkeleton } from './pages/Shortcut
 import { SidePage, SidePageSkeleton } from './pages/SidePage'
 import { SideSwipe } from './components/SideSwipe'
 import { RefreshIndicator } from './components/RefreshIndicator'
+import { NotificationBubble } from './components/NotificationBubble'
 import { BabyHomePage } from './pages/baby/BabyHomePage'
 import { CardFormPage } from './pages/baby/CardFormPage'
 import { CardListPage } from './pages/baby/CardListPage'
@@ -172,6 +173,8 @@ export default function App() {
           <SideSwipe render={renderRoutes} />
           {/* Vòng xoay nhỏ góc trái dưới khi trang đang hiện dữ liệu nhớ tạm và cập nhật lại từ server */}
           <RefreshIndicator />
+          {/* Bong bóng thông báo nổi trên mọi màn hình (kéo được, kéo vào X để ẩn khi không có thông báo) */}
+          <NotificationBubble />
         </BrowserRouter>
       </FamilyProvider>
     </AuthProvider>

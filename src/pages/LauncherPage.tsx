@@ -2,9 +2,10 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { APPS } from '../apps'
 import { AddShortcutIcon, HOME_GRID, HomeIcon, HomeIconSkeleton, REMOVE_BADGE, shortcutLook } from '../components/HomeIcon'
+import { revealBubble, useBubbleHidden } from '../components/NotificationBubble'
 import { PageShell } from '../components/PageShell'
 import { LinkButton } from '../components/ui/Button'
-import { Fab, FabGroup, FabLink, FabSkeleton } from '../components/ui/Fab'
+import { Fab, FabGroup, FabSkeleton } from '../components/ui/Fab'
 import { GlassPanel } from '../components/ui/GlassPanel'
 import { Icon3D } from '../components/ui/Icon3D'
 import { Select } from '../components/ui/Select'
@@ -22,7 +23,6 @@ import {
   type Side,
 } from '../lib/shortcuts'
 import { shortcutById } from '../shortcuts'
-import { useSalaryReminders } from './fund/data/salary'
 
 const HEADER_CLASS = 'space-y-3'
 // Nhiều icon thì chỉ lưới icon cuộn (có thanh cuộn); chừa lề trên cho nút gỡ và icon rung không bị cắt,
@@ -62,9 +62,9 @@ function FamilyCode({ code }: { code: string }) {
 
 export function LauncherPage() {
   const { user, logout } = useAuth()
-  const { families, current, selectFamily, owned, requests, sentRequests } = useFamily()
-  // Chuông: số yêu cầu xin gia nhập + số tháng tới ngày nhận lương mà chưa nhập lương thực lãnh
-  const salaryReminders = useSalaryReminders()
+  // Bong bóng thông báo đang bị ẩn (đã kéo vào dấu X): hiện nút chuông để gọi lại
+  const bubbleHidden = useBubbleHidden(user?.uid)
+  const { families, current, selectFamily, owned, sentRequests } = useFamily()
   const navigate = useNavigate()
   const { ids: shortcuts, ...sides } = useShortcuts(user?.uid)
   // Nhấn giữ 1 icon: vào chế độ gỡ phím tắt (icon rung), bấm nút check để xong
@@ -209,7 +209,8 @@ export function LauncherPage() {
           </GlassPanel>
         )}
 
-        {/* Nút chính (chuông thông báo) sát góc phải, bên trái là nút thoát */}
+        {/* Nút thoát; thông báo là bong bóng nổi trên mọi màn hình (NotificationBubble).
+            Bong bóng đang ẩn thì thêm nút chuông sát góc phải: chạm để hiện lại bong bóng và mở popup thông báo */}
         {editing ? (
           // Đang gỡ phím tắt: chỉ còn nút xong (dấu check)
           <FabGroup>
@@ -218,8 +219,7 @@ export function LauncherPage() {
         ) : (
           <FabGroup>
             <Fab icon="logout" label="Đăng xuất" variant="secondary" onClick={logout} />
-            {/* Chuông luôn màu nút chính để khác hẳn nút thoát (xám); có yêu cầu thì thêm số đếm đỏ */}
-            <FabLink to="/notifications" icon="bell" label="Thông báo" badge={requests.length + salaryReminders.pending.length} />
+            {bubbleHidden && user && <Fab icon="bell" label="Hiện bong bóng thông báo" onClick={() => revealBubble(user.uid)} />}
           </FabGroup>
         )}
       </PageShell>
@@ -228,6 +228,8 @@ export function LauncherPage() {
 }
 
 export function LauncherPageSkeleton() {
+  // Cùng số nút nổi với trang thật (thêm nút chuông khi bong bóng thông báo đang ẩn)
+  const bubbleHidden = useBubbleHidden(useAuth().user?.uid)
   return (
     <PageShell>
       <GlassPanel className={HEADER_CLASS}>
@@ -248,7 +250,7 @@ export function LauncherPageSkeleton() {
           ))}
         </div>
       </GlassPanel>
-      <FabSkeleton count={2} />
+      <FabSkeleton count={bubbleHidden ? 2 : 1} />
     </PageShell>
   )
 }

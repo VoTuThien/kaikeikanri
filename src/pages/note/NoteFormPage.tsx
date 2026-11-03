@@ -13,7 +13,7 @@ import { SIZE } from '../../components/ui/sizes'
 import { useFamily } from '../../contexts/FamilyContext'
 import type { Member } from '../family/data/api'
 import { useMembers } from '../family/data/useMembers'
-import { EditableList, EditableListSkeleton, LIST_CLASS, ListInfo, ListInfoSkeleton, recipientLabel, type EditRow } from './components'
+import { EditableList, EditableListSkeleton, LIST_CLASS, recipientLabel, type EditRow } from './components'
 import { createNote, updateNote } from './data/api'
 import { useNote, useNoteDoc, useNotesTo } from './data/NoteContext'
 import { foldKey, MAX_TEXT, sameKey, type Note, type NoteItem } from './data/types'
@@ -125,7 +125,7 @@ function NoteForm({ members, note }: { members: Member[]; note: Note | null }) {
           const prev = old.get(r.key)
           return prev ? { ...prev, text: r.text } : { id: r.key, text: r.text, done: false, doneByName: '', money: [] }
         })
-        await updateNote(note.id, title, items, actor, cards, ids, pos)
+        await updateNote(note.id, title, items, actor, cards, ids, pos, { toUid: note.toUid, fromUid: note.fromUid, fromName: note.fromName })
       } else {
         const target = to ?? { uid: actor.uid, name: actor.name, email: '' }
         await createNote(
@@ -148,10 +148,12 @@ function NoteForm({ members, note }: { members: Member[]; note: Note | null }) {
 
   return (
     <PageShell>
-      <AppHeader title={isNew ? 'Ghi chú mới' : 'Sửa ghi chú'} backTo={back} />
-      <ListInfo>
-        Gửi cho: <span className="font-semibold text-white">{toLabel}</span>
-      </ListInfo>
+      {/* Dòng phụ dưới tiêu đề: người nhận (+ số thẻ đã xong khi sửa) */}
+      <AppHeader
+        title={isNew ? 'Ghi chú mới' : 'Sửa ghi chú'}
+        subtitle={`Gửi cho: ${toLabel}${note ? ` · ${note.items.filter((i) => i.done).length}/${note.items.length} thẻ đã xong` : ''}`}
+        backTo={back}
+      />
       <GlassPanel className={HEAD_CLASS}>
         <div className="w-12 shrink-0">
           <NumberField
@@ -202,8 +204,7 @@ function NoteForm({ members, note }: { members: Member[]; note: Note | null }) {
 export function NoteFormPageSkeleton() {
   return (
     <PageShell>
-      <AppHeaderSkeleton />
-      <ListInfoSkeleton />
+      <AppHeaderSkeleton subtitle />
       <GlassPanel className={HEAD_CLASS}>
         <Skeleton className={`${SIZE.control} w-12 shrink-0`} />
         <Skeleton className={`${SIZE.control} min-w-0 flex-1`} />

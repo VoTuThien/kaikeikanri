@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Link, Navigate, Outlet } from 'react-router-dom'
 import { Avatar } from '../../components/Avatar'
@@ -8,7 +8,6 @@ import { FAB_SPACE, LineIcon } from '../../components/ui/Fab'
 import { Icon3D } from '../../components/ui/Icon3D'
 import { NumberField } from '../../components/ui/NumberField'
 import { Skeleton } from '../../components/ui/Skeleton'
-import { GlassPanel } from '../../components/ui/GlassPanel'
 import { LIST_CARD, LIST_CARD_DRAGGING, LIST_CARD_RADIUS, LIST_CARDS_GAP, SWIPE_OVERLAP_PAD } from '../../components/ui/listStyle'
 import { SwipeActions } from '../../components/ui/SwipeActions'
 import { TextField } from '../../components/ui/TextField'
@@ -99,26 +98,8 @@ export function MemberPickerSkeleton() {
   return <Skeleton className={`${PICKER} rounded-full`} />
 }
 
-// ---- Thanh thông tin của danh sách: nằm ngay dưới thanh tiêu đề màn hình, đứng yên (không cuộn theo danh sách) ----
-// vd "Gửi cho: …" (trái, dài thì cắt "…") + "n ghi chú · m đã hoàn thành" (phải, luôn hiện đủ)
-const INFO_CLASS = `${SIZE.subtitle} box-content flex gap-2 !px-4 !py-2.5 text-sm leading-5 text-white/70`
-
-export function ListInfo({ children, right }: { children: ReactNode; right?: ReactNode }) {
-  return (
-    <GlassPanel className={INFO_CLASS}>
-      <h2 className="min-w-0 flex-1 truncate">{children}</h2>
-      {right && <span className="shrink-0">{right}</span>}
-    </GlassPanel>
-  )
-}
-
-export function ListInfoSkeleton({ width = 'w-44' }: { width?: string }) {
-  return (
-    <GlassPanel className={INFO_CLASS}>
-      <Skeleton className={`${SIZE.subtitle} ${width} rounded-md`} />
-    </GlassPanel>
-  )
-}
+// Thông tin chung của danh sách ghi chú: hiện ở dòng phụ ngay dưới tiêu đề màn hình (AppHeader subtitle, giống màn hình xem 1 ghi chú)
+export const doneSummary = (notes: Note[]) => `${notes.filter(noteDone).length}/${notes.length} ghi chú đã hoàn thành`
 
 // Vùng cuộn của danh sách thẻ tách rời (giống Nhóm quỹ): chừa lề cho bóng đổ của thẻ + chỗ cho nút nổi
 export const LIST_CLASS = `-mx-1 px-1 py-1 ${FAB_SPACE}`

@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { AppHeader, AppHeaderSkeleton } from '../../components/AppHeader'
 import { PageShell } from '../../components/PageShell'
 import { Alert } from '../../components/ui/Alert'
@@ -12,7 +12,8 @@ import { Skeleton } from '../../components/ui/Skeleton'
 import { TextField } from '../../components/ui/TextField'
 import { SIZE } from '../../components/ui/sizes'
 import { CardIcon, ChildPicker, ChildPickerSkeleton, DayBar, DayBarSkeleton } from './components'
-import { createEntry, deleteEntry, updateEntry, type EntryTiming } from './data/api'
+import { babyNoticeId, markBabySeen, useNotices } from '../../lib/notifications'
+import { createEntry, deleteEntry, updateEntry, type EntryTiming, type TimelineNotice } from './data/api'
 import { useBaby, useDayEntries } from './data/BabyContext'
 import { TimelineView, TimelineViewSkeleton } from './TimelineView'
 import {
@@ -27,7 +28,15 @@ import {
   toTimeInput,
   type BabyCard,
   type BabyEntry,
+  type Child,
 } from './data/types'
+
+// Thông báo cho các thành viên khác khi time line của con đang xem được cập nhật (mỗi con 1 thông báo, ghi đè)
+const timelineNotice = (child: Child | null, by: { uid: string; name: string }, detail: string): TimelineNotice => ({
+  child: child ? { id: child.id, name: child.nickname || child.name } : null,
+  by,
+  detail,
+})
 
 const TRAY_CLASS = `${SIZE.tray} !p-0`
 // Bề rộng 1 thẻ trong khay (icon + tên tối đa 3 dòng)
@@ -50,7 +59,9 @@ export function TimelinePage() {
 }
 
 function Timeline({ day, setDay, entries }: { day: Date; setDay: (d: Date) => void; entries: BabyEntry[] | null }) {
-  const { cards, child } = useBaby()
+  const { cards, child, children, selectChild, actor } = useBaby()
+  const [params, setParams] = useSearchParams()
+  const notices = useNotices()
   const [sheet, setSheet] = useState<Sheet | null>(null)
   // Đã bấm nút nhân bản của 1 hoạt động: chọn thẻ ở khay để thêm hoạt động chồng lên thời gian của nó
   const [copyOf, setCopyOf] = useState<BabyEntry | null>(null)
@@ -61,6 +72,21 @@ function Timeline({ day, setDay, entries }: { day: Date; setDay: (d: Date) => vo
     setSheet(null)
     setCopyOf(null)
   }, [childId])
+
+  // Mở từ thông báo (/baby/timeline?child=id): chọn đúng con đó rồi bỏ tham số trên URL
+  const wanted = params.get('child')
+  useEffect(() => {
+    if (!wanted) return
+    if (children.some((c) => c.id === wanted)) selectChild(wanted)
+    setParams({}, { replace: true })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wanted, children.length])
+
+  // Đang xem time line của con này: thông báo cập nhật time line của con đó thành "Đã xem"
+  const unseen = notices.list.some((n) => n.kind === 'baby' && n.id === babyNoticeId(childId ?? null) && !n.seen)
+  useEffect(() => {
+    if (unseen && !wanted) markBabySeen(childId ?? null, actor.uid).catch((err) => console.error(err))
+  }, [unseen, childId, wanted, actor.uid])
 
   function changeDay(next: Date) {
     setSheet(null)
@@ -74,7 +100,12 @@ function Timeline({ day, setDay, entries }: { day: Date; setDay: (d: Date) => vo
     setError('')
     if (sheet?.mode === 'edit' && sheet.entry.id === entry.id) setSheet(null)
     const card = { id: entry.cardId, name: entry.name, icon: entry.icon, color: entry.color }
-    updateEntry(entry.id, { childId: entry.childId ?? child?.id ?? null, card, start, minutes }).catch((err) => {
+    updateEntry(
+      entry.id,
+      { childId: entry.childId ?? child?.id ?? null, card, start, minutes },
+      [],
+      timelineNotice(child, actor, `Dời ${entry.name} sang ${formatTime(start)}`),
+    ).catch((err) => {
       console.error(err)
       setError('Lưu giờ mới thất bại. Vui lòng thử lại.')
     })
@@ -356,8 +387,8 @@ function EntrySheet({ sheet, day, entries, onClose }: { sheet: Sheet; day: Date;
       const card = isNew ? sheet.card : { id: sheet.entry.cardId, name: sheet.entry.name, icon: sheet.entry.icon, color: sheet.entry.color }
       // Hoạt động thuộc con đang chọn; sửa hoạt động cũ chưa gắn con thì gắn luôn vào con đang chọn
       const input = { childId: isNew ? (child?.id ?? null) : (sheet.entry.childId ?? child?.id ?? null), card, start, minutes: saveMinutes }
-      if (isNew) await createEntry(input, actor, link?.linked)
-      else await updateEntry(sheet.entry.id, input, link?.linked)
+      if (isNew) await createEntry(input, actor, link?.linked, timelineNotice(child, actor, `Thêm ${card.name} lúc ${formatTime(start)}`))
+      else await updateEntry(sheet.entry.id, input, link?.linked, timelineNotice(child, actor, `Sửa ${card.name} lúc ${formatTime(start)}`))
       onClose()
     } catch (err) {
       console.error(err)
@@ -370,7 +401,7 @@ function EntrySheet({ sheet, day, entries, onClose }: { sheet: Sheet; day: Date;
     if (sheet.mode !== 'edit') return
     setDeleting(true)
     try {
-      await deleteEntry(sheet.entry.id)
+      await deleteEntry(sheet.entry.id, timelineNotice(child, actor, `Xoá ${sheet.entry.name} lúc ${formatTime(sheet.entry.start)}`))
       onClose()
     } catch (err) {
       console.error(err)

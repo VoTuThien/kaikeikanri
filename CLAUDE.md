@@ -41,8 +41,27 @@ Chỉ thành viên trong cùng gia đình mới xem / sửa được; Security R
 - **Mỗi người chỉ tạo được 1 gia đình** (Rules chặn bằng dấu `users/{uid}/meta/ownedFamily`), nhưng **tham gia được nhiều gia đình**.
 - **Chọn gia đình ngay ở màn hình chính** (ô chọn dưới lời chào, có thêm lựa chọn "Tạo gia đình mới" / "Tham gia gia đình khác"),
   không có màn hình chọn gia đình riêng. Lựa chọn được nhớ theo tài khoản (localStorage).
-- Màn hình chính có **FAB chuông** (cạnh FAB thoát) với số đếm = yêu cầu xin gia nhập + nhắc nhập lương thực lãnh (app Quỹ), **cập nhật realtime**;
-  bấm vào mở `/notifications` để Duyệt / Từ chối, hoặc chạm dòng nhắc lương để mở màn hình Thực thi (nhập lương thực lãnh).
+- **Bong bóng thông báo** (`src/components/NotificationBubble.tsx`, gắn trong `App.tsx`): bong bóng nhỏ (44px) kiểu bong bóng chat, **nổi trên MỌI màn hình**
+  sau khi đăng nhập (màn hình chính không còn FAB chuông). Số đếm = yêu cầu xin gia nhập + nhắc nhập lương thực lãnh (app Quỹ), **cập nhật realtime**;
+  **chạm vào mở POPUP thông báo ngay trên màn hình đang xem** (không rời màn hình, kiểu bong bóng chat Android): bong bóng bay lên góc trên (cùng phía mép,
+  chuông xoay thành dấu X), khung glass bung ra ngay bên dưới với mũi nhọn chỉ vào bong bóng (phóng từ mũi nhọn, hơi nảy), nền phía sau mờ đi,
+  các dòng thông báo hiện lần lượt (`animate-notify-item` trong `index.css`). Chạm bong bóng / nền mờ / phím Esc hoặc đổi màn hình thì đóng.
+  Trong popup: Duyệt / Từ chối xin gia nhập tại chỗ, chạm dòng nhắc lương để mở màn hình Thực thi (nhập lương thực lãnh).
+  Nội dung dùng chung `NotificationList` (`src/pages/family/NotificationList.tsx`) với trang `/notifications` (vẫn mở được bằng URL).
+  **Thông báo LƯU LẠI** (`families/{familyId}/notifications/{id}`, `src/lib/notifications.ts`, `useNotices`): **không tự mất, luôn xem lại được trong popup**
+  (nhóm "Ghi chú & time line", mới nhất trước; đã xong / đã xem thì mờ đi):
+  - **Ghi chú gửi cho THÀNH VIÊN KHÁC** (không phải tự ghi cho mình) → thông báo cho người nhận (id `note_{noteId}`, chỉ người nhận thấy):
+    **"Chưa xong" → "Hoàn thành"** khi người nhận làm xong mọi thẻ (`setItemDone` cập nhật trong cùng transaction; sửa ghi chú thì `updateNote` ghi lại);
+    chạm → mở ghi chú đó ở Xem ghi chú (`/note/inbox/:id`). Xoá ghi chú thì xoá luôn thông báo của nó.
+  - **Time line của 1 con được cập nhật** (thêm / sửa / xoá / kéo hoạt động) → thông báo cho các thành viên khác (id `baby_{childId}`):
+    **MỖI CON CHỈ 1 THÔNG BÁO, cập nhật ĐÈ lên** chứ không thêm mới (`setBabyNotice` trong cùng batch với thao tác, `seenBy` = ai đã xem;
+    người vừa cập nhật tính là đã xem). **"Mới" → "Đã xem"** khi người đó mở time line của con đó (`markBabySeen`); cập nhật mới lại thành "Mới".
+    Chạm → `/baby/timeline?child=id` (Time line chọn đúng con rồi bỏ tham số).
+  **Còn thông báo nào khác "Đã xem" / "Hoàn thành"** (ghi chú chưa xong, time line chưa xem, xin gia nhập, nhắc lương) thì tính vào số đếm và **không ẩn được bong bóng**.
+  **Kéo được**, thả tay thì dính vào mép trái / phải của khung app (đuôi bong bóng quay về mép đó), không che thanh tiêu đề / vùng FAB; vị trí nhớ theo tài khoản
+  (localStorage `notify-bubble:{uid}`). Đang kéo thì hiện **dấu X ở giữa dưới màn hình**: **không có thông báo** thì thả vào X để **ẩn** bong bóng;
+  **có thông báo thì không ẩn được** (X mờ + "Còn n thông báo", thả vào thì bật về chỗ cũ), và bong bóng đã ẩn **tự hiện lại (nhảy lên)** khi có thông báo, cho tới khi giải quyết xong.
+  **Bong bóng đang ẩn thì màn hình chính có FAB chuông** (bên phải nút thoát, `useBubbleHidden` / `revealBubble`): chạm để hiện lại bong bóng và mở luôn popup thông báo.
 - **Quản lý gia đình** (`/family/manage`, mở từ "Quản lý ›" dưới ô chọn gia đình hoặc trong ô chọn): danh sách thành viên realtime;
   chủ gia đình **đổi tên** (cập nhật cả `familyCodes` và `users/{uid}/families` của mọi thành viên) và **xoá thành viên**;
   thành viên **rời gia đình**. Xoá / rời đều phải bấm 2 lần để xác nhận, và xoá luôn `presence` của người đó.
@@ -75,7 +94,7 @@ Dữ liệu gia đình (xem `src/pages/family/data/api.ts`):
   Thẻ của mình chỉnh **trực tiếp** trên thẻ (đổi là lưu ngay); thẻ người khác chỉ xem. Ngày nhận lương 1–31 (tháng ngắn hơn thì lấy ngày cuối tháng).
   **Ngày nhận lương để trống ("Không có lương") = người đó không có lương** (mặc định khi chưa đặt; đặt lại về trống được, vd khi thất nghiệp):
   không nhắc, không cần nhập lương thực lãnh.
-  **Đến ngày nhận lương mà chưa nhập lương thực lãnh thì chuông ở màn hình chính có thông báo nhắc** (`useSalaryReminders`, xét 3 tháng gần nhất, từ tháng thiết đặt),
+  **Đến ngày nhận lương mà chưa nhập lương thực lãnh thì bong bóng thông báo có nhắc** (`useSalaryReminders`, xét 3 tháng gần nhất, từ tháng thiết đặt),
   **thông báo còn đó cho tới khi nhập xong**; chạm dòng nhắc ở trang Thông báo thì **mở màn hình Thực thi** đúng tháng đó (`/fund/execute?month=YYYY-MM`).
   **Lương thực lãnh chỉ nhập ở bước 1 của Thực thi**; lưu là **tự nạp vào quỹ nhận lương** (`saveSalary` trong `data/salary.ts`, 1 transaction;
   sửa số tiền thì sửa luôn giao dịch nạp cũ, đổi quỹ thì chuyển giao dịch sang quỹ mới).
@@ -223,18 +242,19 @@ Dữ liệu Firestore (xem `src/pages/baby/data/api.ts`), thuộc gia đình đa
 Gửi ghi chú cho 1 thành viên trong gia đình hoặc cho chính mình. **Dữ liệu 2 bậc: ghi chú → các thẻ nội dung**,
 vd ghi chú "Đi chợ" gồm "Mua cà chua", "Mua cá"; ghi chú "Việc vặt" gồm "Mua pin", "Đi lấy đồ".
 Ghi chú có **tên** và **số thứ tự** (ưu tiên giữa các ghi chú của cùng 1 người nhận, liên tục 1..n); **mọi thẻ đã xong = ghi chú hoàn thành** (`noteDone`).
-Code: `src/pages/note/` (`components.tsx`: `NoteLayout`, `MemberPicker`, `EditableList`, `TrashButton`, `ListInfo`; dữ liệu ở `data/`).
+Code: `src/pages/note/` (`components.tsx`: `NoteLayout`, `MemberPicker`, `EditableList`, `TrashButton`, `doneSummary`; dữ liệu ở `data/`).
 **Mọi danh sách của app Ghi chú là THẺ TÁCH RỜI giống thẻ Nhóm quỹ** (mỗi thẻ 1 khối glass bo góc có bóng đổ, cách nhau; `LIST_CARD`, `LIST_CARDS_GAP` trong `listStyle.ts`), không đặt chung trong 1 bảng glass;
-  **thông tin của danh sách (vd "Gửi cho: …", số ghi chú) nằm ở `ListInfo` ngay dưới thanh tiêu đề màn hình**, đứng yên, không phải tiêu đề dính trong bảng;
+  **thông tin chung của màn hình (vd "m/n ghi chú đã hoàn thành") là DÒNG PHỤ của thanh tiêu đề** (`AppHeader subtitle`, giống màn hình xem 1 ghi chú),
+  không đặt thành 1 khung riêng giữa thanh tiêu đề và danh sách;
   thẻ đang kéo thả phóng to nhẹ (`LIST_CARD_DRAGGING`), thẻ trượt dùng `radius={LIST_CARD_RADIUS}` (quy ước mục 16).
 - **Cả Tạo ghi chú và Xem ghi chú đều 2 bước: danh sách ghi chú → chạm 1 ghi chú mới hiện các thẻ nội dung bên trong.**
   Danh sách ghi chú dùng chung `NoteList` (`components.tsx`): kéo ≡ / sửa số để đổi thứ tự (`reorderNotes`), trượt trái để xoá (`deleteNote`).
 - [x] Tạo ghi chú, bước 1 (`/note/sent?to=uid`, `NoteSentPage`): danh sách ghi chú **gửi cho người nhận đang chọn**; chọn người nhận bằng `MemberPicker`
   **trên thanh tiêu đề** (giống chọn con ở Time line: avatar tròn, chạm mở popup), **mặc định là bản thân**, lưu trên URL `?to=`;
-  **"Gửi cho: …" (trái) + "n ghi chú · m đã hoàn thành" (phải, luôn hiện đủ) nằm ngay dưới thanh tiêu đề** (`ListInfo`). FAB + mở bước 2 để tạo mới.
+  dòng phụ dưới tiêu đề = **"m/n ghi chú đã hoàn thành"** (`doneSummary`) của người nhận đang chọn. FAB + mở bước 2 để tạo mới.
 - [x] Tạo ghi chú, bước 2 (`/note/sent/new?to=uid` tạo mới, `/note/sent/:id` sửa, `NoteFormPage`): nội dung bên trong 1 ghi chú.
   Dưới thanh tiêu đề là **[số thứ tự `NumberField`] [tên ghi chú]** (cùng kiểu hàng thẻ; tạo mới mặc định = số ghi chú của người nhận + 1, đứng cuối; sửa giữ số hiện tại; tên bắt buộc);
-  "Gửi cho: …" (`ListInfo`) nằm ngay dưới thanh tiêu đề, trên hàng số + tên. Lưu xong quay về bước 1. Sửa thì thẻ cũ **giữ trạng thái đã xong** (`updateNote`), thẻ mới chưa xong.
+  Dòng phụ dưới tiêu đề = "Gửi cho: …" (sửa thì thêm "· m/n thẻ đã xong"). Lưu xong quay về bước 1. Sửa thì thẻ cũ **giữ trạng thái đã xong** (`updateNote`), thẻ mới chưa xong.
   Danh sách thẻ `EditableList` (thẻ tách rời, cuộn trong vùng danh sách): mỗi thẻ 1 hàng **[≡ kéo lên / xuống] [số thứ tự `NumberField inline`, xem mục 14] [ô nhập nội dung trực tiếp]**;
   số thứ tự = mức độ ưu tiên (sửa số rồi rời ô thì thẻ chuyển tới vị trí đó); **trượt thẻ sang trái** hiện thùng rác (chạm 2 lần mới xoá, giống Tra cứu).
   FAB [+ thêm thẻ] [gửi / lưu]: thẻ mới thêm vào cuối, **số thứ tự = tổng số thẻ tính cả thẻ mới**. **Đang gõ thì gợi ý** ngay dưới thẻ từ các Thẻ ghi chú
@@ -243,7 +263,7 @@ Code: `src/pages/note/` (`components.tsx`: `NoteLayout`, `MemberPicker`, `Editab
 - [x] Thẻ ghi chú (`/note/cards`): quản lý thẻ đã từng nhập, **giao diện giống Tạo ghi chú** (`EditableList`); sửa nội dung trực tiếp, **rời ô là lưu**;
   thêm / kéo thả / sửa số / xoá đều đánh số lại cả danh sách. **Không lưu thẻ trùng nội dung** (`sameKey`: bỏ khoảng trắng thừa, không phân biệt hoa thường).
   **Thứ tự ở đây = thứ tự ưu tiên trong danh sách gợi ý** ở Tạo ghi chú.
-- [x] Xem ghi chú (bước 1 `/note/inbox`, bước 2 `/note/inbox/:id`): danh sách ghi chú **gửi đến mình theo số thứ tự** (`NoteList`), **"n ghi chú gửi đến bạn · m đã hoàn thành" nằm ngay dưới thanh tiêu đề** (`ListInfo`, giống Tạo ghi chú); **thao tác giống thẻ nội dung**:
+- [x] Xem ghi chú (bước 1 `/note/inbox`, bước 2 `/note/inbox/:id`): danh sách ghi chú **gửi đến mình theo số thứ tự** (`NoteList`), dòng phụ dưới tiêu đề = **"m/n ghi chú đã hoàn thành"** (`doneSummary`, giống Tạo ghi chú); **thao tác giống thẻ nội dung**:
   kéo ≡ / sửa số để đổi thứ tự, trượt trái hiện thùng rác để xoá (đánh số lại); mỗi dòng hiện tên, các thẻ, số thẻ đã xong / tổng
   hoặc "Xong" (gạch ngang tên) khi ghi chú hoàn thành. Ghi chú cũ chưa có tên thì hiện nội dung các thẻ, chưa có số thì xếp sau.
   Chi tiết: thanh tiêu đề = tên ghi chú, **dòng phụ ngay dưới tiêu đề** (`AppHeader subtitle`) = người gửi / "Bạn tự ghi" · giờ ngày · số thẻ đã xong (hoặc "Đã hoàn thành").

@@ -2,8 +2,9 @@ import { doc, increment, runTransaction, serverTimestamp, setDoc, Timestamp, upd
 import { familyCol } from '../../../lib/family'
 import { commit, requireDb, type Actor } from '../../../lib/firestore'
 import { formatMoney } from '../../../lib/format'
+import { noteNoticeId, notificationsCol, setNoteNotice } from '../../../lib/notifications'
 import { fundsCol, txCol } from '../../fund/data/api'
-import { sameKey, type NoteCard, type NoteItem, type NoteSettings } from './types'
+import { noteDone, sameKey, type NoteCard, type NoteItem, type NoteSettings } from './types'
 
 // Cấu trúc dữ liệu trên Firestore (chỉ thành viên gia đình xem / sửa được):
 //   families/{familyId}/notes/{noteId}      ghi chú gửi đến 1 thành viên (toUid), các thẻ nằm trong mảng items theo thứ tự ưu tiên
@@ -72,6 +73,8 @@ export async function createNote(
     items,
     createdAt: serverTimestamp(),
   })
+  // Gửi cho thành viên khác (không phải tự ghi cho mình): thông báo cho người nhận
+  if (to.uid !== by.uid) setNoteNotice(batch, { id: ref.id, name, toUid: to.uid, fromUid: by.uid, fromName: by.name })
   addNewCards(batch, texts, cards, by)
   await commit(batch.commit())
 }
@@ -79,9 +82,20 @@ export async function createNote(
 /**
  * Sửa ghi chú: tên, số thứ tự (`ids` = các ghi chú của người nhận theo thứ tự hiện tại) và các thẻ nội dung
  * (`items` theo thứ tự mới; thẻ cũ giữ trạng thái đã xong). Thẻ có nội dung mới cũng được lưu vào Thẻ ghi chú.
+ * Ghi chú gửi cho thành viên khác (`meta`): cập nhật lại thông báo của người nhận (tên, đã hoàn thành chưa).
  */
-export async function updateNote(id: string, name: string, items: NoteItem[], by: Actor, cards: NoteCard[], ids: string[], position: number) {
+export async function updateNote(
+  id: string,
+  name: string,
+  items: NoteItem[],
+  by: Actor,
+  cards: NoteCard[],
+  ids: string[],
+  position: number,
+  meta: { toUid: string; fromUid: string; fromName: string },
+) {
   const batch = writeBatch(requireDb())
+  if (meta.toUid !== meta.fromUid) setNoteNotice(batch, { id, name, ...meta }, noteDone({ items }))
   const order = insertAt(
     ids.filter((x) => x !== id),
     id,
@@ -116,10 +130,13 @@ export async function setItemDone(noteId: string, itemId: string, done: boolean,
     runTransaction(requireDb(), async (tx) => {
       const snap = await tx.get(ref)
       if (!snap.exists()) return
+      const notice = await tx.get(doc(notificationsCol(), noteNoticeId(noteId)))
       const items = ((snap.data().items ?? []) as NoteItem[]).map((i) =>
         i.id === itemId ? { ...i, done, doneByName: done ? by.name : '' } : i,
       )
       tx.update(ref, { items })
+      // Thông báo của người nhận: làm xong mọi thẻ thì thành "Hoàn thành" (bỏ đánh dấu thì lại "Chưa xong")
+      if (notice.exists()) tx.update(notice.ref, { done: noteDone({ items }) })
     }),
   )
 }
@@ -176,10 +193,12 @@ export async function addItemMoney(
   })
 }
 
-// ids: id các ghi chú của người nhận theo thứ tự hiện tại (đánh số lại sau khi xoá)
+// ids: id các ghi chú của người nhận theo thứ tự hiện tại (đánh số lại sau khi xoá).
+// Xoá luôn thông báo của ghi chú (nếu có), vì ghi chú không còn để mở xem.
 export async function deleteNote(noteId: string, ids: string[]) {
   const batch = writeBatch(requireDb())
   batch.delete(doc(notesCol(), noteId))
+  batch.delete(doc(notificationsCol(), noteNoticeId(noteId)))
   renumberNotes(batch, ids.filter((x) => x !== noteId))
   await commit(batch.commit())
 }

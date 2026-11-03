@@ -5,7 +5,7 @@ import { Alert } from '../../components/ui/Alert'
 import { Fab, FabGroup, FabSkeleton } from '../../components/ui/Fab'
 import { GlassPanel } from '../../components/ui/GlassPanel'
 import { Icon3D } from '../../components/ui/Icon3D'
-import { EditableList, EditableListSkeleton, LIST_CLASS, ListInfo, ListInfoSkeleton, type EditRow } from './components'
+import { EditableList, EditableListSkeleton, LIST_CLASS, type EditRow } from './components'
 import { createCard, deleteCard, reorderCards, updateCardText } from './data/api'
 import { useNote } from './data/NoteContext'
 import { sameKey } from './data/types'
@@ -112,10 +112,7 @@ function Cards() {
 
   return (
     <PageShell>
-      <AppHeader title="Thẻ ghi chú" backTo="/note" />
-      <ListInfo>
-        <span className="font-semibold text-white">{cards.length} thẻ</span> · số nhỏ được gợi ý trước
-      </ListInfo>
+      <AppHeader title="Thẻ ghi chú" subtitle={`${cards.length} thẻ · số nhỏ được gợi ý trước`} backTo="/note" />
       {error && <Alert type="error">{error}</Alert>}
       {rows.length === 0 ? (
         <GlassPanel className="space-y-3 text-center">
@@ -153,8 +150,7 @@ function Cards() {
 export function NoteCardsPageSkeleton() {
   return (
     <PageShell>
-      <AppHeaderSkeleton />
-      <ListInfoSkeleton />
+      <AppHeaderSkeleton subtitle />
       <ScrollArea className={`${LIST_CLASS} !overflow-hidden`}>
         <EditableListSkeleton rows={SKELETON_ROWS} />
       </ScrollArea>

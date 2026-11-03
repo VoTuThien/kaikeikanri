@@ -9,9 +9,8 @@ import { Icon3D } from '../../components/ui/Icon3D'
 import { useFamily } from '../../contexts/FamilyContext'
 import type { Member } from '../family/data/api'
 import { useMembers } from '../family/data/useMembers'
-import { LIST_CLASS, ListInfo, ListInfoSkeleton, MemberPicker, MemberPickerSkeleton, NoteList, NoteListSkeleton, recipientLabel } from './components'
+import { doneSummary, LIST_CLASS, MemberPicker, MemberPickerSkeleton, NoteList, NoteListSkeleton, recipientLabel } from './components'
 import { useNote, useNotesTo } from './data/NoteContext'
-import { noteDone } from './data/types'
 
 // Tạo ghi chú (bước 1): danh sách các ghi chú gửi cho 1 thành viên (chọn bằng avatar trên thanh tiêu đề, mặc định là chính mình).
 // Chạm 1 ghi chú để mở / sửa các thẻ nội dung bên trong (/note/sent/:id); nút dấu cộng để tạo ghi chú mới (/note/sent/new).
@@ -37,13 +36,11 @@ function Sent({ members }: { members: Member[] }) {
     <PageShell>
       <AppHeader
         title="Tạo ghi chú"
+        // Dòng phụ dưới tiêu đề: số ghi chú đã hoàn thành / tổng số ghi chú gửi cho người nhận đang chọn
+        subtitle={notes ? doneSummary(notes) : ' '}
         backTo="/note"
         right={<MemberPicker members={members} value={toUid} me={actor.uid} onChange={(uid) => setParams({ to: uid }, { replace: true })} />}
       />
-      {/* Người nhận + số ghi chú đã tạo / đã hoàn thành: ngay dưới thanh tiêu đề, đứng yên khi cuộn danh sách */}
-      <ListInfo right={notes && `${notes.length} ghi chú · ${notes.filter(noteDone).length} đã hoàn thành`}>
-        Gửi cho: <span className="font-semibold text-white">{recipientLabel(to, actor.uid)}</span>
-      </ListInfo>
       {error && <Alert type="error">{error}</Alert>}
       {notes && notes.length === 0 ? (
         <GlassPanel className="space-y-3 text-center">
@@ -70,8 +67,7 @@ function Sent({ members }: { members: Member[] }) {
 export function NoteSentPageSkeleton() {
   return (
     <PageShell>
-      <AppHeaderSkeleton right={<MemberPickerSkeleton />} />
-      <ListInfoSkeleton width="w-56" />
+      <AppHeaderSkeleton subtitle right={<MemberPickerSkeleton />} />
       <ScrollArea className={`${LIST_CLASS} !overflow-hidden`}>
         <NoteListSkeleton />
       </ScrollArea>

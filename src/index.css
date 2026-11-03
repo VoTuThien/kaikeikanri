@@ -57,3 +57,18 @@ body {
 @utility animate-jiggle-alt {
   animation: jiggle 0.28s ease-in-out -0.14s infinite;
 }
+
+/* Popup thông báo (mở từ bong bóng): từng dòng trượt lên + hiện dần, lần lượt (animation-delay đặt theo thứ tự dòng) */
+@keyframes notify-item-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@utility animate-notify-item {
+  animation: notify-item-in 0.36s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
