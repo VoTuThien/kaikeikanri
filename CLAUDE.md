@@ -244,7 +244,8 @@ Dữ liệu Firestore (xem `src/pages/baby/data/api.ts`), thuộc gia đình đa
 
 ### 6. Vừa khít màn hình iPhone 11 / iPhone 12, không có thanh cuộn trang
 - Mọi màn hình phải hiển thị gọn trong **iPhone 11 (414×896)** và **iPhone 12 (390×844)**, tính cả vùng tai thỏ / thanh home khi cài lên màn hình chính (vùng dùng được trên iPhone 12 khoảng 390×760).
-- **Trang không được cuộn, không xuất hiện thanh cuộn.** Khung trang (`PageShell`, `AuthLayout`) cao đúng `100dvh` và `overflow-hidden`.
+- **Trang không được cuộn, không xuất hiện thanh cuộn.** Khung trang (`PageShell`, `AuthLayout`) cao đúng màn hình (`h-full`, theo `html`/`body`/`#root` 100%) và `overflow-hidden`.
+  **Không dùng đơn vị `dvh` / `svh` / `lvh`** (iOS 15.1 chưa hỗ trợ: khung mất chiều cao, danh sách không cuộn được); cần theo màn hình thì dùng `h-full` hoặc `vh`.
 - Nếu nội dung dài, ưu tiên thu gọn: đặt các ô nhập ngắn cạnh nhau (grid 2 cột), giảm khoảng cách, rút gọn chữ, thay vì để trang dài ra.
 
 ### 7. Màn hình có bảng / danh sách dữ liệu

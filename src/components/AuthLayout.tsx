@@ -9,7 +9,7 @@ import { SIZE } from './ui/sizes'
 function Shell({ children }: { children: ReactNode }) {
   return (
     // Cao đúng bằng màn hình, trang không cuộn. Màn hình quá nhỏ thì cuộn bên trong khung (ẩn thanh cuộn).
-    <main className="flex h-dvh items-center justify-center overflow-hidden px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))]">
+    <main className="flex h-full items-center justify-center overflow-hidden px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))]">
       <GlassPanel className={`max-h-full w-full max-w-sm ${FIT_CLASS}`}>{children}</GlassPanel>
     </main>
   )

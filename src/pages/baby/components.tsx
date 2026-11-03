@@ -192,7 +192,7 @@ export function ChildPicker() {
               onClick={(e) => e.stopPropagation()}
             >
               <h2 className="mb-3 text-center text-base leading-6 font-semibold">Chọn con</h2>
-              <div className="grid max-h-[60dvh] grid-cols-4 gap-x-2 gap-y-3 overflow-y-auto">
+              <div className="grid max-h-[60vh] grid-cols-4 gap-x-2 gap-y-3 overflow-y-auto">
                 {children.map((c) => (
                   <button key={c.id} type="button" onClick={() => pick(c.id)} className="flex flex-col items-center gap-1 transition active:scale-95">
                     <span className={`flex rounded-full p-0.5 ${c.id === child?.id ? 'bg-white' : ''}`}>

@@ -5,7 +5,7 @@ import type { ReactNode } from 'react'
 // Chừa vùng tai thỏ / thanh home của iPhone.
 export function PageShell({ children }: { children: ReactNode }) {
   return (
-    <main className="mx-auto flex h-dvh w-full max-w-md flex-col gap-3 overflow-hidden px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))] [&>*]:shrink-0">
+    <main className="mx-auto flex h-full w-full max-w-md flex-col gap-3 overflow-hidden px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))] [&>*]:shrink-0">
       {children}
     </main>
   )
