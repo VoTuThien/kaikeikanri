@@ -1,8 +1,20 @@
-import { addDoc, deleteDoc, doc, serverTimestamp, Timestamp, updateDoc, writeBatch } from 'firebase/firestore'
+import {
+  addDoc,
+  deleteDoc,
+  doc,
+  getDocs,
+  query,
+  serverTimestamp,
+  Timestamp,
+  updateDoc,
+  where,
+  writeBatch,
+  type WriteBatch,
+} from 'firebase/firestore'
 import { familyCol } from '../../../lib/family'
 import { commit, requireDb, type Actor } from '../../../lib/firestore'
 import { setBabyNotice } from '../../../lib/notifications'
-import { addMinutes, type BabyCardInput, type BabyEntryInput, type ChildInput } from './types'
+import { addMinutes, nextMidnight, startOfDay, type BabyCardInput, type BabyEntryInput, type ChildInput } from './types'
 
 // Cấu trúc dữ liệu trên Firestore (chỉ thành viên gia đình xem / sửa được):
 //   families/{familyId}/babyCards/{cardId}     thẻ hoạt động (tên, icon, màu, thời gian mặc định)
@@ -36,6 +48,33 @@ function entryData({ childId, card, start, minutes }: BabyEntryInput) {
   return { childId, cardId: card.id, name: card.name, icon: card.icon, color: card.color, ...timing(start, minutes) }
 }
 
+const minutesTo = (from: Date, to: Date) => Math.round((to.getTime() - from.getTime()) / 60000)
+
+/**
+ * 1 ngày của time line là 00:00 → 24:00. Hoạt động kết thúc sau 24:00 thì tách thành nhiều hoạt động, mỗi ngày 1 hoạt động:
+ * vd ngày 2 nhập 23:00 → 4:00 thành [ngày 2: 23:00 → 0:00] + [ngày 3: 0:00 → 4:00].
+ * Phần đầu là hoạt động gốc, các phần sau là hoạt động mới. Chưa hoàn thành (minutes = null) thì không tách.
+ */
+export function splitAtMidnight(input: BabyEntryInput): BabyEntryInput[] {
+  const parts: BabyEntryInput[] = []
+  let { start, minutes } = input
+  while (minutes !== null && addMinutes(start, minutes) > nextMidnight(start)) {
+    const head = minutesTo(start, nextMidnight(start))
+    parts.push({ ...input, start, minutes: head })
+    start = nextMidnight(start)
+    minutes -= head
+  }
+  parts.push({ ...input, start, minutes })
+  return parts
+}
+
+// Các phần sau nửa đêm của 1 hoạt động: ghi thành hoạt động mới của ngày hôm sau (cùng batch)
+function addRest(batch: WriteBatch, rest: BabyEntryInput[], by: Actor) {
+  for (const part of rest) {
+    batch.set(doc(entriesCol()), { ...entryData(part), createdAt: serverTimestamp(), createdBy: by.uid, createdByName: by.name })
+  }
+}
+
 // ---- Con ----
 export const childrenCol = () => familyCol('children')
 
@@ -67,25 +106,29 @@ export interface TimelineNotice {
 }
 
 /**
- * Thêm hoạt động mới (ở cuối hoặc chèn vào giữa time line), đồng thời cập nhật hoạt động liền trước
+ * Thêm hoạt động mới (ở cuối hoặc chèn vào giữa time line; kết thúc sau 24:00 thì tách sang ngày hôm sau, xem splitAtMidnight), đồng thời cập nhật hoạt động liền trước
  * (kết thúc = giờ bắt đầu mới) / liền sau (bắt đầu = giờ kết thúc mới) trong `linked`. Ghi cùng lúc trong 1 batch.
  */
 export async function createEntry(input: BabyEntryInput, by: Actor, linked: EntryTiming[] = [], notice?: TimelineNotice) {
   const batch = writeBatch(requireDb())
   if (notice) setBabyNotice(batch, notice.child, notice.by, notice.detail)
-  batch.set(doc(entriesCol()), { ...entryData(input), createdAt: serverTimestamp(), createdBy: by.uid, createdByName: by.name })
+  const [first, ...rest] = splitAtMidnight(input)
+  batch.set(doc(entriesCol()), { ...entryData(first), createdAt: serverTimestamp(), createdBy: by.uid, createdByName: by.name })
+  addRest(batch, rest, by)
   for (const l of linked) batch.update(doc(entriesCol(), l.id), timing(l.start, l.minutes))
   await commit(batch.commit())
 }
 
 /**
- * Sửa hoạt động, đồng thời cập nhật các hoạt động liền trước / liền sau (`linked`) để time line nối liền,
+ * Sửa hoạt động (kết thúc sau 24:00 thì phần sau nửa đêm thành hoạt động mới của ngày hôm sau), đồng thời cập nhật các hoạt động liền trước / liền sau (`linked`) để time line nối liền,
  * không chồng lên nhau. Ghi cùng lúc trong 1 batch.
  */
-export async function updateEntry(id: string, input: BabyEntryInput, linked: EntryTiming[] = [], notice?: TimelineNotice) {
+export async function updateEntry(id: string, input: BabyEntryInput, by: Actor, linked: EntryTiming[] = [], notice?: TimelineNotice) {
   const batch = writeBatch(requireDb())
   if (notice) setBabyNotice(batch, notice.child, notice.by, notice.detail)
-  batch.update(doc(entriesCol(), id), entryData(input))
+  const [first, ...rest] = splitAtMidnight(input)
+  batch.update(doc(entriesCol(), id), entryData(first))
+  addRest(batch, rest, by)
   for (const l of linked) batch.update(doc(entriesCol(), l.id), timing(l.start, l.minutes))
   await commit(batch.commit())
 }
@@ -94,5 +137,21 @@ export async function deleteEntry(id: string, notice?: TimelineNotice) {
   const batch = writeBatch(requireDb())
   batch.delete(doc(entriesCol(), id))
   if (notice) setBabyNotice(batch, notice.child, notice.by, notice.detail)
+  await commit(batch.commit())
+}
+
+/**
+ * Hoạt động chưa kết thúc của những ngày trước hôm nay: tự kết thúc lúc 24:00 (= 0:00 hôm sau) của ngày nó bắt đầu.
+ * Gọi khi mở màn hình Time line. Chỉ truy vấn `end == null` (không cần chỉ mục ghép), lọc ngày trên máy vì hoạt động dở dang rất ít.
+ */
+export async function closeStaleEntries(now = new Date()) {
+  const today = startOfDay(now)
+  const snap = await getDocs(query(entriesCol(), where('end', '==', null)))
+  const stale = snap.docs
+    .map((d) => ({ ref: d.ref, start: (d.data().start as Timestamp | undefined)?.toDate() }))
+    .filter((d): d is { ref: typeof d.ref; start: Date } => !!d.start && d.start < today)
+  if (!stale.length) return
+  const batch = writeBatch(requireDb())
+  for (const d of stale) batch.update(d.ref, timing(d.start, minutesTo(d.start, nextMidnight(d.start))))
   await commit(batch.commit())
 }

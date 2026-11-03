@@ -13,7 +13,7 @@ import { TextField } from '../../components/ui/TextField'
 import { SIZE } from '../../components/ui/sizes'
 import { CardIcon, ChildPicker, ChildPickerSkeleton, DayBar, DayBarSkeleton } from './components'
 import { babyNoticeId, markBabySeen, useNotices } from '../../lib/notifications'
-import { createEntry, deleteEntry, updateEntry, type EntryTiming, type TimelineNotice } from './data/api'
+import { closeStaleEntries, createEntry, deleteEntry, updateEntry, type EntryTiming, type TimelineNotice } from './data/api'
 import { useBaby, useDayEntries } from './data/BabyContext'
 import { TimelineView, TimelineViewSkeleton } from './TimelineView'
 import {
@@ -23,6 +23,7 @@ import {
   fromTimeInput,
   lastEntry,
   MAX_MINUTES,
+  nextMidnight,
   sameDay,
   startOfDay,
   toTimeInput,
@@ -54,6 +55,14 @@ export function TimelinePage() {
   const { loading } = useBaby()
   const [day, setDay] = useState(() => startOfDay(new Date()))
   const entries = useDayEntries(day)
+  // Mở màn hình (hoặc mở lại app từ nền): hoạt động dở dang của các ngày trước tự kết thúc lúc 24:00 ngày đó
+  useEffect(() => {
+    const close = () => closeStaleEntries().catch((err) => console.error(err))
+    const onVisible = () => document.visibilityState === 'visible' && close()
+    close()
+    document.addEventListener('visibilitychange', onVisible)
+    return () => document.removeEventListener('visibilitychange', onVisible)
+  }, [])
   if (loading) return <TimelinePageSkeleton />
   return <Timeline day={day} setDay={setDay} entries={entries} />
 }
@@ -103,6 +112,7 @@ function Timeline({ day, setDay, entries }: { day: Date; setDay: (d: Date) => vo
     updateEntry(
       entry.id,
       { childId: entry.childId ?? child?.id ?? null, card, start, minutes },
+      actor,
       [],
       timelineNotice(child, actor, `Dời ${entry.name} sang ${formatTime(start)}`),
     ).catch((err) => {
@@ -388,7 +398,7 @@ function EntrySheet({ sheet, day, entries, onClose }: { sheet: Sheet; day: Date;
       // Hoạt động thuộc con đang chọn; sửa hoạt động cũ chưa gắn con thì gắn luôn vào con đang chọn
       const input = { childId: isNew ? (child?.id ?? null) : (sheet.entry.childId ?? child?.id ?? null), card, start, minutes: saveMinutes }
       if (isNew) await createEntry(input, actor, link?.linked, timelineNotice(child, actor, `Thêm ${card.name} lúc ${formatTime(start)}`))
-      else await updateEntry(sheet.entry.id, input, link?.linked, timelineNotice(child, actor, `Sửa ${card.name} lúc ${formatTime(start)}`))
+      else await updateEntry(sheet.entry.id, input, actor, link?.linked, timelineNotice(child, actor, `Sửa ${card.name} lúc ${formatTime(start)}`))
       onClose()
     } catch (err) {
       console.error(err)
@@ -483,7 +493,7 @@ function EntrySheet({ sheet, day, entries, onClose }: { sheet: Sheet; day: Date;
                       ? 'Sắp bắt đầu'
                       : 'Đang diễn ra'
                     : end
-                      ? `${formatDuration(minutes)}${sameDay(end, baseDay) ? '' : ', hết lúc hôm sau'}`
+                      ? `${formatDuration(minutes)}${end <= nextMidnight(baseDay) ? '' : ', tách 1 thẻ sang hôm sau'}`
                       : 'Nhập số phút hoặc giờ kết thúc'}
                 </span>
               </span>

@@ -144,4 +144,6 @@ export function fromTimeInput(day: Date, value: string): Date | null {
 }
 
 export const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate())
+// 24:00 của ngày chứa d (= 0:00 ngày hôm sau): mốc kết thúc 1 ngày trên time line
+export const nextMidnight = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1)
 export const sameDay = (a: Date, b: Date) => a.toDateString() === b.toDateString()

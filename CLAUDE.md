@@ -218,6 +218,9 @@ Ghi lại hoạt động hằng ngày của bé theo time line. **Mỗi gia đì
   bảng mã màu `PALETTE` — thêm màu thẻ mới vào `CARD_COLORS` thì thêm mã RGB vào `PALETTE`). Nhãn (icon, tên, giờ) ở đầu thẻ, các thẻ bắt đầu gần nhau thì chia làn ngang (giờ xuống dòng 2).
   **Chạm vùng chồng nhau** (kể cả chạm vào nhãn) thì **hiện tag các thẻ đang chồng ở phía trên chỗ chạm**, chạm tag để sửa đúng thẻ đó; chạm vùng chỉ có 1 thẻ thì sửa thẻ đó.
   Vùng time line có `data-no-swipe`, chặn cuộn trang (touchmove không passive) khi đang kéo / trượt thẻ.
+  **1 ngày của time line là 00:00 → 24:00**: thêm / sửa / kéo hoạt động mà **kết thúc sau 24:00 thì tách thành 2 thẻ** (`splitAtMidnight` trong `data/api.ts`,
+  cùng batch với `createEntry` / `updateEntry`): vd ngày 2 nhập 23:00 → 4:00 thành [ngày 2: 23:00 → 0:00] + [ngày 3: 0:00 → 4:00] (khung nhập báo "tách 1 thẻ sang hôm sau").
+  **Hoạt động chưa kết thúc của ngày trước** tự kết thúc lúc 24:00 ngày đó khi mở màn hình Time line / mở lại app (`closeStaleEntries`, truy vấn `end == null`).
   khay thẻ bên dưới, chạm 1 thẻ để mở khung nhập. **Giờ bắt đầu mặc định** dựa vào hoạt động cuối cùng trong danh sách (giờ bắt đầu muộn nhất):
   đã kết thúc thì lấy **giờ kết thúc** của nó; **chưa kết thúc thì lấy giờ hiện tại, và khi lưu sẽ tự kết thúc hoạt động cuối bằng giờ bắt đầu của hoạt động mới**
   (cùng 1 batch); chưa có hoạt động nào thì giờ hiện tại / 7:00. Sửa được.
