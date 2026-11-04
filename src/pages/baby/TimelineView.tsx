@@ -103,6 +103,29 @@ export function TimelineView({
     [],
   )
 
+  // iOS cũ đôi khi không gửi pointerup về vùng time line (vd đang tự cuộn / thả tay ở mép màn hình) -> thẻ cứ trượt mãi.
+  // Nghe thêm sự kiện thả tay ở cả cửa sổ để luôn kết thúc được thao tác (đã kết thúc rồi thì g.current = null, không làm gì).
+  const ends = useRef({ up: (_y: number) => {}, cancel: () => {} })
+  useEffect(() => {
+    const pointerUp = (e: globalThis.PointerEvent) => ends.current.up(e.clientY)
+    const touchEnd = (e: TouchEvent) => {
+      if (e.touches.length === 0 && e.changedTouches.length) ends.current.up(e.changedTouches[0].clientY)
+    }
+    const cancel = () => ends.current.cancel()
+    window.addEventListener('pointerup', pointerUp, true)
+    window.addEventListener('pointercancel', cancel, true)
+    window.addEventListener('touchend', touchEnd, true)
+    window.addEventListener('touchcancel', cancel, true)
+    window.addEventListener('blur', cancel)
+    return () => {
+      window.removeEventListener('pointerup', pointerUp, true)
+      window.removeEventListener('pointercancel', cancel, true)
+      window.removeEventListener('touchend', touchEnd, true)
+      window.removeEventListener('touchcancel', cancel, true)
+      window.removeEventListener('blur', cancel)
+    }
+  }, [])
+
   const byId = new Map(entries.map((e) => [e.id, e]))
   // Các thẻ khác đứng yên trong lúc kéo; thẻ đang kéo đi theo ngón tay
   const placed = layout(entries, now)
@@ -142,6 +165,24 @@ export function TimelineView({
     autoTimer.current = 0
   }
 
+  // Đang kéo thẻ: khoá cuộn gốc của bảng (iOS có thể đã bắt đầu cuộn / cuộn quán tính dù touchmove bị chặn,
+  // làm thẻ trôi theo). Tự cuộn ở mép vẫn chạy vì đặt scrollTop bằng code.
+  function lockScroll(on: boolean) {
+    const el = scrollRef.current
+    if (el) el.style.overflowY = on ? 'hidden' : ''
+  }
+
+  // Kết thúc thao tác dở dang (không lưu)
+  function abortGesture() {
+    const st = g.current
+    g.current = null
+    stopAuto()
+    lockScroll(false)
+    if (st) window.clearTimeout(st.timer)
+    setDrag(null)
+    setSwipe((s) => (s?.active ? null : s))
+  }
+
   const dragDy = (st: Gesture) => st.lastY - st.y + ((scrollRef.current?.scrollTop ?? 0) - st.scroll0)
 
   function updateDrag() {
@@ -152,6 +193,8 @@ export function TimelineView({
 
   function onPointerDown(e: PointerEvent<HTMLDivElement>) {
     if (e.pointerType === 'mouse' && e.button !== 0) return
+    // Thao tác trước chưa kết thúc (mất sự kiện thả tay): bỏ nó đi
+    if (g.current && g.current.mode !== 'done') abortGesture()
     // Đang mở nút nhân bản / tag: chạm ra ngoài thì chỉ đóng lại
     if (swipe || tags) {
       setSwipe(null)
@@ -175,6 +218,7 @@ export function TimelineView({
       st.timer = window.setTimeout(() => {
         if (g.current !== st || st.mode !== 'pending') return
         st.mode = 'drag'
+        lockScroll(true)
         navigator.vibrate?.(15)
         setDrag({ id: h, dy: 0 })
       }, LONG_PRESS_MS)
@@ -203,21 +247,27 @@ export function TimelineView({
       if (st.auto && !autoTimer.current) {
         autoTimer.current = window.setInterval(() => {
           const el = scrollRef.current
-          if (!el || !g.current?.auto) return stopAuto()
-          el.scrollTop += g.current.auto * EDGE_SPEED
+          const cur = g.current
+          if (!el || !cur || cur.mode !== 'drag' || !cur.auto) return stopAuto()
+          // Đã tới đầu / cuối bảng thì dừng tự cuộn
+          const max = el.scrollHeight - el.clientHeight
+          const next = Math.max(0, Math.min(max, el.scrollTop + cur.auto * EDGE_SPEED))
+          if (Math.abs(next - el.scrollTop) < 0.5) return stopAuto()
+          el.scrollTop = next
           updateDrag()
         }, 16)
       } else if (!st.auto) stopAuto()
     }
   }
 
-  function onPointerUp(e: PointerEvent<HTMLDivElement>) {
+  function onPointerUp(clientY: number) {
     const st = g.current
     g.current = null
     stopAuto()
+    lockScroll(false)
     if (!st) return
     window.clearTimeout(st.timer)
-    if (st.mode === 'pending') return tap(st, e.clientY)
+    if (st.mode === 'pending') return tap(st, clientY)
     if (st.mode === 'swipe' && st.id) {
       const pull = swipe?.id === st.id ? swipe.pull : 0
       return setSwipe(pull >= COPY_W / 2 ? { id: st.id, pull: COPY_W, active: false } : null)
@@ -231,14 +281,7 @@ export function TimelineView({
     }
   }
 
-  function onPointerCancel() {
-    const st = g.current
-    g.current = null
-    stopAuto()
-    if (st) window.clearTimeout(st.timer)
-    setDrag(null)
-    setSwipe((s) => (s?.active ? null : s))
-  }
+  ends.current = { up: onPointerUp, cancel: () => g.current && abortGesture() }
 
   // Chạm (không kéo): vùng chỉ có 1 thẻ -> sửa thẻ đó; vùng chồng nhau (kể cả chạm vào nhãn) -> hiện tag để chọn đúng thẻ
   function tap(st: Gesture, clientY: number) {
@@ -273,8 +316,8 @@ export function TimelineView({
         style={{ height }}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
-        onPointerUp={onPointerUp}
-        onPointerCancel={onPointerCancel}
+        onPointerUp={(e) => onPointerUp(e.clientY)}
+        onPointerCancel={abortGesture}
         onContextMenu={(e) => e.preventDefault()}
       >
         <div className="absolute" style={{ top: BUBBLE_PX, left: PAD, right: PAD, bottom: PAD }}>
