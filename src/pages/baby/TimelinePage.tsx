@@ -9,7 +9,7 @@ import { GlassPanel } from '../../components/ui/GlassPanel'
 import { MinutesField } from '../../components/ui/MinutesField'
 import { PagedRow, PagedRowSkeleton } from '../../components/ui/PagedRow'
 import { Skeleton } from '../../components/ui/Skeleton'
-import { TextField } from '../../components/ui/TextField'
+import { TimeField } from '../../components/ui/TimeField'
 import { SIZE } from '../../components/ui/sizes'
 import { CardIcon, ChildPicker, ChildPickerSkeleton, DayBar, DayBarSkeleton } from './components'
 import { babyNoticeId, markBabySeen, useNotices } from '../../lib/notifications'
@@ -43,10 +43,6 @@ const TRAY_CLASS = `${SIZE.tray} !p-0`
 // Bề rộng 1 thẻ trong khay (icon + tên tối đa 3 dòng)
 const TRAY_ITEM_WIDTH = 64
 const FORM_ID = 'baby-entry-form'
-// 3 ô giờ / số phút nằm chung 1 hàng nên thu hẹp lề trong để hiện đủ "HH:MM"
-const TIME_FIELD = '!px-2.5'
-// Ô bị khoá khi chưa hoàn thành: mờ đi
-const LOCKED = 'disabled:opacity-40 disabled:cursor-not-allowed'
 // Khung nhập đang mở: thêm từ 1 thẻ, hoặc sửa 1 hoạt động đã có.
 // overlap: thêm bằng nút NHÂN BẢN của 1 hoạt động -> cùng giờ với hoạt động đó và được chồng thời gian lên nó (không đẩy hoạt động liền kề)
 type Sheet = { mode: 'new'; card: BabyCard; overlap?: BabyEntry } | { mode: 'edit'; entry: BabyEntry }
@@ -268,17 +264,26 @@ function linkNeighbors(
 // - Hoạt động liền TRƯỚC (bắt đầu trước giờ mới) kết thúc đúng bằng giờ bắt đầu mới; không có thì chèn lên đầu
 // - Hoạt động liền SAU (bắt đầu từ giờ mới trở đi) bắt đầu đúng bằng giờ kết thúc mới (giữ nguyên giờ kết thúc của nó)
 // - Chèn vào giữa mà chưa hoàn thành (không nhập kết thúc) thì tự kết thúc lúc hoạt động liền sau bắt đầu
+// - Hoạt động mới LỌT HẲN vào trong hoạt động liền trước (kết thúc trước lúc nó kết thúc): TÁCH hoạt động đó làm 2 —
+//   phần đầu kết thúc lúc hoạt động mới bắt đầu, phần sau (`split`, cùng thẻ) bắt đầu lúc hoạt động mới kết thúc và giữ giờ kết thúc cũ;
+//   hoạt động liền sau giữ nguyên. Vd chơi 7:00–9:00, ngủ 9:00–…; chèn bú 8:00–8:30 -> chơi 7:00–8:00, bú, chơi 8:30–9:00, ngủ 9:00–…
 function linkInsert(
   entries: BabyEntry[],
   start: Date,
   end: Date | null,
-): { linked: EntryTiming[]; notes: string[]; error: string; minutes: number | null } {
+): { linked: EntryTiming[]; notes: string[]; error: string; minutes: number | null; split?: { of: BabyEntry; start: Date; minutes: number } } {
   const linked: EntryTiming[] = []
   const notes: string[] = []
   const sorted = [...entries].sort((a, b) => a.start.getTime() - b.start.getTime())
   const prev = sorted.filter((e) => e.start < start).pop() ?? null
   const [next = null, afterNext = null] = sorted.filter((e) => e.start >= start)
   const fail = (error: string) => ({ linked, notes, error, minutes: null })
+
+  if (prev?.end && end && end < prev.end) {
+    linked.push({ id: prev.id, start: prev.start, minutes: minutesBetween(prev.start, start) })
+    notes.push(`Tách "${prev.name}": ${formatTime(prev.start)}–${formatTime(start)} và ${formatTime(end)}–${formatTime(prev.end)}`)
+    return { linked, notes, error: '', minutes: minutesBetween(start, end), split: { of: prev, start: end, minutes: minutesBetween(end, prev.end) } }
+  }
 
   let finish = end
   if (next && !finish) {
@@ -397,7 +402,19 @@ function EntrySheet({ sheet, day, entries, onClose }: { sheet: Sheet; day: Date;
       const card = isNew ? sheet.card : { id: sheet.entry.cardId, name: sheet.entry.name, icon: sheet.entry.icon, color: sheet.entry.color }
       // Hoạt động thuộc con đang chọn; sửa hoạt động cũ chưa gắn con thì gắn luôn vào con đang chọn
       const input = { childId: isNew ? (child?.id ?? null) : (sheet.entry.childId ?? child?.id ?? null), card, start, minutes: saveMinutes }
-      if (isNew) await createEntry(input, actor, link?.linked, timelineNotice(child, actor, `Thêm ${card.name} lúc ${formatTime(start)}`))
+      // Chèn lọt hẳn vào 1 hoạt động: phần sau của hoạt động đó thành 1 hoạt động mới (cùng thẻ, cùng con)
+      const split = (link as { split?: { of: BabyEntry; start: Date; minutes: number } } | null)?.split
+      const extra = split
+        ? [
+            {
+              childId: split.of.childId ?? input.childId,
+              card: { id: split.of.cardId, name: split.of.name, icon: split.of.icon, color: split.of.color },
+              start: split.start,
+              minutes: split.minutes,
+            },
+          ]
+        : []
+      if (isNew) await createEntry(input, actor, link?.linked, timelineNotice(child, actor, `Thêm ${card.name} lúc ${formatTime(start)}`), extra)
       else await updateEntry(sheet.entry.id, input, actor, link?.linked, timelineNotice(child, actor, `Sửa ${card.name} lúc ${formatTime(start)}`))
       onClose()
     } catch (err) {
@@ -440,7 +457,8 @@ function EntrySheet({ sheet, day, entries, onClose }: { sheet: Sheet; day: Date;
           {/* Bắt đầu, số phút, kết thúc: 3 ô bằng nhau, sửa ô nào thì ô còn lại tự cập nhật.
               Chưa hoàn thành thì khoá ô số phút / kết thúc (không cần nhập) */}
           <div className="grid grid-cols-3 gap-2">
-            <TextField id="start" label="Bắt đầu" type="time" className={TIME_FIELD} value={startText} onChange={(e) => changeStart(e.target.value)} />
+            {/* Ô giờ tự làm bằng <select> (TimeField): <input type="time"> trên iOS 15.1 có lúc không bật popup chọn giờ */}
+            <TimeField id="start" label="Bắt đầu" value={startText} onChange={changeStart} />
             <MinutesField
               id="minutes"
               label="Số phút"
@@ -450,16 +468,7 @@ function EntrySheet({ sheet, day, entries, onClose }: { sheet: Sheet; day: Date;
               value={completed ? minutesText : ''}
               onChange={changeMinutes}
             />
-            <TextField
-              id="end"
-              label="Kết thúc"
-              type={completed ? 'time' : 'text'}
-              disabled={!completed}
-              placeholder="--:--"
-              className={`${TIME_FIELD} ${LOCKED}`}
-              value={completed ? endText : ''}
-              onChange={(e) => changeEnd(e.target.value)}
-            />
+            <TimeField id="end" label="Kết thúc" disabled={!completed} value={completed ? endText : ''} onChange={changeEnd} />
           </div>
 
           {error && <Alert type="error">{error}</Alert>}

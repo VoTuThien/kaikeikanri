@@ -226,7 +226,12 @@ Ghi lại hoạt động hằng ngày của bé theo time line. **Mỗi gia đì
   (cùng 1 batch); chưa có hoạt động nào thì giờ hiện tại / 7:00. Sửa được.
   **Chèn vào giữa bằng cách nhập giờ bắt đầu** (`linkInsert`, ghi cùng 1 batch trong `createEntry`): hoạt động **liền trước** (bắt đầu trước giờ mới)
   kết thúc đúng giờ bắt đầu mới, hoạt động **liền sau** bắt đầu đúng giờ kết thúc mới (giữ giờ kết thúc của nó); không có hoạt động liền trước thì chèn lên đầu.
-  Chèn vào giữa mà không check "Đã hoàn thành" thì tự kết thúc lúc hoạt động liền sau bắt đầu. Kết thúc trùm qua hết hoạt động liền sau thì báo lỗi;
+  **Chèn hoạt động LỌT HẲN vào trong hoạt động liền trước** (có giờ kết thúc, kết thúc trước lúc hoạt động kia kết thúc) thì **tách hoạt động kia làm 2**:
+  phần đầu kết thúc lúc hoạt động mới bắt đầu, phần sau (cùng thẻ, cùng con, thêm trong cùng batch qua `extra` của `createEntry`) bắt đầu lúc hoạt động mới kết thúc
+  và giữ giờ kết thúc cũ; hoạt động liền sau giữ nguyên (vd chơi 7–9, ngủ 9–…; chèn bú 8–8:30 → chơi 7–8, bú 8–8:30, chơi 8:30–9, ngủ 9–…).
+  Chèn vào giữa mà không check "Đã hoàn thành" thì tự kết thúc lúc hoạt động liền sau bắt đầu.
+  **Ô giờ bắt đầu / kết thúc dùng `TimeField`** (`src/components/ui/TimeField.tsx`: 2 `<select>` trong suốt phủ nửa giờ / nửa phút), **không dùng `<input type="time">`**
+  (trên iOS 15.1 ô giờ gốc có lúc focus mà không bật popup chọn giờ). Kết thúc trùm qua hết hoạt động liền sau thì báo lỗi;
   khi nhập trong khung nhập thì time line nối liền, không tự tạo chồng lên nhau.
   Ô check **"Đã hoàn thành"**: có check mới nhập số phút / kết thúc; không check = hoạt động **đang diễn ra / sắp bắt đầu** (lưu `minutes` = `end` = null),
   trên time line hiện nhãn "Đang diễn ra" / "Sắp bắt đầu". Thêm mới mặc định là chưa hoàn thành.

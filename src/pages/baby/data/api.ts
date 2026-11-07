@@ -108,13 +108,15 @@ export interface TimelineNotice {
 /**
  * Thêm hoạt động mới (ở cuối hoặc chèn vào giữa time line; kết thúc sau 24:00 thì tách sang ngày hôm sau, xem splitAtMidnight), đồng thời cập nhật hoạt động liền trước
  * (kết thúc = giờ bắt đầu mới) / liền sau (bắt đầu = giờ kết thúc mới) trong `linked`. Ghi cùng lúc trong 1 batch.
+ * `extra`: các hoạt động thêm cùng lúc (vd phần sau của hoạt động bị tách đôi khi chèn lọt hẳn vào trong nó).
  */
-export async function createEntry(input: BabyEntryInput, by: Actor, linked: EntryTiming[] = [], notice?: TimelineNotice) {
+export async function createEntry(input: BabyEntryInput, by: Actor, linked: EntryTiming[] = [], notice?: TimelineNotice, extra: BabyEntryInput[] = []) {
   const batch = writeBatch(requireDb())
   if (notice) setBabyNotice(batch, notice.child, notice.by, notice.detail)
   const [first, ...rest] = splitAtMidnight(input)
   batch.set(doc(entriesCol()), { ...entryData(first), createdAt: serverTimestamp(), createdBy: by.uid, createdByName: by.name })
   addRest(batch, rest, by)
+  for (const e of extra) addRest(batch, splitAtMidnight(e), by)
   for (const l of linked) batch.update(doc(entriesCol(), l.id), timing(l.start, l.minutes))
   await commit(batch.commit())
 }
