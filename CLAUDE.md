@@ -103,6 +103,13 @@ Dữ liệu gia đình (xem `src/pages/family/data/api.ts`):
   bằng `scripts/copy-tesseract.mjs` (chạy tự động ở `predev` / `prebuild`, thư mục bị gitignore); **không đưa vào precache** của PWA
   (`globIgnores`), chỉ tải lần đầu mở màn hình (~5MB) rồi lưu bằng runtime cache `CacheFirst`. Thư viện được import động.
   **Không dùng regex lookbehind** trong phần tách dữ liệu (iOS 15.1 lỗi cú pháp).
+  **Ô "Loại hoá đơn"** (`RECEIPT_KINDS`, nhớ lựa chọn ở localStorage `receipt-kind`, mặc định **Bách Hoá Xanh**; đổi loại thì tách lại chữ đã đọc, không đọc ảnh lại):
+  - **BHX** (`parseBhx`, "PHIẾU THANH TOÁN BÁCH HÓA XANH"): bảng từ dòng tiêu đề "SL / Giá bán / Thành tiền" tới dòng "Phải thanh toán";
+    mỗi sản phẩm = dòng tên (có thể nhiều dòng) + dòng số liệu "SL … thành tiền"; **chỉ lấy tên, SL (lẻ được, "0,274") và thành tiền**, bỏ cột giá bán.
+    **Số tiền rút = "Phải thanh toán"** (không đọc được thì = tổng thành tiền). Màn hình hiện "n sản phẩm · tổng · khớp / lệch" và "Xem sản phẩm".
+  - **Hoá đơn khác**: cách tách chung ở trên (không có danh sách sản phẩm).
+  Có danh sách sản phẩm thì **lưu kèm vào giao dịch rút**: `receipt` (loại) + `items` = `[{ name, qty, amount }]` (`addTransaction` tham số `receipt`).
+  Thêm loại hoá đơn mới: thêm vào `RECEIPT_KINDS` + hàm tách riêng trong `receiptParse.ts`.
 - [x] Nạp vào quỹ (`/fund/deposit`)
 - [x] Rút từ quỹ (`/fund/withdraw`)
 - [x] Chuyển quỹ (`/fund/transfer`): chuyển tiền từ quỹ A sang quỹ B (giao diện giống nạp / rút, có 2 ô chọn "Từ quỹ" / "Sang quỹ",
@@ -153,7 +160,8 @@ Dữ liệu gia đình (xem `src/pages/family/data/api.ts`):
 Dữ liệu Firestore (xem `src/pages/fund/data/api.ts`), thuộc gia đình đang chọn:
 - `families/{familyId}/funds/{fundId}`: nhóm quỹ, `balance` là số dư hiện tại (VND, số nguyên), `position` số thứ tự
 - `families/{familyId}/transactions/{txId}`: giao dịch `deposit` / `withdraw` / `interest` / `transfer_out` / `transfer_in`, `amount` luôn dương, có `createdByName` (người thực hiện);
-  chuyển quỹ có `peerFundId` + `pairId` (id giao dịch còn lại của cặp); đã xoá thì `deleted`, `deletedByName`, `deletedAt`
+  chuyển quỹ có `peerFundId` + `pairId` (id giao dịch còn lại của cặp); đã xoá thì `deleted`, `deletedByName`, `deletedAt`;
+  rút theo hoá đơn (Đọc hoá đơn) thì có `receipt` (loại hoá đơn, vd `bhx`) + `items` = các sản phẩm `{ name, qty, amount }`
 - `families/{familyId}/fundOrders/{orderId}`: lệnh chuyển (`type` transfer / withdraw / deposit, `fromFundId`, `toFundId`, `amount`, `allBalance`, `position`, `note`), xem `data/orders.ts`
 - `families/{familyId}/fundRuns/{YYYY-MM}`: đợt thực thi của tháng (`summarizedBy`, `summarizedByName`, `summarizedAt`, `executed` = map id lệnh -> lúc chạy,
   `balances` = map id quỹ -> { name, icon, balance, transferred } lưu lúc tổng kết, `total` = tổng không tính quỹ đã chuyển đi)

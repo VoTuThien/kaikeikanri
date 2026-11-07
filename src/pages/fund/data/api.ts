@@ -104,6 +104,8 @@ export async function addTransaction(
   date: Date,
   note: string,
   by: Actor,
+  // Rút theo hoá đơn (màn hình Đọc hoá đơn): loại hoá đơn + các sản phẩm đọc được { name, qty, amount }
+  receipt?: { kind: string; items: { name: string; qty: number; amount: number }[] },
 ) {
   const batch = writeBatch(requireDb())
   batch.set(doc(txCol()), {
@@ -111,6 +113,7 @@ export async function addTransaction(
     type,
     amount,
     note,
+    ...(receipt ? { receipt: receipt.kind, items: receipt.items } : {}),
     date: Timestamp.fromDate(date),
     createdAt: serverTimestamp(),
     createdBy: by.uid,

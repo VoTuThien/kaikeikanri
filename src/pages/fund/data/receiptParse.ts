@@ -7,10 +7,25 @@
 
 import { MAX_MONEY } from '../../../lib/format'
 
+// Loại hoá đơn: mỗi loại có cách tách riêng (chọn ở ô "Loại hoá đơn" của màn hình Đọc hoá đơn)
+export type ReceiptKind = 'general' | 'bhx'
+export const RECEIPT_KINDS: { value: ReceiptKind; label: string; store: string }[] = [
+  { value: 'bhx', label: 'Bách Hoá Xanh (BHX)', store: 'Bách Hoá Xanh' },
+  { value: 'general', label: 'Hoá đơn khác', store: '' },
+]
+
+// 1 sản phẩm trên hoá đơn: tên, số lượng (SL, có thể lẻ: 0,274 kg), thành tiền
+export interface ReceiptItem {
+  name: string
+  qty: number
+  amount: number
+}
+
 export interface ReceiptData {
   amounts: number[] // các số tiền tìm thấy, khả năng là TỔNG TIỀN cao nhất đứng đầu (tối đa 4)
   date: Date | null
   store: string
+  items: ReceiptItem[] // các sản phẩm (chỉ loại hoá đơn tách được từng món, vd BHX)
 }
 
 // Bỏ dấu tiếng Việt + chữ thường, để so khớp từ khoá khi OCR đọc sai dấu
@@ -88,7 +103,8 @@ function pickDate(lines: string[], today: Date): Date | null {
     const vn = line.match(/ngay\s*(\d{1,2})\s*thang\s*(\d{1,2})\s*nam\s*(\d{2,4})/)
     const d = vn ? make(+vn[1], +vn[2], +vn[3]) : null
     if (d) return d
-    for (const m of line.matchAll(/(\d{1,2})\s*[/\-.]\s*(\d{1,2})\s*[/\-.]\s*(\d{4}|\d{2})(?!\d)/g)) {
+    // Ngày đứng riêng (trước nó không phải chữ số), dấu phân cách liền: tránh ghép nhầm "...463 - 01/11" của mã chứng từ thành ngày
+    for (const m of line.matchAll(/(?:^|\D)(\d{1,2})[/\-.](\d{1,2})[/\-.](\d{4}|\d{2})(?!\d)/g)) {
       const date = make(+m[1], +m[2], +m[3])
       if (date) return date
     }
@@ -108,11 +124,15 @@ function pickStore(lines: string[]): string {
   return ''
 }
 
-export function parseReceipt(text: string, today = new Date()): ReceiptData {
-  const lines = text
+const toLines = (text: string) =>
+  text
     .split(/\r?\n/)
     .map((l) => l.trim())
     .filter(Boolean)
+
+export function parseReceipt(text: string, today = new Date(), kind: ReceiptKind = 'general'): ReceiptData {
+  if (kind === 'bhx') return parseBhx(text, today)
+  const lines = toLines(text)
 
   // Chấm điểm từng số tiền theo từ khoá của dòng chứa nó (và dòng ngay trên, vì nhiều hoá đơn để số ở dòng dưới chữ "Tổng cộng")
   const score = new Map<number, number>()
@@ -143,5 +163,57 @@ export function parseReceipt(text: string, today = new Date()): ReceiptData {
     .map(([v]) => v)
     .slice(0, 4)
 
-  return { amounts, date: pickDate(lines, today), store: pickStore(lines) }
+  return { amounts, date: pickDate(lines, today), store: pickStore(lines), items: [] }
 }
+
+// ---- Hoá đơn Bách Hoá Xanh ("PHIẾU THANH TOÁN BÁCH HÓA XANH", bản trong app BHX) ----
+// Bảng 3 cột "SL | Giá bán (có VAT) | Thành tiền"; mỗi sản phẩm 2 dòng:
+//   cánh gà                                         <- tên (dài thì xuống nhiều dòng)
+//   0,274   108.000 64.800 (VAT:5%)   17.755        <- SL (đầu dòng, có thể lẻ) ... thành tiền (cuối dòng)
+// Chỉ lấy SL + thành tiền (bỏ cột giá bán, giá gạch ngang). Số tiền rút = "Phải thanh toán" (không có thì = tổng thành tiền).
+
+// Dòng số liệu của 1 sản phẩm: bắt đầu bằng SL, kết thúc bằng thành tiền
+const ITEM_ROW = /^([0-9lI|]+(?:[.,]\d+)?)\s+(.*?)(\d{1,3}(?:\.\d{3})+|\d{1,7})\s*$/
+
+function parseQty(raw: string) {
+  return Number(raw.replace(/[lI|]/g, '1').replace(',', '.')) || 0
+}
+
+function parseBhx(text: string, today: Date): ReceiptData {
+  const lines = toLines(text)
+  const folded = lines.map(fold)
+  // Bảng bắt đầu sau dòng tiêu đề cột (SL / Giá bán / Thành tiền), kết thúc ở dòng "Phải thanh toán"
+  const head = folded.findIndex((l) => l.includes('thanh tien') && (l.includes('gia ban') || /\bsl\b/.test(l)))
+  let end = folded.findIndex((l) => l.includes('phai thanh toan'))
+  if (end < 0) end = lines.length
+
+  const items: ReceiptItem[] = []
+  let name: string[] = []
+  for (let i = head + 1; i < end; i++) {
+    const line = fixDigits(lines[i])
+    const m = line.match(ITEM_ROW)
+    // Dòng số liệu: có SL ở đầu + thành tiền ở cuối, và có "VAT" hoặc ít nhất 1 số ở giữa (giá bán)
+    if (m && (/vat/i.test(m[2]) || /\d/.test(m[2]))) {
+      const amount = Number(m[3].replace(/\D/g, ''))
+      if (amount > 0) items.push({ name: name.join(' ').trim() || 'Sản phẩm', qty: parseQty(m[1]), amount })
+      name = []
+    } else if (/\p{L}/u.test(lines[i])) {
+      name.push(lines[i])
+    }
+  }
+
+  // "Phải thanh toán: 210.898" (số có thể nằm ở dòng dưới)
+  let total = 0
+  if (end < lines.length) {
+    const here = moneyIn(lines[end])
+    const next = end + 1 < lines.length ? moneyIn(lines[end + 1]) : []
+    total = here[here.length - 1] ?? next[next.length - 1] ?? 0
+  }
+  const sum = items.reduce((s, it) => s + it.amount, 0)
+  const amounts = [...new Set([total, sum].filter((v) => v > 0))]
+
+  return { amounts, date: pickDate(lines, today), store: 'Bách Hoá Xanh', items }
+}
+
+// Tổng thành tiền các sản phẩm, để so với số phải thanh toán (lệch = OCR đọc sót / sai 1 dòng)
+export const itemsTotal = (items: ReceiptItem[]) => items.reduce((s, it) => s + it.amount, 0)
