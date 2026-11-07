@@ -1,11 +1,15 @@
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
 import { createPortal } from 'react-dom'
 import { Button } from './Button'
+import { Icon3D } from './Icon3D'
 import { FIELD_CLASS, FieldLabel } from './TextField'
 
 // Ô nhập giờ "HH:MM" dùng chung cho cả app (KHÔNG dùng <input type="time">: trên iOS 15.1 ô giờ gốc có lúc focus mà không bật popup).
 // Ô hiển thị giống ô nhập thường ("HH:MM"); chạm vào mở VÒNG TRÒN CHỌN GIỜ to nhất có thể:
-//   - Vòng TRONG: 24 điểm = 24 giờ (0 ở trên cùng, theo chiều kim đồng hồ)
+//   - Vòng TRONG: 12 điểm giờ của NỬA NGÀY đang xem, như mặt đồng hồ (12 / 24 ở trên cùng, theo chiều kim đồng hồ).
+//     NÚT Ở GIỮA đổi nửa ngày: đang hiện 13–24 giờ thì nút là ☀️ (chạm -> hiện 1–12 giờ, nút thành 🌙),
+//     đang hiện 1–12 giờ thì nút là 🌙 (chạm -> hiện 13–24 giờ, nút thành ☀️). Đổi nửa ngày thì giờ đang chọn đổi theo (vd 3 <-> 15).
+//     Nửa ngày lúc mở theo giờ ban đầu: 1–12 giờ -> hiện 1–12; 0 giờ (= 24) và 13–23 giờ -> hiện 13–24. 24 giờ lưu là "00".
 //   - Vòng NGOÀI: 60 điểm = 60 phút
 // Chạm / kéo ở vùng vòng trong để chỉnh giờ, vùng vòng ngoài để chỉnh phút (kéo vòng quanh tâm; bắt đầu ở vòng nào thì cả lần kéo
 // chỉnh vòng đó). Giữa vòng hiện giờ đang chọn. "Xong" để lưu, "Huỷ" / chạm nền mờ để bỏ; `clearable` có thêm "Bỏ giờ" (giá trị "").
@@ -21,8 +25,7 @@ const parse = (v: string): [number, number] | null => {
 const C = 200
 const R_MIN = 172 // điểm phút
 const R_MIN_LABEL = 145 // số phút (mỗi 5 phút)
-const R_HOUR = 100 // điểm giờ
-const R_HOUR_LABEL = 76 // số giờ
+const R_HOUR = 92 // 12 số giờ; nút kéo giờ nằm đè đúng lên số đang chọn (bên trong là nút ☀️ / 🌙)
 const SPLIT = 124 // chạm gần tâm hơn = vòng giờ, xa hơn = vòng phút
 const KNOB = 19
 // Phóng to vòng giờ khi giữ / kéo: chờ ZOOM_DELAY (chạm nhanh để chọn luôn thì không phóng to), rồi to lên ZOOM_SCALE lần
@@ -30,6 +33,14 @@ const KNOB = 19
 const ZOOM_DELAY = 180
 const ZOOM_SCALE = 1.55
 const ZOOM_MS = 220
+
+// Nửa ngày: 'am' = 1–12 giờ, 'pm' = 13–24 giờ (24 = 0 giờ)
+type Half = 'am' | 'pm'
+const halfOf = (hour: number): Half => (hour >= 1 && hour <= 12 ? 'am' : 'pm')
+// Vị trí trên mặt đồng hồ (0 = trên cùng ... 11) <-> giờ trong ngày (0..23) theo nửa ngày
+const hourAt = (idx: number, half: Half) => (half === 'am' ? (idx === 0 ? 12 : idx) : idx === 0 ? 0 : idx + 12)
+// Số in trên mặt đồng hồ: 1..12 hoặc 13..24
+const hourLabel = (idx: number, half: Half) => (half === 'am' ? (idx === 0 ? 12 : idx) : idx === 0 ? 24 : idx + 12)
 
 const at = (r: number, deg: number) => {
   const a = ((deg - 90) * Math.PI) / 180
@@ -102,6 +113,8 @@ function TimeDial({
   // Chưa có giờ thì bắt đầu từ giờ hiện tại
   const [hour, setHour] = useState(() => parse(value)?.[0] ?? new Date().getHours())
   const [minute, setMinute] = useState(() => parse(value)?.[1] ?? new Date().getMinutes())
+  // Nửa ngày đang hiện trên vòng giờ: theo giờ ban đầu (1–12 -> 1–12; 0, 13–23 -> 13–24)
+  const [half, setHalf] = useState<Half>(() => halfOf(hour))
   const [active, setActive] = useState<'hour' | 'minute' | null>(null)
   // Đang giữ / kéo ở vòng giờ đủ lâu: phóng to vòng giờ cho dễ kéo (chạm nhanh để chọn luôn thì không phóng to)
   const [zoom, setZoom] = useState(false)
@@ -127,8 +140,16 @@ function TimeDial({
   }
 
   function apply(which: 'hour' | 'minute', deg: number) {
-    if (which === 'hour') setHour(Math.round(deg / 15) % 24)
+    // Vòng giờ chỉ còn 12 vị trí (mỗi 30°), giờ thật tuỳ nửa ngày đang hiện
+    if (which === 'hour') setHour(hourAt(Math.round(deg / 30) % 12, half))
     else setMinute(Math.round(deg / 6) % 60)
+  }
+
+  // Nút ☀️ / 🌙 ở giữa: đổi nửa ngày, giờ đang chọn giữ vị trí trên mặt đồng hồ (vd 3 giờ <-> 15 giờ, 12 giờ <-> 24 giờ)
+  function toggleHalf() {
+    const next: Half = half === 'am' ? 'pm' : 'am'
+    setHalf(next)
+    setHour((h) => hourAt(h % 12, next))
   }
 
   function onDown(e: ReactPointerEvent<SVGSVGElement>) {
@@ -153,7 +174,7 @@ function TimeDial({
     setZoom(false)
   }
 
-  const hourDeg = hour * 15
+  const hourDeg = (hour % 12) * 30
   const minDeg = minute * 6
   const hk = at(R_HOUR, hourDeg)
   const mk = at(R_MIN, minDeg)
@@ -175,11 +196,11 @@ function TimeDial({
         </div>
 
         {/* Vòng tròn: to nhất có thể (bề rộng khung, nhưng không cao quá màn hình) */}
+        <div className="relative mx-auto w-full" style={{ maxWidth: 'min(100%, calc(100vh - 13rem))' }}>
         <svg
           ref={svgRef}
           viewBox="0 0 400 400"
-          className="mx-auto block aspect-square w-full touch-none select-none"
-          style={{ maxWidth: 'min(100%, calc(100vh - 13rem))' }}
+          className="block aspect-square w-full touch-none select-none"
           onPointerDown={onDown}
           onPointerMove={onMove}
           onPointerUp={onUp}
@@ -210,7 +231,7 @@ function TimeDial({
             </text>
           </g>
 
-          {/* Vòng TRONG (giờ): nền, 24 điểm, đủ 24 số, kim + nút kéo. Giữ / kéo ở đây 1 chút thì PHÓNG TO cả vòng quanh tâm
+          {/* Vòng TRONG (giờ): nền, 12 điểm + 12 số của nửa ngày đang hiện, kim + nút kéo. Giữ / kéo ở đây 1 chút thì PHÓNG TO cả vòng quanh tâm
               (scale quanh tâm bằng translate-scale-translate, không phụ thuộc transform-origin của SVG trên Safari cũ) */}
           <g
             style={{
@@ -219,35 +240,45 @@ function TimeDial({
             }}
           >
             <circle cx={C} cy={C} r={SPLIT} fill={zoom ? 'rgba(76,29,149,0.92)' : 'rgba(217,70,239,0.10)'} stroke="rgba(255,255,255,0.15)" style={{ transition: `fill ${ZOOM_MS}ms ease` }} />
-            {Array.from({ length: 24 }, (_, h) => {
-              const p = at(R_HOUR, h * 15)
-              return <circle key={h} cx={p.x} cy={p.y} r={2.6} fill="rgba(255,255,255,0.6)" />
-            })}
-            {Array.from({ length: 24 }, (_, h) => {
-              const p = at(R_HOUR_LABEL, h * 15)
+            {Array.from({ length: 12 }, (_, i) => {
+              const p = at(R_HOUR, i * 30)
               return (
                 <text
-                  key={h}
+                  key={i}
                   x={p.x}
                   y={p.y}
                   textAnchor="middle"
                   dominantBaseline="central"
-                  fontSize={h % 6 === 0 ? 15 : 12}
-                  fontWeight={h % 6 === 0 ? 700 : 500}
-                  fill={h === hour ? '#ffffff' : 'rgba(245,208,254,0.9)'}
+                  fontSize={i % 3 === 0 ? 20 : 17}
+                  fontWeight={i % 3 === 0 ? 700 : 600}
+                  fill="rgba(245,208,254,0.9)"
                 >
-                  {h}
+                  {hourLabel(i, half)}
                 </text>
               )
             })}
             <line x1={C} y1={C} x2={hk.x} y2={hk.y} stroke="#e879f9" strokeWidth={4} strokeLinecap="round" opacity={0.9} />
-            <circle cx={hk.x} cy={hk.y} r={active === 'hour' ? KNOB + 4 : KNOB} fill="#c026d3" stroke="#ffffff" strokeWidth={2.5} />
-            <text x={hk.x} y={hk.y} textAnchor="middle" dominantBaseline="central" fontSize="15" fontWeight="700" fill="#ffffff">
-              {pad(hour)}
+            <circle cx={hk.x} cy={hk.y} r={active === 'hour' ? KNOB + 5 : KNOB + 1} fill="#c026d3" stroke="#ffffff" strokeWidth={2.5} />
+            <text x={hk.x} y={hk.y} textAnchor="middle" dominantBaseline="central" fontSize="17" fontWeight="700" fill="#ffffff">
+              {hourLabel(hour % 12, half)}
             </text>
           </g>
-          <circle cx={C} cy={C} r={6} fill="#ffffff" />
         </svg>
+
+        {/* Nút đổi nửa ngày nằm giữa mặt đồng hồ (phủ lên SVG): ☀️ = chạm để xem 1–12 giờ, 🌙 = chạm để xem 13–24 giờ.
+            Ẩn trong lúc phóng to vòng giờ */}
+        <button
+          type="button"
+          onClick={toggleHalf}
+          aria-label={half === 'pm' ? 'Đổi sang 1–12 giờ' : 'Đổi sang 13–24 giờ'}
+          className={`absolute top-1/2 left-1/2 flex aspect-square w-[22%] -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center gap-0.5 rounded-full border border-white/30 bg-indigo-900/80 shadow-lg shadow-black/40 transition active:scale-90 ${
+            zoom ? 'pointer-events-none opacity-0' : 'opacity-100'
+          }`}
+        >
+          <Icon3D emoji={half === 'pm' ? '☀️' : '🌙'} className="h-8 w-8" />
+          <span className="text-[10px] leading-3 font-semibold text-white/80">{half === 'pm' ? '1–12' : '13–24'}</span>
+        </button>
+        </div>
 
         <p className="text-center text-xs leading-4 text-white/60">
           Kéo <span className="font-semibold text-fuchsia-300">vòng trong</span> để chọn giờ, <span className="font-semibold text-sky-300">vòng ngoài</span> để chọn phút

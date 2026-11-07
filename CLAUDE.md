@@ -485,7 +485,11 @@ Dữ liệu Firestore (xem `src/pages/note/data/api.ts`), thuộc gia đình đa
 - **Mọi ô nhập giờ phải dùng `TimeField`** (`src/components/ui/TimeField.tsx`), **không dùng `<input type="time">`** (iOS 15.1 có lúc không bật popup chọn giờ).
   Giá trị vào / ra "HH:MM" ("" = chưa chọn), giống `<input type="time">`.
 - Ô hiển thị như ô nhập thường ("HH:MM" ở giữa, cao bằng `TextField` nên skeleton dùng `TextFieldSkeleton`); **chạm vào mở popup VÒNG TRÒN** to nhất có thể
-  (gần hết bề ngang, không cao quá màn hình): **vòng TRONG 24 điểm = 24 giờ, vòng NGOÀI 60 điểm = 60 phút** (0 ở trên cùng, theo chiều kim đồng hồ).
+  (gần hết bề ngang, không cao quá màn hình): **vòng TRONG 12 số giờ của nửa ngày đang xem** (như mặt đồng hồ, 12 / 24 ở trên cùng),
+  **vòng NGOÀI 60 điểm = 60 phút** (00 ở trên cùng, theo chiều kim đồng hồ).
+  **Nút ☀️ / 🌙 ở giữa đổi nửa ngày**: đang hiện 13–24 giờ thì nút là ☀️ (chạm -> 1–12 giờ, nút thành 🌙); đang hiện 1–12 giờ thì nút là 🌙
+  (chạm -> 13–24 giờ, nút thành ☀️); dưới icon ghi nửa ngày sẽ đổi sang. Đổi nửa ngày thì giờ đang chọn giữ vị trí (3 <-> 15, 12 <-> 24).
+  **Nửa ngày lúc mở theo giờ ban đầu**: 1–12 giờ -> 1–12; 0 giờ (hiện là 24) và 13–23 giờ -> 13–24. 24 giờ lưu là "00".
   Chạm / kéo vùng vòng trong để chọn giờ, vùng vòng ngoài để chọn phút (bắt đầu ở vòng nào thì cả lần kéo chỉnh vòng đó); giữa tâm có kim + nút kéo hiện số,
   góc trên hiện giờ đang chọn. **Giữ / kéo ở vòng giờ quá ~0,18 giây (`ZOOM_DELAY`) thì vòng giờ PHÓNG TO** (`ZOOM_SCALE` 1,55, gần kín vòng tròn,
   animation hơi nảy `ZOOM_MS`), vòng phút mờ đi; nhả tay thì thu về. **Chạm nhanh rồi nhả = chọn luôn, không phóng to.** Nút **Huỷ / Xong** (bằng nhau, 1 hàng); ô không bắt buộc truyền **`clearable`** để có thêm **"Bỏ giờ"**. Chưa có giờ thì mở ở giờ hiện tại.

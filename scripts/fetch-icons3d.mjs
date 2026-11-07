@@ -22,6 +22,8 @@ const EMOJIS = [
   '🍼', '🥣', '😴', '🧸', '🚽', '🛁', '💊', '🌳', '📚', '🎵', '🩺', '🧷', '🏷️', '🕒', '📊',
   // App Ghi chú: icon app, ô chức năng (xem, tạo ghi chú) và trạng thái
   '🗒️', '📬', '✍️', '✅',
+  // Ô nhập giờ (TimeField): nút đổi nửa ngày 1–12 giờ / 13–24 giờ; Đọc hoá đơn / Tra cứu: khung sản phẩm
+  '☀️', '🌙', '🛒',
 ]
 
 const SOURCE = 'https://cdn.jsdelivr.net/npm/@lobehub/fluent-emoji-3d@1.1.0/assets/'
