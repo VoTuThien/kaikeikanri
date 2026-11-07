@@ -37,6 +37,7 @@ const COPY_W = 76 // bề rộng nút nhân bản
 const EDGE = 48 // kéo thẻ tới gần mép trên / dưới thì tự cuộn
 const EDGE_SPEED = 8
 const SKELETON_ROWS = 6
+const FAB_ROOM = 72 // nút nổi 56px + khoảng cách
 const CARD_RADIUS = 12 // rounded-xl của thẻ
 
 type Mode = 'pending' | 'drag' | 'swipe' | 'scroll' | 'done'
@@ -137,7 +138,8 @@ export function TimelineView({
   const overlaps = overlapsOf(blocks)
   const lanes = labelLanes(blocks)
   const pullOf = (id: string) => (swipe?.id === id ? swipe.pull : 0)
-  const height = contentHeight(placed) + BUBBLE_PX + PAD
+  // Chừa chỗ dưới cùng cho 2 nút Hoàn tác / Làm lại (nổi ở góc phải dưới của time line) để thẻ cuối không bị che
+  const height = contentHeight(placed) + BUBBLE_PX + PAD + FAB_ROOM
 
   // ---- Chạm / kéo ----
   function point(clientX: number, clientY: number) {

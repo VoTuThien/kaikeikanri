@@ -230,6 +230,12 @@ Ghi lại hoạt động hằng ngày của bé theo time line. **Mỗi gia đì
   phần đầu kết thúc lúc hoạt động mới bắt đầu, phần sau (cùng thẻ, cùng con, thêm trong cùng batch qua `extra` của `createEntry`) bắt đầu lúc hoạt động mới kết thúc
   và giữ giờ kết thúc cũ; hoạt động liền sau giữ nguyên (vd chơi 7–9, ngủ 9–…; chèn bú 8–8:30 → chơi 7–8, bú 8–8:30, chơi 8:30–9, ngủ 9–…).
   Chèn vào giữa mà không check "Đã hoàn thành" thì tự kết thúc lúc hoạt động liền sau bắt đầu.
+  **Hoàn tác / Làm lại**: 2 FAB [↶] [↷] (`undo` / `redo`, nền `secondary`) **nổi ngay trên khay thẻ** (`FabGroup bottom={raisedAbove(TRAY_PX)}`, không che khay;
+  time line chừa `FAB_ROOM` ở cuối), ẩn khi đang mở khung nhập / đang nhân bản; không có bước nào thì nút mờ. Mọi thao tác ghi hoạt động
+  (`createEntry` / `updateEntry` / `deleteEntry`, gồm cả kéo thẻ, chèn tách đôi, tách qua nửa đêm) đi qua `tracked`: chụp dữ liệu các hoạt động bị đụng tới
+  **trước / sau** khi ghi (hoạt động mới = null trước đó) rồi đẩy vào lịch sử (`data/history.ts`, trong bộ nhớ, riêng từng gia đình, tối đa 30 bước, chỉ ghi khi có mạng).
+  `applyHistory` (1 transaction) đưa các hoạt động về đúng ảnh chụp trước (hoàn tác) / sau (làm lại); **hoạt động đã bị thay đổi sau bước đó** (người khác sửa,
+  tự kết thúc lúc 24:00…) thì báo lỗi, không ghi gì và bỏ bước đó. Hoàn tác / làm lại cũng cập nhật thông báo time line của con.
   **Ô giờ bắt đầu / kết thúc dùng `TimeField`** (`src/components/ui/TimeField.tsx`: 2 `<select>` trong suốt phủ nửa giờ / nửa phút), **không dùng `<input type="time">`**
   (trên iOS 15.1 ô giờ gốc có lúc focus mà không bật popup chọn giờ). Kết thúc trùm qua hết hoạt động liền sau thì báo lỗi;
   khi nhập trong khung nhập thì time line nối liền, không tự tạo chồng lên nhau.

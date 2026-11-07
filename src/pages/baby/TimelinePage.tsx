@@ -4,7 +4,7 @@ import { AppHeader, AppHeaderSkeleton } from '../../components/AppHeader'
 import { PageShell } from '../../components/PageShell'
 import { Alert } from '../../components/ui/Alert'
 import { Button } from '../../components/ui/Button'
-import { SaveDeleteFabs } from '../../components/ui/Fab'
+import { Fab, FabGroup, FabSkeleton, raisedAbove, SaveDeleteFabs } from '../../components/ui/Fab'
 import { GlassPanel } from '../../components/ui/GlassPanel'
 import { MinutesField } from '../../components/ui/MinutesField'
 import { PagedRow, PagedRowSkeleton } from '../../components/ui/PagedRow'
@@ -13,7 +13,18 @@ import { TimeField } from '../../components/ui/TimeField'
 import { SIZE } from '../../components/ui/sizes'
 import { CardIcon, ChildPicker, ChildPickerSkeleton, DayBar, DayBarSkeleton } from './components'
 import { babyNoticeId, markBabySeen, useNotices } from '../../lib/notifications'
-import { closeStaleEntries, createEntry, deleteEntry, updateEntry, type EntryTiming, type TimelineNotice } from './data/api'
+import {
+  applyHistory,
+  closeStaleEntries,
+  createEntry,
+  deleteEntry,
+  HistoryConflict,
+  historyScope,
+  updateEntry,
+  type EntryTiming,
+  type TimelineNotice,
+} from './data/api'
+import { useHistory } from './data/history'
 import { useBaby, useDayEntries } from './data/BabyContext'
 import { TimelineView, TimelineViewSkeleton } from './TimelineView'
 import {
@@ -40,6 +51,7 @@ const timelineNotice = (child: Child | null, by: { uid: string; name: string }, 
 })
 
 const TRAY_CLASS = `${SIZE.tray} !p-0`
+const TRAY_PX = 96 // = SIZE.tray (h-24): 2 nút Hoàn tác / Làm lại nằm ngay trên khay
 // Bề rộng 1 thẻ trong khay (icon + tên tối đa 3 dòng)
 const TRAY_ITEM_WIDTH = 64
 const FORM_ID = 'baby-entry-form'
@@ -118,6 +130,23 @@ function Timeline({ day, setDay, entries }: { day: Date; setDay: (d: Date) => vo
   }
 
   const editingId = sheet?.mode === 'edit' ? sheet.entry.id : null
+
+  // Hoàn tác / Làm lại thao tác gần nhất trên time line (thêm, sửa, xoá, kéo...), xem data/history.ts
+  const history = useHistory(historyScope())
+  const [busy, setBusy] = useState<'undo' | 'redo' | null>(null)
+  async function runHistory(kind: 'undo' | 'redo') {
+    setError('')
+    if (!navigator.onLine) return setError('Cần có mạng để hoàn tác / làm lại.')
+    setBusy(kind)
+    try {
+      await applyHistory(kind, actor)
+    } catch (err) {
+      console.error(err)
+      setError(err instanceof HistoryConflict ? err.message : 'Hoàn tác / làm lại thất bại. Vui lòng thử lại.')
+    } finally {
+      setBusy(null)
+    }
+  }
 
   return (
     <PageShell>
@@ -200,6 +229,32 @@ function Timeline({ day, setDay, entries }: { day: Date; setDay: (d: Date) => vo
             )}
           />
         </GlassPanel>
+      )}
+
+      {/* Hoàn tác / Làm lại: nổi ngay trên khay thẻ (không che khay); ẩn khi đang mở khung nhập / đang nhân bản */}
+      {!sheet && !copyOf && (
+        <FabGroup bottom={raisedAbove(TRAY_PX)}>
+          <Fab
+            type="button"
+            variant="secondary"
+            icon="undo"
+            label={history.undo ? `Hoàn tác: ${history.undo.label}` : 'Không có thao tác để hoàn tác'}
+            disabled={!history.undo || busy !== null}
+            loading={busy === 'undo'}
+            className="disabled:!opacity-35"
+            onClick={() => runHistory('undo')}
+          />
+          <Fab
+            type="button"
+            variant="secondary"
+            icon="redo"
+            label={history.redo ? `Làm lại: ${history.redo.label}` : 'Không có thao tác để làm lại'}
+            disabled={!history.redo || busy !== null}
+            loading={busy === 'redo'}
+            className="disabled:!opacity-35"
+            onClick={() => runHistory('redo')}
+          />
+        </FabGroup>
       )}
     </PageShell>
   )
@@ -546,6 +601,7 @@ export function TimelinePageSkeleton() {
           )}
         />
       </GlassPanel>
+      <FabSkeleton count={2} bottom={raisedAbove(TRAY_PX)} />
     </PageShell>
   )
 }

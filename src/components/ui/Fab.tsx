@@ -11,6 +11,9 @@ const POSITION = {
   bottom: 'max(1.25rem, calc(env(safe-area-inset-bottom) + 0.75rem))',
 }
 
+// Nhóm FAB nằm ngay trên 1 khối cao `px` ở đáy trang (khối nằm sát lề dưới của PageShell, cách thêm 0.75rem)
+export const raisedAbove = (px: number) => `calc(max(1rem, env(safe-area-inset-bottom)) + ${px}px + 0.75rem)`
+
 // Kích thước nút; mọi FAB bằng nhau để xếp cạnh nhau thẳng hàng
 const FAB_SIZE = 'h-14 w-14'
 
@@ -18,7 +21,7 @@ const FAB_SIZE = 'h-14 w-14'
 export const FAB_SPACE = 'pb-20'
 
 // Icon nét trắng theo chức năng
-export type FabIcon = 'add' | 'delete' | 'save' | 'edit' | 'cancel' | 'logout' | 'locate' | 'bell' | 'send' | 'copy'
+export type FabIcon = 'add' | 'delete' | 'save' | 'edit' | 'cancel' | 'logout' | 'locate' | 'bell' | 'send' | 'copy' | 'undo' | 'redo'
 
 const ICON_PATHS: Record<FabIcon, string[]> = {
   add: ['M12 5v14', 'M5 12h14'],
@@ -35,6 +38,9 @@ const ICON_PATHS: Record<FabIcon, string[]> = {
   send: ['M21 3L10 14', 'M21 3l-7 18-4-7-7-4 18-7z'],
   // 2 tờ giấy chồng nhau: nhân bản (thêm hoạt động chồng lên thời gian của hoạt động hiện tại)
   copy: ['M9 9h10a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1V10a1 1 0 0 1 1-1z', 'M5 15H4.5A1.5 1.5 0 0 1 3 13.5V4.5A1.5 1.5 0 0 1 4.5 3h9A1.5 1.5 0 0 1 15 4.5V5'],
+  // Mũi tên vòng sang trái / phải: hoàn tác / làm lại
+  undo: ['M9 14L4 9l5-5', 'M4 9h10.5a5.5 5.5 0 0 1 0 11H11'],
+  redo: ['M15 14l5-5-5-5', 'M20 9H9.5a5.5 5.5 0 0 0 0 11H13'],
 }
 
 // Icon nét trắng đơn giản: dùng trên FAB và cho các nút hiện ra khi trượt thẻ (không dùng icon 3D, xem CLAUDE.md)
@@ -58,10 +64,11 @@ const VARIANTS: Record<Variant, string> = {
 
 const BASE = `${FAB_SIZE} flex shrink-0 items-center justify-center rounded-full shadow-lg transition hover:brightness-110 active:scale-90 disabled:opacity-60`
 
-// Nhóm FAB: nhiều nút thì xếp HÀNG NGANG, nút chính đặt cuối (nằm sát góc phải)
-export function FabGroup({ children }: { children: ReactNode }) {
+// Nhóm FAB: nhiều nút thì xếp HÀNG NGANG, nút chính đặt cuối (nằm sát góc phải).
+// `bottom`: đặt nhóm cao hơn góc dưới (vd nằm ngay trên khay thẻ của Time line để không che khay), dùng `raisedAbove`.
+export function FabGroup({ children, bottom }: { children: ReactNode; bottom?: string }) {
   return (
-    <div className="fixed z-40 flex flex-row items-center gap-3" style={POSITION}>
+    <div className="fixed z-40 flex flex-row items-center gap-3" style={bottom ? { ...POSITION, bottom } : POSITION}>
       {children}
     </div>
   )
@@ -142,9 +149,9 @@ export function SaveDeleteFabs({
 }
 
 // Skeleton của nhóm FAB: cùng vị trí, cùng số nút
-export function FabSkeleton({ count = 1 }: { count?: number }) {
+export function FabSkeleton({ count = 1, bottom }: { count?: number; bottom?: string }) {
   return (
-    <FabGroup>
+    <FabGroup bottom={bottom}>
       {Array.from({ length: count }, (_, i) => (
         <Skeleton key={i} className={`${FAB_SIZE} rounded-full`} />
       ))}
