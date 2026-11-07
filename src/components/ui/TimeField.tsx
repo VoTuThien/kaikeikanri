@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
 import { createPortal } from 'react-dom'
-import { Button } from './Button'
 import { Icon3D } from './Icon3D'
 import { FIELD_CLASS, FieldLabel } from './TextField'
 
@@ -145,11 +144,24 @@ function TimeDial({
     else setMinute(Math.round(deg / 6) % 60)
   }
 
+  // Nền "Space Glass" sáng / tối theo nửa ngày: 1–12 giờ (nút 🌙) = SÁNG, 13–24 giờ (nút ☀️) = TỐI.
+  // day: bầu trời đang trượt sang cảnh ngày (2,4s); light: màu chữ / kính đã đổi sang sáng (đổi giữa chừng lúc trượt)
+  const [day, setDay] = useState(() => half === 'am')
+  const [light, setLight] = useState(() => half === 'am')
+  const themeTimer = useRef(0)
+  useEffect(() => () => window.clearTimeout(themeTimer.current), [])
+
   // Nút ☀️ / 🌙 ở giữa: đổi nửa ngày, giờ đang chọn giữ vị trí trên mặt đồng hồ (vd 3 giờ <-> 15 giờ, 12 giờ <-> 24 giờ)
   function toggleHalf() {
     const next: Half = half === 'am' ? 'pm' : 'am'
     setHalf(next)
     setHour((h) => hourAt(h % 12, next))
+    // Trời trượt ngay; màu giao diện đổi giữa chừng (sang sáng sau 1,4s, sang tối sau 0,8s) như theme Space Glass
+    const toLight = next === 'am'
+    setDay(toLight)
+    window.clearTimeout(themeTimer.current)
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) setLight(toLight)
+    else themeTimer.current = window.setTimeout(() => setLight(toLight), toLight ? 1400 : 800)
   }
 
   function onDown(e: ReactPointerEvent<SVGSVGElement>) {
@@ -178,128 +190,197 @@ function TimeDial({
   const minDeg = minute * 6
   const hk = at(R_HOUR, hourDeg)
   const mk = at(R_MIN, minDeg)
+  // Vòng giờ (kính HTML + nét SVG) phóng to quanh tâm cùng lúc, cùng chuyển động
+  const zoomMotion = `${ZOOM_MS}ms cubic-bezier(0.22, 1.2, 0.36, 1)`
 
   return createPortal(
     <div data-no-swipe className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 p-3" onClick={onCancel}>
       <div
         role="dialog"
         aria-label={`Chọn ${label.toLowerCase()}`}
-        className="flex w-full max-w-md flex-col gap-3 rounded-3xl border border-white/20 bg-indigo-950/90 p-3 shadow-2xl backdrop-blur-xl"
+        className={`td-card w-full max-w-md ${day ? 'td-day' : ''} ${light ? 'td-light' : ''}`}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex h-8 items-center justify-between px-1">
-          <span className="truncate text-sm font-semibold text-white/80">{label}</span>
-          <span className="text-2xl leading-8 font-bold tabular-nums">
-            <span className={active === 'hour' ? 'text-fuchsia-300' : ''}>{pad(hour)}</span>:
-            <span className={active === 'minute' ? 'text-sky-300' : ''}>{pad(minute)}</span>
-          </span>
-        </div>
+        <SpaceSky />
 
-        {/* Vòng tròn: to nhất có thể (bề rộng khung, nhưng không cao quá màn hình) */}
-        <div className="relative mx-auto w-full" style={{ maxWidth: 'min(100%, calc(100vh - 13rem))' }}>
-        <svg
-          ref={svgRef}
-          viewBox="0 0 400 400"
-          className="block aspect-square w-full touch-none select-none"
-          onPointerDown={onDown}
-          onPointerMove={onMove}
-          onPointerUp={onUp}
-          onPointerCancel={onUp}
-          role="group"
-          aria-label="Kéo vòng trong để chọn giờ, vòng ngoài để chọn phút"
-        >
-          {/* Vòng NGOÀI (phút): nền, 60 điểm, số mỗi 5 phút, kim + nút kéo. Đang phóng to vòng giờ thì mờ đi */}
-          <g style={{ opacity: zoom ? 0.12 : 1, transition: `opacity ${ZOOM_MS}ms ease` }}>
-            <circle cx={C} cy={C} r={196} fill="rgba(56,189,248,0.08)" stroke="rgba(255,255,255,0.15)" />
-            {Array.from({ length: 60 }, (_, m) => {
-              const p = at(R_MIN, m * 6)
-              const big = m % 5 === 0
-              return <circle key={m} cx={p.x} cy={p.y} r={big ? 3.6 : 2} fill={big ? 'rgba(255,255,255,0.85)' : 'rgba(255,255,255,0.4)'} />
-            })}
-            {Array.from({ length: 12 }, (_, i) => {
-              const p = at(R_MIN_LABEL, i * 30)
-              return (
-                <text key={i} x={p.x} y={p.y} textAnchor="middle" dominantBaseline="central" fontSize="15" fontWeight="600" fill="rgba(186,230,253,0.9)">
-                  {pad(i * 5)}
+        <div className="td-content flex flex-col gap-3 p-3">
+          <div className="flex h-8 items-center justify-between px-1">
+            <span className="truncate text-sm font-semibold" style={{ color: 'var(--td-muted)' }}>
+              {label}
+            </span>
+            <span className="text-2xl leading-8 font-bold tabular-nums">
+              <span style={{ color: active === 'hour' ? 'var(--td-hour)' : undefined }}>{pad(hour)}</span>:
+              <span style={{ color: active === 'minute' ? 'var(--td-min)' : undefined }}>{pad(minute)}</span>
+            </span>
+          </div>
+
+          {/* Vòng tròn: to nhất có thể (bề rộng khung, nhưng không cao quá màn hình).
+              Lớp dưới là các tấm KÍNH (HTML, có backdrop-filter): vòng phút, vòng giờ; lớp trên là SVG (số, điểm, kim, nút kéo) */}
+          <div className="relative mx-auto w-full" style={{ maxWidth: 'min(100%, calc(100vh - 13rem))' }}>
+            {/* Kính vòng phút: r 196/400 */}
+            <div className="td-glass" style={{ inset: '1%', opacity: zoom ? 0.35 : 1, transition: `opacity ${ZOOM_MS}ms ease` }} />
+            {/* Kính vòng giờ: r SPLIT/400, phóng to cùng nét SVG của vòng giờ */}
+            <div
+              className="td-glass"
+              style={{
+                left: `${50 - SPLIT / 4}%`,
+                top: `${50 - SPLIT / 4}%`,
+                width: `${SPLIT / 2}%`,
+                height: `${SPLIT / 2}%`,
+                transform: `scale(${zoom ? ZOOM_SCALE : 1})`,
+                backgroundColor: zoom ? 'var(--td-zoom)' : undefined,
+                transition: `transform ${zoomMotion}, background-color ${ZOOM_MS}ms ease, border-color 1s ease, box-shadow 1s ease`,
+              }}
+            />
+            <svg
+              ref={svgRef}
+              viewBox="0 0 400 400"
+              className="relative block aspect-square w-full touch-none select-none"
+              onPointerDown={onDown}
+              onPointerMove={onMove}
+              onPointerUp={onUp}
+              onPointerCancel={onUp}
+              role="group"
+              aria-label="Kéo vòng trong để chọn giờ, vòng ngoài để chọn phút"
+            >
+              {/* Vòng NGOÀI (phút): 60 điểm, số mỗi 5 phút, kim + nút kéo. Đang phóng to vòng giờ thì mờ đi */}
+              <g style={{ opacity: zoom ? 0.12 : 1, transition: `opacity ${ZOOM_MS}ms ease` }}>
+                {Array.from({ length: 60 }, (_, m) => {
+                  const p = at(R_MIN, m * 6)
+                  const big = m % 5 === 0
+                  return <circle key={m} cx={p.x} cy={p.y} r={big ? 3.6 : 2} style={{ fill: big ? 'var(--td-dot)' : 'var(--td-dot2)' }} />
+                })}
+                {Array.from({ length: 12 }, (_, i) => {
+                  const p = at(R_MIN_LABEL, i * 30)
+                  return (
+                    <text key={i} x={p.x} y={p.y} textAnchor="middle" dominantBaseline="central" fontSize="15" fontWeight="600" style={{ fill: 'var(--td-min)' }}>
+                      {pad(i * 5)}
+                    </text>
+                  )
+                })}
+                <line x1={C} y1={C} x2={mk.x} y2={mk.y} stroke="#6ee7f9" strokeWidth={3} strokeLinecap="round" opacity={0.9} />
+                <circle cx={mk.x} cy={mk.y} r={active === 'minute' ? KNOB + 4 : KNOB} fill="#6ee7f9" stroke="#ffffff" strokeWidth={2.5} />
+                <text x={mk.x} y={mk.y} textAnchor="middle" dominantBaseline="central" fontSize="15" fontWeight="700" fill="#07101f">
+                  {pad(minute)}
                 </text>
-              )
-            })}
-            <line x1={C} y1={C} x2={mk.x} y2={mk.y} stroke="#38bdf8" strokeWidth={3} strokeLinecap="round" opacity={0.85} />
-            <circle cx={mk.x} cy={mk.y} r={active === 'minute' ? KNOB + 4 : KNOB} fill="#0ea5e9" stroke="#ffffff" strokeWidth={2.5} />
-            <text x={mk.x} y={mk.y} textAnchor="middle" dominantBaseline="central" fontSize="15" fontWeight="700" fill="#ffffff">
-              {pad(minute)}
-            </text>
-          </g>
+              </g>
 
-          {/* Vòng TRONG (giờ): nền, 12 điểm + 12 số của nửa ngày đang hiện, kim + nút kéo. Giữ / kéo ở đây 1 chút thì PHÓNG TO cả vòng quanh tâm
-              (scale quanh tâm bằng translate-scale-translate, không phụ thuộc transform-origin của SVG trên Safari cũ) */}
-          <g
-            style={{
-              transform: zoom ? `translate(${C}px, ${C}px) scale(${ZOOM_SCALE}) translate(${-C}px, ${-C}px)` : `translate(${C}px, ${C}px) scale(1) translate(${-C}px, ${-C}px)`,
-              transition: `transform ${ZOOM_MS}ms cubic-bezier(0.22, 1.2, 0.36, 1)`,
-            }}
-          >
-            <circle cx={C} cy={C} r={SPLIT} fill={zoom ? 'rgba(76,29,149,0.92)' : 'rgba(217,70,239,0.10)'} stroke="rgba(255,255,255,0.15)" style={{ transition: `fill ${ZOOM_MS}ms ease` }} />
-            {Array.from({ length: 12 }, (_, i) => {
-              const p = at(R_HOUR, i * 30)
-              return (
-                <text
-                  key={i}
-                  x={p.x}
-                  y={p.y}
-                  textAnchor="middle"
-                  dominantBaseline="central"
-                  fontSize={i % 3 === 0 ? 20 : 17}
-                  fontWeight={i % 3 === 0 ? 700 : 600}
-                  fill="rgba(245,208,254,0.9)"
-                >
-                  {hourLabel(i, half)}
+              {/* Vòng TRONG (giờ): 12 số của nửa ngày đang hiện, kim + nút kéo. Giữ / kéo ở đây 1 chút thì PHÓNG TO cả vòng quanh tâm
+                  (scale quanh tâm bằng translate-scale-translate, không phụ thuộc transform-origin của SVG trên Safari cũ) */}
+              <g
+                style={{
+                  transform: `translate(${C}px, ${C}px) scale(${zoom ? ZOOM_SCALE : 1}) translate(${-C}px, ${-C}px)`,
+                  transition: `transform ${zoomMotion}`,
+                }}
+              >
+                {Array.from({ length: 12 }, (_, i) => {
+                  const p = at(R_HOUR, i * 30)
+                  return (
+                    <text
+                      key={i}
+                      x={p.x}
+                      y={p.y}
+                      textAnchor="middle"
+                      dominantBaseline="central"
+                      fontSize={i % 3 === 0 ? 20 : 17}
+                      fontWeight={i % 3 === 0 ? 700 : 600}
+                      style={{ fill: 'var(--td-hour)' }}
+                    >
+                      {hourLabel(i, half)}
+                    </text>
+                  )
+                })}
+                <line x1={C} y1={C} x2={hk.x} y2={hk.y} stroke="#a78bfa" strokeWidth={4} strokeLinecap="round" opacity={0.95} />
+                <circle cx={hk.x} cy={hk.y} r={active === 'hour' ? KNOB + 5 : KNOB + 1} fill="#7c5ce0" stroke="#ffffff" strokeWidth={2.5} />
+                <text x={hk.x} y={hk.y} textAnchor="middle" dominantBaseline="central" fontSize="17" fontWeight="700" fill="#ffffff">
+                  {hourLabel(hour % 12, half)}
                 </text>
-              )
-            })}
-            <line x1={C} y1={C} x2={hk.x} y2={hk.y} stroke="#e879f9" strokeWidth={4} strokeLinecap="round" opacity={0.9} />
-            <circle cx={hk.x} cy={hk.y} r={active === 'hour' ? KNOB + 5 : KNOB + 1} fill="#c026d3" stroke="#ffffff" strokeWidth={2.5} />
-            <text x={hk.x} y={hk.y} textAnchor="middle" dominantBaseline="central" fontSize="17" fontWeight="700" fill="#ffffff">
-              {hourLabel(hour % 12, half)}
-            </text>
-          </g>
-        </svg>
+              </g>
+            </svg>
 
-        {/* Nút đổi nửa ngày nằm giữa mặt đồng hồ (phủ lên SVG): ☀️ = chạm để xem 1–12 giờ, 🌙 = chạm để xem 13–24 giờ.
-            Ẩn trong lúc phóng to vòng giờ */}
-        <button
-          type="button"
-          onClick={toggleHalf}
-          aria-label={half === 'pm' ? 'Đổi sang 1–12 giờ' : 'Đổi sang 13–24 giờ'}
-          className={`absolute top-1/2 left-1/2 flex aspect-square w-[22%] -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center gap-0.5 rounded-full border border-white/30 bg-indigo-900/80 shadow-lg shadow-black/40 transition active:scale-90 ${
-            zoom ? 'pointer-events-none opacity-0' : 'opacity-100'
-          }`}
-        >
-          <Icon3D emoji={half === 'pm' ? '☀️' : '🌙'} className="h-8 w-8" />
-          <span className="text-[10px] leading-3 font-semibold text-white/80">{half === 'pm' ? '1–12' : '13–24'}</span>
-        </button>
-        </div>
+            {/* Nút đổi nửa ngày (kính) giữa mặt đồng hồ: ☀️ = chạm để xem 1–12 giờ (chuyển cảnh sáng), 🌙 = chạm để xem 13–24 giờ (cảnh tối).
+                Ẩn trong lúc phóng to vòng giờ */}
+            <button
+              type="button"
+              onClick={toggleHalf}
+              aria-label={half === 'pm' ? 'Đổi sang 1–12 giờ (chế độ sáng)' : 'Đổi sang 13–24 giờ (chế độ tối)'}
+              className={`td-glass flex aspect-square w-[22%] flex-col items-center justify-center gap-0.5 active:scale-90 ${zoom ? 'pointer-events-none opacity-0' : 'opacity-100'}`}
+              style={{ left: '39%', top: '39%', transition: 'opacity 0.2s ease, transform 0.15s ease, background-color 1s ease, border-color 1s ease, box-shadow 1s ease' }}
+            >
+              <Icon3D emoji={half === 'pm' ? '☀️' : '🌙'} className="h-8 w-8" />
+              <span className="text-[10px] leading-3 font-semibold" style={{ color: 'var(--td-soft)' }}>
+                {half === 'pm' ? '1–12' : '13–24'}
+              </span>
+            </button>
+          </div>
 
-        <p className="text-center text-xs leading-4 text-white/60">
-          Kéo <span className="font-semibold text-fuchsia-300">vòng trong</span> để chọn giờ, <span className="font-semibold text-sky-300">vòng ngoài</span> để chọn phút
-        </p>
+          <p className="text-center text-xs leading-4" style={{ color: 'var(--td-muted)' }}>
+            Kéo{' '}
+            <span className="font-semibold" style={{ color: 'var(--td-hour)' }}>
+              vòng trong
+            </span>{' '}
+            để chọn giờ,{' '}
+            <span className="font-semibold" style={{ color: 'var(--td-min)' }}>
+              vòng ngoài
+            </span>{' '}
+            để chọn phút
+          </p>
 
-        {/* Các nút bằng nhau, cùng 1 hàng */}
-        <div className={`grid gap-2 ${clearable ? 'grid-cols-3' : 'grid-cols-2'}`}>
-          <Button type="button" variant="secondary" onClick={onCancel}>
-            Huỷ
-          </Button>
-          {clearable && (
-            <Button type="button" variant="secondary" onClick={() => onDone('')}>
-              Bỏ giờ
-            </Button>
-          )}
-          <Button type="button" onClick={() => onDone(`${pad(hour)}:${pad(minute)}`)}>
-            Xong
-          </Button>
+          {/* Các nút bằng nhau, cùng 1 hàng */}
+          <div className={`grid gap-2 ${clearable ? 'grid-cols-3' : 'grid-cols-2'}`}>
+            <button type="button" className="td-btn" onClick={onCancel}>
+              Huỷ
+            </button>
+            {clearable && (
+              <button type="button" className="td-btn" onClick={() => onDone('')}>
+                Bỏ giờ
+              </button>
+            )}
+            <button type="button" className="td-btn td-btn-primary" onClick={() => onDone(`${pad(hour)}:${pad(minute)}`)}>
+              Xong
+            </button>
+          </div>
         </div>
       </div>
     </div>,
     document.body,
+  )
+}
+
+// Bầu trời phía sau popup (theme Space Glass): lớp trời tối (tinh vân, đám màu mờ, sao, sao lớn, sao băng) + nền sáng + ngôi sao khổng lồ.
+// .td-day làm khung trời trượt sang cảnh ngày; xem timeDial.css
+function SpaceSky() {
+  return (
+    <div className="td-sky" aria-hidden="true">
+      <div className="td-pan">
+        <div className="td-neb-dark" />
+        <div className="td-starfield">
+          <div className="td-blob" style={{ width: 260, height: 260, top: '30%', left: '14%', background: 'rgba(124,58,237,.45)' }} />
+          <div className="td-blob" style={{ width: 230, height: 230, top: '58%', right: '10%', background: 'rgba(14,165,233,.4)' }} />
+          <div className="td-blob" style={{ width: 190, height: 190, top: '4%', left: '40%', background: 'rgba(236,72,153,.28)' }} />
+          <div className="td-stars td-s1" />
+          <div className="td-stars td-s2" />
+          <span className="td-bigstar" style={{ top: '9%', left: '18%' }} />
+          <span className="td-bigstar" style={{ top: '40%', left: '58%', animationDelay: '1.2s' }} />
+          <span className="td-bigstar" style={{ top: '84%', left: '30%', animationDelay: '2.1s' }} />
+          <span className="td-meteor" style={{ top: '6%', left: '55%', animationDelay: '1s' }} />
+          <span className="td-meteor" style={{ top: '2%', left: '30%', animationDuration: '13s', animationDelay: '5s' }} />
+          <span className="td-meteor" style={{ top: '30%', left: '64%', animationDuration: '11s', animationDelay: '7.5s' }} />
+        </div>
+      </div>
+      <div className="td-neb-light" />
+      <div className="td-pan">
+        <div className="td-orb">
+          <span className="td-glowwrap">
+            <span className="td-spec td-glow" />
+            <span className="td-spec td-glow2" />
+          </span>
+          <span className="td-sheen" />
+          <span className="td-spec td-inner" />
+          <span className="td-spec td-rim" />
+          <span className="td-core" />
+        </div>
+      </div>
+    </div>
   )
 }

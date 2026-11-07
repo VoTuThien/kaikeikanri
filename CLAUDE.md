@@ -494,4 +494,9 @@ Dữ liệu Firestore (xem `src/pages/note/data/api.ts`), thuộc gia đình đa
   góc trên hiện giờ đang chọn. **Giữ / kéo ở vòng giờ quá ~0,18 giây (`ZOOM_DELAY`) thì vòng giờ PHÓNG TO** (`ZOOM_SCALE` 1,55, gần kín vòng tròn,
   animation hơi nảy `ZOOM_MS`), vòng phút mờ đi; nhả tay thì thu về. **Chạm nhanh rồi nhả = chọn luôn, không phóng to.** Nút **Huỷ / Xong** (bằng nhau, 1 hàng); ô không bắt buộc truyền **`clearable`** để có thêm **"Bỏ giờ"**. Chưa có giờ thì mở ở giờ hiện tại.
 - Popup vẽ bằng `createPortal` ra `document.body`, có `data-no-swipe`, SVG `touch-none` + pointer capture để kéo không cuộn trang.
+- **Giao diện popup theo theme "Space Glass"** (`src/components/ui/timeDial.css`, import trong `index.css` với `layer(components)` — import riêng ở component
+  sẽ bị CSS reset của Tailwind đè vì plugin cascade-layers tăng độ ưu tiên các lớp Tailwind): nền là bầu trời trong khung popup, các vòng (phút, giờ, nút giữa)
+  là kính mờ HTML (`.td-glass`) nằm dưới SVG. **Đang hiện 1–12 giờ (nút 🌙) = chế độ SÁNG** (nền sáng + ngôi sao khổng lồ ở mép phải),
+  **13–24 giờ (nút ☀️) = chế độ TỐI** (trời sao, tinh vân, sao băng). Đổi nửa ngày: `.td-day` trượt khung trời 2,4s, `.td-light` đổi màu giữa chừng
+  (sang sáng sau 1,4s, sang tối sau 0,8s). Màu chữ / số lấy từ biến `--td-*`.
 - Đang dùng: Time line (Bắt đầu / Kết thúc), form thông tin con (Giờ sinh, `clearable`).

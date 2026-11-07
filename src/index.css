@@ -1,4 +1,7 @@
 @import 'tailwindcss' theme(inline);
+/* Popup chọn giờ (theme Space Glass). Phải nằm trong lớp "components" CÙNG file với Tailwind: plugin cascade-layers (cho iOS cũ)
+   tăng độ ưu tiên của các lớp của Tailwind, nên CSS import riêng ở component sẽ bị CSS reset của Tailwind đè (nút mất bo tròn, mất viền) */
+@import './components/ui/timeDial.css' layer(components);
 
 @theme {
   /* iPhone/Mac dùng font SF của Apple; nơi khác dùng Be Vietnam Pro để dấu tiếng Việt hiển thị đúng */
