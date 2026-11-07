@@ -25,6 +25,11 @@ const R_HOUR = 100 // điểm giờ
 const R_HOUR_LABEL = 76 // số giờ
 const SPLIT = 124 // chạm gần tâm hơn = vòng giờ, xa hơn = vòng phút
 const KNOB = 19
+// Phóng to vòng giờ khi giữ / kéo: chờ ZOOM_DELAY (chạm nhanh để chọn luôn thì không phóng to), rồi to lên ZOOM_SCALE lần
+// (nền vòng giờ 124 * 1.55 ≈ 192 = gần kín vòng tròn) trong ZOOM_MS, hơi nảy; nhả tay thì thu về
+const ZOOM_DELAY = 180
+const ZOOM_SCALE = 1.55
+const ZOOM_MS = 220
 
 const at = (r: number, deg: number) => {
   const a = ((deg - 90) * Math.PI) / 180
@@ -98,8 +103,11 @@ function TimeDial({
   const [hour, setHour] = useState(() => parse(value)?.[0] ?? new Date().getHours())
   const [minute, setMinute] = useState(() => parse(value)?.[1] ?? new Date().getMinutes())
   const [active, setActive] = useState<'hour' | 'minute' | null>(null)
+  // Đang giữ / kéo ở vòng giờ đủ lâu: phóng to vòng giờ cho dễ kéo (chạm nhanh để chọn luôn thì không phóng to)
+  const [zoom, setZoom] = useState(false)
   const svgRef = useRef<SVGSVGElement>(null)
   const ring = useRef<'hour' | 'minute' | null>(null)
+  const zoomTimer = useRef(0)
 
   // Esc để huỷ
   useEffect(() => {
@@ -107,6 +115,7 @@ function TimeDial({
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [onCancel])
+  useEffect(() => () => window.clearTimeout(zoomTimer.current), [])
 
   // Vị trí ngón tay -> (khoảng cách tới tâm, góc 0..360 tính từ trên cùng theo chiều kim đồng hồ) trong toạ độ hình vẽ
   function polar(e: ReactPointerEvent) {
@@ -128,13 +137,20 @@ function TimeDial({
     setActive(ring.current)
     apply(ring.current, deg)
     e.currentTarget.setPointerCapture?.(e.pointerId)
+    // Vòng giờ: vẫn còn giữ / kéo sau ZOOM_DELAY thì phóng to (chạm rồi nhả ngay = chọn luôn, không phóng to)
+    window.clearTimeout(zoomTimer.current)
+    if (ring.current === 'hour') {
+      zoomTimer.current = window.setTimeout(() => ring.current === 'hour' && setZoom(true), ZOOM_DELAY)
+    }
   }
   function onMove(e: ReactPointerEvent<SVGSVGElement>) {
     if (ring.current) apply(ring.current, polar(e).deg)
   }
   function onUp() {
+    window.clearTimeout(zoomTimer.current)
     ring.current = null
     setActive(null)
+    setZoom(false)
   }
 
   const hourDeg = hour * 15
@@ -171,51 +187,66 @@ function TimeDial({
           role="group"
           aria-label="Kéo vòng trong để chọn giờ, vòng ngoài để chọn phút"
         >
-          {/* Nền 2 vùng chạm */}
-          <circle cx={C} cy={C} r={196} fill="rgba(56,189,248,0.08)" stroke="rgba(255,255,255,0.15)" />
-          <circle cx={C} cy={C} r={SPLIT} fill="rgba(217,70,239,0.10)" stroke="rgba(255,255,255,0.15)" />
+          {/* Vòng NGOÀI (phút): nền, 60 điểm, số mỗi 5 phút, kim + nút kéo. Đang phóng to vòng giờ thì mờ đi */}
+          <g style={{ opacity: zoom ? 0.12 : 1, transition: `opacity ${ZOOM_MS}ms ease` }}>
+            <circle cx={C} cy={C} r={196} fill="rgba(56,189,248,0.08)" stroke="rgba(255,255,255,0.15)" />
+            {Array.from({ length: 60 }, (_, m) => {
+              const p = at(R_MIN, m * 6)
+              const big = m % 5 === 0
+              return <circle key={m} cx={p.x} cy={p.y} r={big ? 3.6 : 2} fill={big ? 'rgba(255,255,255,0.85)' : 'rgba(255,255,255,0.4)'} />
+            })}
+            {Array.from({ length: 12 }, (_, i) => {
+              const p = at(R_MIN_LABEL, i * 30)
+              return (
+                <text key={i} x={p.x} y={p.y} textAnchor="middle" dominantBaseline="central" fontSize="15" fontWeight="600" fill="rgba(186,230,253,0.9)">
+                  {pad(i * 5)}
+                </text>
+              )
+            })}
+            <line x1={C} y1={C} x2={mk.x} y2={mk.y} stroke="#38bdf8" strokeWidth={3} strokeLinecap="round" opacity={0.85} />
+            <circle cx={mk.x} cy={mk.y} r={active === 'minute' ? KNOB + 4 : KNOB} fill="#0ea5e9" stroke="#ffffff" strokeWidth={2.5} />
+            <text x={mk.x} y={mk.y} textAnchor="middle" dominantBaseline="central" fontSize="15" fontWeight="700" fill="#ffffff">
+              {pad(minute)}
+            </text>
+          </g>
 
-          {/* Vòng NGOÀI: 60 điểm phút, số mỗi 5 phút */}
-          {Array.from({ length: 60 }, (_, m) => {
-            const p = at(R_MIN, m * 6)
-            const big = m % 5 === 0
-            return <circle key={m} cx={p.x} cy={p.y} r={big ? 3.6 : 2} fill={big ? 'rgba(255,255,255,0.85)' : 'rgba(255,255,255,0.4)'} />
-          })}
-          {Array.from({ length: 12 }, (_, i) => {
-            const p = at(R_MIN_LABEL, i * 30)
-            return (
-              <text key={i} x={p.x} y={p.y} textAnchor="middle" dominantBaseline="central" fontSize="15" fontWeight="600" fill="rgba(186,230,253,0.9)">
-                {pad(i * 5)}
-              </text>
-            )
-          })}
-
-          {/* Vòng TRONG: 24 điểm giờ, đủ 24 số */}
-          {Array.from({ length: 24 }, (_, h) => {
-            const p = at(R_HOUR, h * 15)
-            return <circle key={h} cx={p.x} cy={p.y} r={2.6} fill="rgba(255,255,255,0.6)" />
-          })}
-          {Array.from({ length: 24 }, (_, h) => {
-            const p = at(R_HOUR_LABEL, h * 15)
-            return (
-              <text key={h} x={p.x} y={p.y} textAnchor="middle" dominantBaseline="central" fontSize={h % 6 === 0 ? 15 : 12} fontWeight={h % 6 === 0 ? 700 : 500} fill="rgba(245,208,254,0.9)">
-                {h}
-              </text>
-            )
-          })}
-
-          {/* Kim + nút kéo của phút và giờ */}
-          <line x1={C} y1={C} x2={mk.x} y2={mk.y} stroke="#38bdf8" strokeWidth={3} strokeLinecap="round" opacity={0.85} />
-          <line x1={C} y1={C} x2={hk.x} y2={hk.y} stroke="#e879f9" strokeWidth={4} strokeLinecap="round" opacity={0.9} />
+          {/* Vòng TRONG (giờ): nền, 24 điểm, đủ 24 số, kim + nút kéo. Giữ / kéo ở đây 1 chút thì PHÓNG TO cả vòng quanh tâm
+              (scale quanh tâm bằng translate-scale-translate, không phụ thuộc transform-origin của SVG trên Safari cũ) */}
+          <g
+            style={{
+              transform: zoom ? `translate(${C}px, ${C}px) scale(${ZOOM_SCALE}) translate(${-C}px, ${-C}px)` : `translate(${C}px, ${C}px) scale(1) translate(${-C}px, ${-C}px)`,
+              transition: `transform ${ZOOM_MS}ms cubic-bezier(0.22, 1.2, 0.36, 1)`,
+            }}
+          >
+            <circle cx={C} cy={C} r={SPLIT} fill={zoom ? 'rgba(76,29,149,0.92)' : 'rgba(217,70,239,0.10)'} stroke="rgba(255,255,255,0.15)" style={{ transition: `fill ${ZOOM_MS}ms ease` }} />
+            {Array.from({ length: 24 }, (_, h) => {
+              const p = at(R_HOUR, h * 15)
+              return <circle key={h} cx={p.x} cy={p.y} r={2.6} fill="rgba(255,255,255,0.6)" />
+            })}
+            {Array.from({ length: 24 }, (_, h) => {
+              const p = at(R_HOUR_LABEL, h * 15)
+              return (
+                <text
+                  key={h}
+                  x={p.x}
+                  y={p.y}
+                  textAnchor="middle"
+                  dominantBaseline="central"
+                  fontSize={h % 6 === 0 ? 15 : 12}
+                  fontWeight={h % 6 === 0 ? 700 : 500}
+                  fill={h === hour ? '#ffffff' : 'rgba(245,208,254,0.9)'}
+                >
+                  {h}
+                </text>
+              )
+            })}
+            <line x1={C} y1={C} x2={hk.x} y2={hk.y} stroke="#e879f9" strokeWidth={4} strokeLinecap="round" opacity={0.9} />
+            <circle cx={hk.x} cy={hk.y} r={active === 'hour' ? KNOB + 4 : KNOB} fill="#c026d3" stroke="#ffffff" strokeWidth={2.5} />
+            <text x={hk.x} y={hk.y} textAnchor="middle" dominantBaseline="central" fontSize="15" fontWeight="700" fill="#ffffff">
+              {pad(hour)}
+            </text>
+          </g>
           <circle cx={C} cy={C} r={6} fill="#ffffff" />
-          <circle cx={mk.x} cy={mk.y} r={active === 'minute' ? KNOB + 4 : KNOB} fill="#0ea5e9" stroke="#ffffff" strokeWidth={2.5} />
-          <text x={mk.x} y={mk.y} textAnchor="middle" dominantBaseline="central" fontSize="15" fontWeight="700" fill="#ffffff">
-            {pad(minute)}
-          </text>
-          <circle cx={hk.x} cy={hk.y} r={active === 'hour' ? KNOB + 4 : KNOB} fill="#c026d3" stroke="#ffffff" strokeWidth={2.5} />
-          <text x={hk.x} y={hk.y} textAnchor="middle" dominantBaseline="central" fontSize="15" fontWeight="700" fill="#ffffff">
-            {pad(hour)}
-          </text>
         </svg>
 
         <p className="text-center text-xs leading-4 text-white/60">

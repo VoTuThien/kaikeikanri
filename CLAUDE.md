@@ -487,6 +487,7 @@ Dữ liệu Firestore (xem `src/pages/note/data/api.ts`), thuộc gia đình đa
 - Ô hiển thị như ô nhập thường ("HH:MM" ở giữa, cao bằng `TextField` nên skeleton dùng `TextFieldSkeleton`); **chạm vào mở popup VÒNG TRÒN** to nhất có thể
   (gần hết bề ngang, không cao quá màn hình): **vòng TRONG 24 điểm = 24 giờ, vòng NGOÀI 60 điểm = 60 phút** (0 ở trên cùng, theo chiều kim đồng hồ).
   Chạm / kéo vùng vòng trong để chọn giờ, vùng vòng ngoài để chọn phút (bắt đầu ở vòng nào thì cả lần kéo chỉnh vòng đó); giữa tâm có kim + nút kéo hiện số,
-  góc trên hiện giờ đang chọn. Nút **Huỷ / Xong** (bằng nhau, 1 hàng); ô không bắt buộc truyền **`clearable`** để có thêm **"Bỏ giờ"**. Chưa có giờ thì mở ở giờ hiện tại.
+  góc trên hiện giờ đang chọn. **Giữ / kéo ở vòng giờ quá ~0,18 giây (`ZOOM_DELAY`) thì vòng giờ PHÓNG TO** (`ZOOM_SCALE` 1,55, gần kín vòng tròn,
+  animation hơi nảy `ZOOM_MS`), vòng phút mờ đi; nhả tay thì thu về. **Chạm nhanh rồi nhả = chọn luôn, không phóng to.** Nút **Huỷ / Xong** (bằng nhau, 1 hàng); ô không bắt buộc truyền **`clearable`** để có thêm **"Bỏ giờ"**. Chưa có giờ thì mở ở giờ hiện tại.
 - Popup vẽ bằng `createPortal` ra `document.body`, có `data-no-swipe`, SVG `touch-none` + pointer capture để kéo không cuộn trang.
 - Đang dùng: Time line (Bắt đầu / Kết thúc), form thông tin con (Giờ sinh, `clearable`).
