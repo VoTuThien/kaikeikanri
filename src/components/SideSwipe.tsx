@@ -14,6 +14,13 @@ import { getCachedLauncher, loadHomeScreen, markShortcutEntry, saveHomeScreen, s
 // (<Routes location=...>) nằm ngay ngoài mép, rồi dịch cả 2 lớp theo ngón tay. Hai lớp có key = đường dẫn, nên khi chuyển xong
 // lớp bên cạnh trở thành lớp chính mà không phải vẽ lại từ đầu (không nháy skeleton).
 // Nút nổi (position: fixed) trong lớp đang dịch sẽ đi theo lớp đó (transform làm fixed bám theo lớp), đúng như mong muốn.
+//
+// LỊCH SỬ TRANG (cho cử chỉ "vuốt từ mép màn hình để quay lại / tiến tới" của iOS, nhất là iOS 15 — cử chỉ này đi theo
+// lịch sử trình duyệt chứ không theo code của app): màn hình 2 bên mở từ màn hình chính (vuốt, hoặc tự mở lại lúc mở app)
+// luôn được ĐẶT NGAY SAU "/" trong lịch sử (state.fromHome), và vuốt từ màn hình đó về màn hình chính thì LÙI 1 bước (navigate(-1))
+// thay vì thêm "/" mới. Nhờ vậy cử chỉ quay lại của iOS ở màn hình 2 bên cũng về đúng màn hình chính, không về trang cũ
+// (vd menu của app con) còn sót trong lịch sử.
+// iOS giành cử chỉ (touchcancel) thì chỉ trả màn hình về chỗ, không tự chuyển trang (tránh chuyển 2 lần).
 
 const IGNORE = 'canvas, input, textarea, select, [data-no-swipe]'
 const DURATION = 280 // ms, thời gian trượt nốt sau khi thả tay
@@ -27,7 +34,9 @@ type Peer = { to: string; dir: 1 | -1 }
 export function SideSwipe({ render }: { render: (location?: string) => ReactNode }) {
   const { user } = useAuth()
   const { left, right } = useShortcuts(user?.uid)
-  const { pathname } = useLocation()
+  const { pathname, state } = useLocation()
+  // Màn hình hiện tại được mở từ "/" (ngay sau "/" trong lịch sử): về màn hình chính thì lùi lại 1 bước
+  const fromHome = !!(state as { fromHome?: boolean } | null)?.fromHome
   const navigate = useNavigate()
   const boxRef = useRef<HTMLDivElement>(null)
   const mainRef = useRef<HTMLDivElement>(null)
@@ -74,7 +83,8 @@ export function SideSwipe({ render }: { render: (location?: string) => ReactNode
     const to = sidePath(saved, cached[saved])
     restoring.current = to
     markShortcutEntry(to) // nút quay lại (‹) trên màn hình đó về thẳng màn hình chính
-    navigate(to, { replace: true })
+    // Giữ "/" trong lịch sử, mở màn hình đã lưu NGAY SAU nó: cử chỉ quay lại của iOS ở đó về đúng màn hình chính
+    navigate(to, { state: { fromHome: true } })
   }, [uid, pathname, navigate])
   useEffect(() => {
     if (!uid || restoring.current === undefined) return
@@ -90,8 +100,13 @@ export function SideSwipe({ render }: { render: (location?: string) => ReactNode
   }, [uid, pathname, leftPath, rightPath])
 
   // Trình xử lý chạm gắn 1 lần, luôn đọc giá trị mới nhất qua ref
-  const latest = useRef({ targetOf, navigate, setPeer, resetLayers })
-  latest.current = { targetOf, navigate, setPeer, resetLayers }
+  // Chuyển sang màn hình `to` sau khi vuốt: từ "/" sang màn hình 2 bên thì đánh dấu fromHome; từ màn hình 2 bên (mở từ "/") về "/" thì lùi lại
+  function go(to: string) {
+    if (to === '/' && fromHome && window.history.length > 1) navigate(-1)
+    else navigate(to, pathname === '/' ? { state: { fromHome: true } } : undefined)
+  }
+  const latest = useRef({ targetOf, go, setPeer, resetLayers })
+  latest.current = { targetOf, go, setPeer, resetLayers }
 
   useEffect(() => {
     const box = boxRef.current
@@ -147,7 +162,8 @@ export function SideSwipe({ render }: { render: (location?: string) => ReactNode
       place(g.dx, to ? g.peer : null)
     }
 
-    function onEnd() {
+    // cancelled: iOS giành cử chỉ (vd vuốt từ mép để quay lại trang trước) -> chỉ trả màn hình về chỗ, không chuyển trang
+    function onEnd(cancelled = false) {
       const cur = g
       g = null
       if (!cur || cur.axis !== 'x') return
@@ -155,19 +171,19 @@ export function SideSwipe({ render }: { render: (location?: string) => ReactNode
       const p = cur.peer
       const valid = p && Math.sign(cur.dx) === p.dir
       const fling = Math.abs(cur.v) > FLING_SPEED && Math.sign(cur.v) === Math.sign(cur.dx)
-      const commit = valid && (Math.abs(cur.dx) > w * COMMIT_RATIO || fling)
+      const commit = !cancelled && valid && (Math.abs(cur.dx) > w * COMMIT_RATIO || fling)
 
       animating = true
       const transition = `transform ${DURATION}ms ${EASE}`
       place(commit ? p.dir * w : 0, valid ? p : null, transition)
       window.setTimeout(() => {
         animating = false
-        const { navigate, setPeer, resetLayers } = latest.current
+        const { go, setPeer, resetLayers } = latest.current
         if (commit) {
           // Vào màn hình được thiết đặt: nút quay lại (‹) trên màn hình đó cũng về thẳng màn hình chính
           if (p.to !== '/') markShortcutEntry(p.to)
           // Đổi URL: lớp bên cạnh trở thành lớp chính (dọn lớp cũ ở useLayoutEffect bên dưới, sau khi vẽ xong)
-          navigate(p.to)
+          go(p.to)
         } else {
           setPeer(null)
           resetLayers()
@@ -175,15 +191,17 @@ export function SideSwipe({ render }: { render: (location?: string) => ReactNode
       }, DURATION)
     }
 
+    const onTouchEnd = () => onEnd(false)
+    const onTouchCancel = () => onEnd(true)
     box.addEventListener('touchstart', onStart, { passive: true })
     box.addEventListener('touchmove', onMove, { passive: false })
-    box.addEventListener('touchend', onEnd)
-    box.addEventListener('touchcancel', onEnd)
+    box.addEventListener('touchend', onTouchEnd)
+    box.addEventListener('touchcancel', onTouchCancel)
     return () => {
       box.removeEventListener('touchstart', onStart)
       box.removeEventListener('touchmove', onMove)
-      box.removeEventListener('touchend', onEnd)
-      box.removeEventListener('touchcancel', onEnd)
+      box.removeEventListener('touchend', onTouchEnd)
+      box.removeEventListener('touchcancel', onTouchCancel)
     }
   }, [])
 

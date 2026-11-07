@@ -35,6 +35,10 @@ mỗi icon là một app con (Quỹ, sau này thêm các app quản lý khác). 
   **Nhớ người dùng đang ở màn hình giữa / bên trái / bên phải** (localStorage `home-screen:{uid}`, `loadHomeScreen` / `saveHomeScreen`):
   mở lại app ở `/` thì tự chuyển tới màn hình đã lưu; vào các trang khác (app con…) thì giữ nguyên lựa chọn. Vuốt bắt đầu trên canvas 3D, ô nhập, hoặc phần tử có `data-no-swipe` thì bỏ qua
   (vd khay kéo thả của bản đồ mini, chế độ gỡ phím tắt) — **thêm `data-no-swipe` cho vùng kéo ngang mới**.
+  **Lịch sử trang khớp với cử chỉ vuốt từ mép của iOS** (quay lại / tiến tới theo lịch sử trình duyệt, không theo code app): màn hình 2 bên mở từ "/"
+  (vuốt, hoặc tự mở lại lúc mở app — **push, không replace**) mang `state.fromHome` và nằm ngay sau "/" trong lịch sử; vuốt từ đó về màn hình chính thì
+  `navigate(-1)` (lùi về đúng "/"), nên cử chỉ quay lại của iOS cũng về màn hình chính chứ không về trang cũ (vd menu app con). `touchcancel`
+  (iOS giành cử chỉ) thì chỉ trả màn hình về chỗ, không chuyển trang.
   **Icon các app con không gỡ được.** Phím tắt là dữ liệu **riêng từng tài khoản** (`users/{uid}/settings/launcher` `{ shortcuts: string[], left, right }`,
   `src/lib/shortcuts.ts`), không ảnh hưởng màn hình chính của người khác. Code: `src/components/HomeIcon.tsx`, `src/pages/ShortcutPickerPage.tsx`.
   - **QUY ƯỚC: thêm màn hình mới vào app con (mở trực tiếp từ ô chức năng ở trang chính của app con) thì phải thêm dữ liệu phím tắt của màn hình đó (icon + tên màn hình) vào `SHORTCUTS` trong `src/shortcuts.ts`**,
