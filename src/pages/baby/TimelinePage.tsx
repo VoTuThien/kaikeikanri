@@ -512,7 +512,7 @@ function EntrySheet({ sheet, day, entries, onClose }: { sheet: Sheet; day: Date;
           {/* Bắt đầu, số phút, kết thúc: 3 ô bằng nhau, sửa ô nào thì ô còn lại tự cập nhật.
               Chưa hoàn thành thì khoá ô số phút / kết thúc (không cần nhập) */}
           <div className="grid grid-cols-3 gap-2">
-            {/* Ô giờ tự làm bằng <select> (TimeField): <input type="time"> trên iOS 15.1 có lúc không bật popup chọn giờ */}
+            {/* Ô giờ dùng chung TimeField: chạm mở vòng tròn chọn giờ (vòng trong) / phút (vòng ngoài) */}
             <TimeField id="start" label="Bắt đầu" value={startText} onChange={changeStart} />
             <MinutesField
               id="minutes"

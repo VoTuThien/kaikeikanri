@@ -10,6 +10,7 @@ import { Segmented, SegmentedSkeleton } from '../../components/ui/Segmented'
 import { Skeleton } from '../../components/ui/Skeleton'
 import { FieldLabel, TextField, TextFieldSkeleton } from '../../components/ui/TextField'
 import { SIZE } from '../../components/ui/sizes'
+import { TimeField } from '../../components/ui/TimeField'
 import { fileToSquareDataUrl } from '../../lib/image'
 import { birthLabel, ChildAvatar } from './components'
 import { createChild, deleteChild, updateChild } from './data/api'
@@ -163,13 +164,8 @@ function ChildForm({ child }: { child?: Child }) {
 
           <div className={ROW_2}>
             <TextField id="birthDate" label="Ngày sinh" type="date" value={birthDate} onChange={(e) => setBirthDate(e.target.value)} />
-            <TextField
-              id="birthTime"
-              label="Giờ sinh (nếu có)"
-              type="time"
-              value={birthTime}
-              onChange={(e) => setBirthTime(e.target.value)}
-            />
+            {/* Ô giờ dùng chung (vòng tròn chọn giờ / phút); giờ sinh không bắt buộc nên có "Bỏ giờ" */}
+            <TimeField id="birthTime" label="Giờ sinh (nếu có)" clearable value={birthTime} onChange={setBirthTime} />
           </div>
 
           <div className="space-y-1.5">

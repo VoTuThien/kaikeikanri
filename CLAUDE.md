@@ -261,7 +261,7 @@ Ghi lại hoạt động hằng ngày của bé theo time line. **Mỗi gia đì
   **trước / sau** khi ghi (hoạt động mới = null trước đó) rồi đẩy vào lịch sử (`data/history.ts`, trong bộ nhớ, riêng từng gia đình, tối đa 30 bước, chỉ ghi khi có mạng).
   `applyHistory` (1 transaction) đưa các hoạt động về đúng ảnh chụp trước (hoàn tác) / sau (làm lại); **hoạt động đã bị thay đổi sau bước đó** (người khác sửa,
   tự kết thúc lúc 24:00…) thì báo lỗi, không ghi gì và bỏ bước đó. Hoàn tác / làm lại cũng cập nhật thông báo time line của con.
-  **Ô giờ bắt đầu / kết thúc dùng `TimeField`** (`src/components/ui/TimeField.tsx`: 2 `<select>` trong suốt phủ nửa giờ / nửa phút), **không dùng `<input type="time">`**
+  **Ô giờ bắt đầu / kết thúc dùng `TimeField`** (vòng tròn chọn giờ, xem quy ước mục 17), **không dùng `<input type="time">`**
   (trên iOS 15.1 ô giờ gốc có lúc focus mà không bật popup chọn giờ). Kết thúc trùm qua hết hoạt động liền sau thì báo lỗi;
   khi nhập trong khung nhập thì time line nối liền, không tự tạo chồng lên nhau.
   Ô check **"Đã hoàn thành"**: có check mới nhập số phút / kết thúc; không check = hoạt động **đang diễn ra / sắp bắt đầu** (lưu `minutes` = `end` = null),
@@ -480,3 +480,13 @@ Dữ liệu Firestore (xem `src/pages/note/data/api.ts`), thuộc gia đình đa
   (`overlap` mặc định bằng `radius`, khung ngoài bo tròn khớp thẻ) để 2 góc bo bên phải của thẻ cũng có màu nút.
 - Đang áp dụng: Nhóm quỹ (`radius={16}`), các danh sách thẻ của app Ghi chú (`EditableList`, `NoteList`, `radius={LIST_CARD_RADIUS}`).
 - Không áp dụng cho thẻ nền đặc (vd Tra cứu của app Quỹ, ngoại lệ ở mục 15).
+
+### 17. Ô nhập giờ
+- **Mọi ô nhập giờ phải dùng `TimeField`** (`src/components/ui/TimeField.tsx`), **không dùng `<input type="time">`** (iOS 15.1 có lúc không bật popup chọn giờ).
+  Giá trị vào / ra "HH:MM" ("" = chưa chọn), giống `<input type="time">`.
+- Ô hiển thị như ô nhập thường ("HH:MM" ở giữa, cao bằng `TextField` nên skeleton dùng `TextFieldSkeleton`); **chạm vào mở popup VÒNG TRÒN** to nhất có thể
+  (gần hết bề ngang, không cao quá màn hình): **vòng TRONG 24 điểm = 24 giờ, vòng NGOÀI 60 điểm = 60 phút** (0 ở trên cùng, theo chiều kim đồng hồ).
+  Chạm / kéo vùng vòng trong để chọn giờ, vùng vòng ngoài để chọn phút (bắt đầu ở vòng nào thì cả lần kéo chỉnh vòng đó); giữa tâm có kim + nút kéo hiện số,
+  góc trên hiện giờ đang chọn. Nút **Huỷ / Xong** (bằng nhau, 1 hàng); ô không bắt buộc truyền **`clearable`** để có thêm **"Bỏ giờ"**. Chưa có giờ thì mở ở giờ hiện tại.
+- Popup vẽ bằng `createPortal` ra `document.body`, có `data-no-swipe`, SVG `touch-none` + pointer capture để kéo không cuộn trang.
+- Đang dùng: Time line (Bắt đầu / Kết thúc), form thông tin con (Giờ sinh, `clearable`).
