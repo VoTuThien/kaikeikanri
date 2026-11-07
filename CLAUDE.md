@@ -283,6 +283,9 @@ Code: `src/pages/note/` (`components.tsx`: `NoteLayout`, `MemberPicker`, `Editab
   **ghi chú của giao dịch = "Tên ghi chú: nội dung thẻ"** (`itemMemo`, vd "Đi chợ: Mua cà chua"). `addItemMoney` (1 transaction): ghi giao dịch ở app Quỹ
   (có `noteId`, `noteItemId`), cập nhật số dư (rút quá số dư thì báo lỗi), thêm lần nạp / rút vào `money` của thẻ. Dòng phụ của thẻ hiện tổng đã nạp / rút,
   ô đang mở liệt kê từng lần. Danh sách quỹ dùng `useFundList` (chung nhớ tạm với app Quỹ).
+  **Người nhận thêm được nội dung mới** ngay ở đây (vd phát sinh khoản nạp / rút chưa có trong ghi chú): FAB [+] (có thẻ đang mở nạp / rút thì
+  FAB là [+] [lưu]) → thẻ nhập mới ở cuối danh sách, FAB thành [huỷ] [lưu]; lưu bằng `addNoteItem` (transaction: thêm cuối `items`, trùng nội dung thì báo lỗi,
+  cập nhật thông báo "Hoàn thành" → "Chưa xong", nội dung mới lưu vào Thẻ ghi chú) rồi **mở luôn ô nạp / rút của thẻ vừa thêm**.
   **Bước 1 có 2 tab** (`Segmented` dưới tiêu đề, lưu trên URL `?tab=sent`): **"Gửi cho mình"** (như trên) và **"Mình đã gửi"** = ghi chú mình gửi cho
   **thành viên khác** (`sent` trong `NoteContext`, `useNotesFrom`: `fromUid` = mình, bỏ ghi chú tự ghi; mới nhất trước), danh sách `SentNoteList`
   **chỉ xem** (avatar người nhận, "Gửi cho …", số thẻ đã xong; không kéo / không xoá — sửa / xoá ở Tạo ghi chú). Chạm mở `/note/inbox/:id?tab=sent`:

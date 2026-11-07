@@ -3,7 +3,7 @@ import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { AppHeader, AppHeaderSkeleton } from '../../components/AppHeader'
 import { PageShell, ScrollArea } from '../../components/PageShell'
 import { Alert } from '../../components/ui/Alert'
-import { Fab, FabGroup } from '../../components/ui/Fab'
+import { Fab, FabGroup, FabSkeleton } from '../../components/ui/Fab'
 import { GlassPanel } from '../../components/ui/GlassPanel'
 import { Icon3D } from '../../components/ui/Icon3D'
 import { MoneyField } from '../../components/ui/MoneyField'
@@ -14,7 +14,8 @@ import { LIST_CARD, LIST_CARDS_GAP } from '../../components/ui/listStyle'
 import { SIZE } from '../../components/ui/sizes'
 import { formatMoney } from '../../lib/format'
 import { CARD, LIST_CLASS, noteTime } from './components'
-import { addItemMoney, setItemDone } from './data/api'
+import { TextField } from '../../components/ui/TextField'
+import { addItemMoney, addNoteItem, setItemDone } from './data/api'
 import { useNote } from './data/NoteContext'
 import { itemMemo, MAX_TEXT, moneyTotal, noteDone, noteTitle, type Note, type NoteItem, type NoteMoney } from './data/types'
 
@@ -24,6 +25,7 @@ import { itemMemo, MAX_TEXT, moneyTotal, noteDone, noteTitle, type Note, type No
 // Thanh tiêu đề: tên ghi chú, dòng phụ bên dưới = người gửi · giờ ngày · số thẻ đã xong (hoặc "Đã hoàn thành").
 // Mỗi thẻ: chạm ô vuông bên phải để đánh dấu đã làm xong / chưa xong; chạm phần nội dung để mở ô NẠP / RÚT QUỸ RIÊNG cho thẻ đó
 // (quỹ chọn sẵn theo Cài đặt của app Ghi chú; ghi chú giao dịch = "Tên ghi chú: nội dung thẻ"; lưu bằng FAB check).
+// FAB [+]: người nhận THÊM NỘI DUNG MỚI vào cuối ghi chú (vd phát sinh khoản nạp / rút chưa có trong ghi chú); thêm xong mở luôn ô nạp / rút của thẻ đó.
 
 type Kind = 'deposit' | 'withdraw'
 const KINDS: { value: Kind; label: string }[] = [
@@ -32,6 +34,7 @@ const KINDS: { value: Kind; label: string }[] = [
 ]
 
 const FORM_ID = 'note-item-money-form'
+const ADD_FORM_ID = 'note-add-item-form'
 const CHECK = 'flex h-full w-14 shrink-0 items-center justify-center'
 const SKELETON_ROWS = 5
 
@@ -63,11 +66,34 @@ export function NoteViewPage() {
 }
 
 function NoteView({ note, readOnly }: { note: Note; readOnly: boolean }) {
-  const { actor } = useNote()
+  const { actor, cards } = useNote()
   const [error, setError] = useState('')
   // Thẻ đang mở ô nạp / rút quỹ (mỗi lần chỉ mở 1 thẻ)
   const [openId, setOpenId] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
+  // Đang thêm thẻ mới vào cuối ghi chú (người nhận, vd phát sinh khoản nạp / rút chưa có trong ghi chú)
+  const [adding, setAdding] = useState(false)
+  const [draft, setDraft] = useState('')
+
+  async function handleAdd(e: FormEvent) {
+    e.preventDefault()
+    const text = draft.trim().replace(/\s+/g, ' ')
+    if (!text) return setError('Vui lòng nhập nội dung.')
+    setError('')
+    setSaving(true)
+    try {
+      const id = await addNoteItem(note.id, text, actor, cards)
+      setAdding(false)
+      setDraft('')
+      // Mở luôn ô nạp / rút của thẻ vừa thêm
+      setOpenId(id)
+    } catch (err) {
+      console.error(err)
+      setError(err instanceof Error && err.message.startsWith('Mục này') ? err.message : 'Thêm thất bại. Vui lòng thử lại.')
+    } finally {
+      setSaving(false)
+    }
+  }
   const done = note.items.filter((i) => i.done).length
   const open = note.items.find((i) => i.id === openId) ?? null
 
@@ -107,7 +133,10 @@ function NoteView({ note, readOnly }: { note: Note; readOnly: boolean }) {
                 <button
                   type="button"
                   aria-expanded={openId === item.id}
-                  onClick={() => setOpenId((id) => (id === item.id ? null : item.id))}
+                  onClick={() => {
+                    setAdding(false)
+                    setOpenId((id) => (id === item.id ? null : item.id))
+                  }}
                   className="flex h-full min-w-0 flex-1 items-center gap-3 pl-4 text-left"
                 >
                   <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/25 bg-white/10 text-sm font-bold tabular-nums">
@@ -146,12 +175,64 @@ function NoteView({ note, readOnly }: { note: Note; readOnly: boolean }) {
                 (readOnly ? <ItemMoneyHistory item={item} /> : <ItemMoneyForm key={item.id} note={note} item={item} onSaving={setSaving} />)}
             </div>
           ))}
+          {/* Thẻ mới đang nhập (thêm vào cuối ghi chú) */}
+          {adding && (
+            <form id={ADD_FORM_ID} onSubmit={handleAdd} className={`${LIST_CARD} ${SIZE.row} flex items-center gap-3 pr-3 pl-4`} noValidate>
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-dashed border-white/40 text-sm font-bold tabular-nums">
+                {note.items.length + 1}
+              </span>
+              <div className="min-w-0 flex-1">
+                <TextField
+                  id="note-add-item"
+                  label="Nội dung mới"
+                  hideLabel
+                  autoFocus
+                  autoComplete="off"
+                  enterKeyHint="done"
+                  maxLength={MAX_TEXT}
+                  placeholder="Nội dung mới, vd: Mua pin"
+                  value={draft}
+                  onChange={(e) => setDraft(e.target.value)}
+                />
+              </div>
+            </form>
+          )}
         </div>
       </ScrollArea>
-      {/* Lưu nạp / rút cho thẻ đang mở */}
-      {open && !readOnly && (
+      {/* Thêm thẻ: [+] (thẻ đang mở nạp / rút thì thêm [lưu] bên phải); đang nhập thẻ mới: [huỷ] [lưu] */}
+      {!readOnly && (
         <FabGroup>
-          <Fab type="submit" form={FORM_ID} icon="save" label={`Lưu nạp / rút cho "${open.text}"`} loading={saving} />
+          {adding ? (
+            <>
+              <Fab
+                type="button"
+                variant="secondary"
+                icon="cancel"
+                label="Huỷ thêm nội dung"
+                onClick={() => {
+                  setAdding(false)
+                  setDraft('')
+                  setError('')
+                }}
+              />
+              <Fab type="submit" form={ADD_FORM_ID} icon="save" label="Thêm nội dung vào ghi chú" loading={saving} />
+            </>
+          ) : (
+            <>
+              <Fab
+                type="button"
+                variant={open ? 'secondary' : 'primary'}
+                icon="add"
+                label="Thêm nội dung vào ghi chú"
+                onClick={() => {
+                  setOpenId(null)
+                  setError('')
+                  setAdding(true)
+                }}
+              />
+              {open && <Fab type="submit" form={FORM_ID} icon="save" label={`Lưu nạp / rút cho "${open.text}"`} loading={saving} />}
+            </>
+          )}
         </FabGroup>
       )}
     </PageShell>
@@ -286,6 +367,7 @@ export function NoteViewPageSkeleton() {
           ))}
         </div>
       </ScrollArea>
+      <FabSkeleton />
     </PageShell>
   )
 }

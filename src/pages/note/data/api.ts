@@ -141,6 +141,33 @@ export async function setItemDone(noteId: string, itemId: string, done: boolean,
   )
 }
 
+/**
+ * Người nhận thêm 1 thẻ nội dung mới vào cuối ghi chú ngay ở màn hình Xem ghi chú (vd phát sinh khoản nạp / rút chưa có trong ghi chú).
+ * Đọc lại ghi chú trong transaction để không ghi đè thẻ khác; trùng nội dung với thẻ đã có thì báo lỗi.
+ * Ghi chú đang "Hoàn thành" thì thông báo của người nhận lại thành "Chưa xong" (thẻ mới chưa xong).
+ * Thẻ có nội dung mới cũng được lưu vào Thẻ ghi chú (gợi ý). Trả về id của thẻ mới.
+ */
+export async function addNoteItem(noteId: string, text: string, by: Actor, cards: NoteCard[]): Promise<string> {
+  const ref = doc(notesCol(), noteId)
+  const id = `i${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`
+  await commit(
+    runTransaction(requireDb(), async (tx) => {
+      const snap = await tx.get(ref)
+      if (!snap.exists()) throw new Error('Ghi chú không còn.')
+      const notice = await tx.get(doc(notificationsCol(), noteNoticeId(noteId)))
+      const old = (snap.data().items ?? []) as NoteItem[]
+      if (old.some((i) => sameKey(i.text) === sameKey(text))) throw new Error('Mục này đã có trong ghi chú.')
+      const items: NoteItem[] = [...old, { id, text, done: false, doneByName: '', money: [] }]
+      tx.update(ref, { items })
+      if (notice.exists()) tx.update(notice.ref, { done: noteDone({ items }) })
+      newTexts([text], cards).forEach((t) => {
+        tx.set(doc(noteCardsCol()), { text: t, position: cards.length + 1, createdAt: serverTimestamp(), createdBy: by.uid })
+      })
+    }),
+  )
+  return id
+}
+
 // Kéo thả / đổi số thứ tự các ghi chú: lưu thứ tự mới
 export async function reorderNotes(ids: string[]) {
   const batch = writeBatch(requireDb())
