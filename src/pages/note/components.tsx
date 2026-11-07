@@ -436,16 +436,50 @@ export function NoteList({
   )
 }
 
-// 1 dòng ghi chú: tên, các thẻ, người gửi, số thẻ đã xong / tổng hoặc "Xong" khi ghi chú hoàn thành
-function NoteRow({ note, me, to }: { note: Note; me: string; to: string }) {
+// ---- Danh sách ghi chú mình đã gửi cho người khác (Xem ghi chú, tab "Mình đã gửi") ----
+// CHỈ XEM: không kéo đổi thứ tự / không xoá (thứ tự là của người nhận; sửa / xoá ở Tạo ghi chú).
+// Mỗi thẻ: [avatar người nhận] [tên ghi chú, "Gửi cho …" · giờ] [số thẻ đã xong / tổng hoặc "Xong"]; chạm để xem chi tiết.
+export function SentNoteList({ notes, linkTo }: { notes: Note[]; linkTo: (note: Note) => string }) {
+  return (
+    <div className={LIST_CARDS_GAP}>
+      {notes.map((note) => (
+        <div key={note.id} className={`${CARD} gap-3 pl-3`}>
+          <Avatar uid={note.toUid} name={note.toName} />
+          <NoteRow note={note} me="" to={linkTo(note)} sent />
+        </div>
+      ))}
+    </div>
+  )
+}
+
+export function SentNoteListSkeleton({ rows = 6 }: { rows?: number }) {
+  return (
+    <div className={LIST_CARDS_GAP}>
+      {Array.from({ length: rows }, (_, i) => (
+        <div key={i} className={`${CARD} gap-3 pr-4 pl-3`}>
+          <Skeleton className="h-9 w-9 shrink-0 rounded-full" />
+          <div className="flex-1 space-y-1">
+            <Skeleton className="h-4 w-36 rounded-md" />
+            <Skeleton className="h-3 w-44 rounded-md" />
+          </div>
+          <Skeleton className="h-4 w-8 rounded-md" />
+        </div>
+      ))}
+    </div>
+  )
+}
+
+// 1 dòng ghi chú: tên, các thẻ, người gửi (hoặc người nhận nếu `sent`), số thẻ đã xong / tổng hoặc "Xong" khi ghi chú hoàn thành
+function NoteRow({ note, me, to, sent }: { note: Note; me: string; to: string; sent?: boolean }) {
   const done = note.items.filter((i) => i.done).length
   const finished = noteDone(note)
+  const who = sent ? `Gửi cho ${note.toName}` : note.fromUid === me ? 'Bạn tự ghi' : `Từ ${note.fromName}`
   return (
     <Link to={to} className="flex h-full min-w-0 flex-1 items-center gap-2 pr-4">
       <span className="min-w-0 flex-1">
         <span className={`block truncate text-sm leading-5 font-semibold ${finished ? 'text-white/60 line-through' : ''}`}>{noteTitle(note)}</span>
         <span className="block truncate text-xs leading-5 text-white/60">
-          {[note.name ? noteText(note.items) : '', note.fromUid === me ? 'Bạn tự ghi' : `Từ ${note.fromName}`, noteTime(note.createdAt)]
+          {[note.name ? noteText(note.items) : '', who, noteTime(note.createdAt)]
             .filter(Boolean)
             .join(' · ')}
         </span>

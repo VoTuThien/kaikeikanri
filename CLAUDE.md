@@ -283,6 +283,11 @@ Code: `src/pages/note/` (`components.tsx`: `NoteLayout`, `MemberPicker`, `Editab
   **ghi chú của giao dịch = "Tên ghi chú: nội dung thẻ"** (`itemMemo`, vd "Đi chợ: Mua cà chua"). `addItemMoney` (1 transaction): ghi giao dịch ở app Quỹ
   (có `noteId`, `noteItemId`), cập nhật số dư (rút quá số dư thì báo lỗi), thêm lần nạp / rút vào `money` của thẻ. Dòng phụ của thẻ hiện tổng đã nạp / rút,
   ô đang mở liệt kê từng lần. Danh sách quỹ dùng `useFundList` (chung nhớ tạm với app Quỹ).
+  **Bước 1 có 2 tab** (`Segmented` dưới tiêu đề, lưu trên URL `?tab=sent`): **"Gửi cho mình"** (như trên) và **"Mình đã gửi"** = ghi chú mình gửi cho
+  **thành viên khác** (`sent` trong `NoteContext`, `useNotesFrom`: `fromUid` = mình, bỏ ghi chú tự ghi; mới nhất trước), danh sách `SentNoteList`
+  **chỉ xem** (avatar người nhận, "Gửi cho …", số thẻ đã xong; không kéo / không xoá — sửa / xoá ở Tạo ghi chú). Chạm mở `/note/inbox/:id?tab=sent`:
+  màn hình chi tiết ở chế độ **`readOnly`**: thấy thẻ nào đã xong (ai đánh dấu) và các lần nạp / rút quỹ (chạm nội dung để xem danh sách),
+  nhưng **không đánh dấu xong / nạp / rút được** (ô vuông khoá, không có FAB). Ghi chú gửi đến mình vẫn xử lý như cũ.
 - [x] Cài đặt (`/note/settings`): **quỹ mặc định** khi nạp / rút ở Xem ghi chú, chọn là lưu ngay.
 
 Dữ liệu Firestore (xem `src/pages/note/data/api.ts`), thuộc gia đình đang chọn:

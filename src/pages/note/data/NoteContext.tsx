@@ -11,6 +11,7 @@ interface NoteData {
   actor: Actor
   cards: NoteCard[] // thẻ ghi chú đã từng nhập, xếp theo số thứ tự (= thứ tự ưu tiên gợi ý)
   inbox: Note[] // ghi chú gửi đến mình, theo số thứ tự
+  sent: Note[] // ghi chú mình gửi cho THÀNH VIÊN KHÁC (không tính tự ghi cho mình), mới nhất trước — chỉ xem
   funds: Fund[] // nhóm quỹ của gia đình (nạp / rút ở màn hình Xem ghi chú)
   settings: NoteSettings
   loading: boolean
@@ -71,6 +72,21 @@ export function useNotesTo(uid: string | undefined): Note[] | null {
   )
 }
 
+// Các ghi chú 1 thành viên đã gửi cho thành viên KHÁC (bỏ ghi chú tự ghi cho mình), mới nhất trước, realtime. null = đang tải.
+export function useNotesFrom(uid: string | undefined): Note[] | null {
+  return useLiveQuery<Note[]>(uid ? familyKey('notes', 'from', uid) : null, (on) =>
+    onSnapshot(query(notesCol(), where('fromUid', '==', uid)), (snap) =>
+      on(
+        snap.docs
+          .map((d) => toNote(d.id, d.data(OPTS)))
+          .filter((n) => n.toUid !== uid)
+          .sort((a, b) => (b.createdAt?.getTime() ?? 0) - (a.createdAt?.getTime() ?? 0)),
+        snap.metadata.fromCache,
+      ),
+    ),
+  )
+}
+
 // 1 ghi chú theo id, realtime (màn hình sửa ghi chú). undefined = đang tải, null = không còn (đã bị xoá).
 export function useNoteDoc(id: string | undefined): Note | null | undefined {
   const value = useLiveQuery<{ note: Note | null }>(id ? familyKey('note', id) : null, (on) =>
@@ -91,6 +107,7 @@ export function NoteProvider({ actor, children }: { actor: Actor | null; childre
     ),
   )
   const inbox = useNotesTo(uid)
+  const sent = useNotesFrom(uid)
   const funds = useFundList(uid)
   const settings = useLiveQuery<NoteSettings>(uid ? `user:${uid}:noteSettings` : null, (on) =>
     onSnapshot(noteSettingsDoc(uid!), (snap) => on({ ...DEFAULT_NOTE_SETTINGS, ...snap.data() }, snap.metadata.fromCache)),
@@ -100,9 +117,10 @@ export function NoteProvider({ actor, children }: { actor: Actor | null; childre
     actor: actor ?? { uid: '', name: '' },
     cards: cards ?? [],
     inbox: inbox ?? [],
+    sent: sent ?? [],
     funds: funds ?? [],
     settings: settings ?? DEFAULT_NOTE_SETTINGS,
-    loading: !uid || !cards || !inbox || !funds || !settings,
+    loading: !uid || !cards || !inbox || !sent || !funds || !settings,
   }
   return <NoteContext.Provider value={value}>{children}</NoteContext.Provider>
 }

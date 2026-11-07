@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { AppHeader, AppHeaderSkeleton } from '../../components/AppHeader'
 import { PageShell, ScrollArea } from '../../components/PageShell'
 import { Alert } from '../../components/ui/Alert'
@@ -19,6 +19,8 @@ import { useNote } from './data/NoteContext'
 import { itemMemo, MAX_TEXT, moneyTotal, noteDone, noteTitle, type Note, type NoteItem, type NoteMoney } from './data/types'
 
 // Xem ghi chú (bước 2): các thẻ nội dung của 1 ghi chú gửi đến mình, theo thứ tự ưu tiên.
+// Ghi chú MÌNH GỬI CHO NGƯỜI KHÁC (tab "Mình đã gửi") thì CHỈ XEM (`readOnly`): thấy thẻ nào đã xong và các lần nạp / rút quỹ,
+// nhưng không đánh dấu xong / nạp / rút được (ô vuông không bấm được, chạm nội dung chỉ mở danh sách các lần nạp / rút, không có FAB).
 // Thanh tiêu đề: tên ghi chú, dòng phụ bên dưới = người gửi · giờ ngày · số thẻ đã xong (hoặc "Đã hoàn thành").
 // Mỗi thẻ: chạm ô vuông bên phải để đánh dấu đã làm xong / chưa xong; chạm phần nội dung để mở ô NẠP / RÚT QUỸ RIÊNG cho thẻ đó
 // (quỹ chọn sẵn theo Cài đặt của app Ghi chú; ghi chú giao dịch = "Tên ghi chú: nội dung thẻ"; lưu bằng FAB check).
@@ -34,30 +36,33 @@ const CHECK = 'flex h-full w-14 shrink-0 items-center justify-center'
 const SKELETON_ROWS = 5
 
 export function NoteViewPage() {
-  const { loading, inbox } = useNote()
+  const { loading, inbox, sent } = useNote()
   const { id } = useParams()
+  const [params] = useSearchParams()
   if (loading) return <NoteViewPageSkeleton />
-  const note = inbox.find((n) => n.id === id)
+  // Ghi chú gửi đến mình: xem + cập nhật như cũ; ghi chú mình gửi cho người khác: chỉ xem
+  const received = inbox.find((n) => n.id === id)
+  const note = received ?? sent.find((n) => n.id === id)
   if (!note) {
     return (
       <PageShell>
-        <AppHeader title="Ghi chú" backTo="/note/inbox" />
+        <AppHeader title="Ghi chú" backTo={params.get('tab') === 'sent' ? '/note/inbox?tab=sent' : '/note/inbox'} />
         <GlassPanel className="space-y-3 text-center">
           <div className="flex h-12 justify-center">
             <Icon3D emoji="📬" className="h-12 w-12" />
           </div>
-          <p className="text-sm leading-5 text-white/70">Ghi chú này không còn (đã bị xoá hoặc không gửi cho bạn).</p>
-          <Link to="/note/inbox" className="inline-block text-sm font-semibold text-fuchsia-200 underline">
+          <p className="text-sm leading-5 text-white/70">Ghi chú này không còn (đã bị xoá hoặc không liên quan tới bạn).</p>
+          <Link to={params.get('tab') === 'sent' ? '/note/inbox?tab=sent' : '/note/inbox'} className="inline-block text-sm font-semibold text-fuchsia-200 underline">
             Về danh sách ghi chú
           </Link>
         </GlassPanel>
       </PageShell>
     )
   }
-  return <NoteView key={note.id} note={note} />
+  return <NoteView key={note.id} note={note} readOnly={!received} />
 }
 
-function NoteView({ note }: { note: Note }) {
+function NoteView({ note, readOnly }: { note: Note; readOnly: boolean }) {
   const { actor } = useNote()
   const [error, setError] = useState('')
   // Thẻ đang mở ô nạp / rút quỹ (mỗi lần chỉ mở 1 thẻ)
@@ -67,6 +72,7 @@ function NoteView({ note }: { note: Note }) {
   const open = note.items.find((i) => i.id === openId) ?? null
 
   function toggleDone(item: NoteItem) {
+    if (readOnly) return
     setError('')
     setItemDone(note.id, item.id, !item.done, actor).catch((err) => {
       console.error(err)
@@ -76,7 +82,7 @@ function NoteView({ note }: { note: Note }) {
 
   const subtitle = (
     <>
-      {note.fromUid === actor.uid ? 'Bạn tự ghi' : `Từ ${note.fromName}`} · {noteTime(note.createdAt)} ·{' '}
+      {readOnly ? `Gửi cho ${note.toName}` : note.fromUid === actor.uid ? 'Bạn tự ghi' : `Từ ${note.fromName}`} · {noteTime(note.createdAt)} ·{' '}
       {/* Mọi thẻ đã xong = ghi chú hoàn thành */}
       {noteDone(note) ? (
         <span className="font-semibold text-emerald-300">Đã hoàn thành</span>
@@ -90,14 +96,14 @@ function NoteView({ note }: { note: Note }) {
 
   return (
     <PageShell>
-      <AppHeader title={noteTitle(note)} subtitle={subtitle} backTo="/note/inbox" />
+      <AppHeader title={noteTitle(note)} subtitle={subtitle} backTo={readOnly ? '/note/inbox?tab=sent' : '/note/inbox'} />
       {error && <Alert type="error">{error}</Alert>}
       <ScrollArea className={LIST_CLASS}>
         <div className={LIST_CARDS_GAP}>
           {note.items.map((item, i) => (
             <div key={item.id} className={LIST_CARD}>
               <div className={`${SIZE.row} flex items-center`}>
-                {/* Chạm nội dung: mở / đóng ô nạp / rút quỹ của thẻ này */}
+                {/* Chạm nội dung: mở / đóng ô nạp / rút quỹ của thẻ này (chỉ xem: danh sách các lần nạp / rút) */}
                 <button
                   type="button"
                   aria-expanded={openId === item.id}
@@ -109,11 +115,20 @@ function NoteView({ note }: { note: Note }) {
                   </span>
                   <span className="min-w-0 flex-1">
                     <span className={`block truncate text-sm leading-5 font-semibold ${item.done ? 'text-white/50 line-through' : ''}`}>{item.text}</span>
-                    <ItemSummary item={item} open={openId === item.id} />
+                    <ItemSummary item={item} open={openId === item.id} readOnly={readOnly} />
                   </span>
                 </button>
-                {/* Ô vuông: đánh dấu đã làm xong */}
-                <button type="button" role="checkbox" aria-checked={item.done} aria-label={`Đã làm xong: ${item.text}`} onClick={() => toggleDone(item)} className={CHECK}>
+                {/* Ô vuông: đánh dấu đã làm xong (chỉ xem: không bấm được) */}
+                <button
+                  type="button"
+                  role="checkbox"
+                  aria-checked={item.done}
+                  aria-label={`Đã làm xong: ${item.text}`}
+                  aria-readonly={readOnly}
+                  disabled={readOnly}
+                  onClick={() => toggleDone(item)}
+                  className={`${CHECK} ${readOnly ? 'opacity-70' : ''}`}
+                >
                   <span
                     className={`flex h-7 w-7 items-center justify-center rounded-lg border-2 transition ${
                       item.done ? 'border-emerald-300 bg-emerald-400' : 'border-white/50 bg-white/5'
@@ -127,13 +142,14 @@ function NoteView({ note }: { note: Note }) {
                   </span>
                 </button>
               </div>
-              {openId === item.id && <ItemMoneyForm key={item.id} note={note} item={item} onSaving={setSaving} />}
+              {openId === item.id &&
+                (readOnly ? <ItemMoneyHistory item={item} /> : <ItemMoneyForm key={item.id} note={note} item={item} onSaving={setSaving} />)}
             </div>
           ))}
         </div>
       </ScrollArea>
       {/* Lưu nạp / rút cho thẻ đang mở */}
-      {open && (
+      {open && !readOnly && (
         <FabGroup>
           <Fab type="submit" form={FORM_ID} icon="save" label={`Lưu nạp / rút cho "${open.text}"`} loading={saving} />
         </FabGroup>
@@ -143,7 +159,7 @@ function NoteView({ note }: { note: Note }) {
 }
 
 // Dòng phụ của thẻ: đã xong (ai) + tổng tiền đã nạp / rút cho thẻ, hoặc hướng dẫn chạm để nạp / rút
-function ItemSummary({ item, open }: { item: NoteItem; open: boolean }) {
+function ItemSummary({ item, open, readOnly }: { item: NoteItem; open: boolean; readOnly: boolean }) {
   const total = moneyTotal(item)
   const parts = [
     item.done ? `Xong${item.doneByName ? ` · ${item.doneByName}` : ''}` : '',
@@ -151,7 +167,7 @@ function ItemSummary({ item, open }: { item: NoteItem; open: boolean }) {
   ].filter(Boolean)
   return (
     <span className="block truncate text-xs leading-5 text-white/60">
-      {parts.length > 0 ? parts.join(' · ') : open ? 'Nhập số tiền nạp / rút cho mục này' : 'Chạm để nạp / rút quỹ'}
+      {parts.length > 0 ? parts.join(' · ') : readOnly ? 'Chưa xong' : open ? 'Nhập số tiền nạp / rút cho mục này' : 'Chạm để nạp / rút quỹ'}
     </span>
   )
 }
@@ -221,6 +237,18 @@ function ItemMoneyForm({ note, item, onSaving }: { note: Note; item: NoteItem; o
         </ul>
       )}
     </form>
+  )
+}
+
+// Chỉ xem (ghi chú mình gửi cho người khác): các lần người nhận đã nạp / rút quỹ cho thẻ, không có ô nhập
+function ItemMoneyHistory({ item }: { item: NoteItem }) {
+  if (item.money.length === 0) return <p className="px-4 pb-3 text-xs leading-4 text-white/60">Chưa có lần nạp / rút quỹ nào cho mục này.</p>
+  return (
+    <ul className="space-y-1 px-4 pb-3 text-xs leading-4 text-white/70">
+      {[...item.money].reverse().map((m) => (
+        <MoneyLine key={m.txId} money={m} />
+      ))}
+    </ul>
   )
 }
 
