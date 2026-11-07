@@ -17,6 +17,7 @@ import { EmptyState } from './components'
 import { addTransaction } from './data/api'
 import { useFund } from './data/FundContext'
 import { readReceiptText, stopOcr, type OcrProgress } from './data/receipt'
+import { ReceiptItemsPopup } from './ReceiptItems'
 import { itemsTotal, parseReceipt, RECEIPT_KINDS, type ReceiptItem, type ReceiptKind } from './data/receiptParse'
 
 // Đọc hoá đơn (/fund/receipt): chụp / chọn ảnh hoá đơn -> đọc chữ NGAY TRÊN MÁY (Tesseract.js, miễn phí, ảnh không gửi đi đâu)
@@ -43,9 +44,6 @@ function saveKind(k: ReceiptKind) {
     /* trình duyệt chặn bộ nhớ: bỏ qua */
   }
 }
-
-// Số lượng: 0.274 -> "0,274"; 2 -> "2"
-const formatQty = (q: number) => q.toLocaleString('vi-VN', { maximumFractionDigits: 3 })
 
 export function ReceiptPage() {
   const { loading, funds } = useFund()
@@ -270,7 +268,10 @@ function ReceiptForm() {
       </FabGroup>
 
       {/* Khung xem: danh sách sản phẩm sẽ lưu (tên, SL, thành tiền) / chữ thô Tesseract đọc được (để tự kiểm tra khi tách sai) */}
-      {popup &&
+      {popup === 'items' && (
+        <ReceiptItemsPopup title={note || 'Hoá đơn'} subtitle="Các sản phẩm sẽ lưu kèm giao dịch rút" items={items} paid={amount} onClose={() => setPopup(null)} />
+      )}
+      {popup === 'text' &&
         createPortal(
           <div data-no-swipe className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setPopup(null)}>
             <div
@@ -278,29 +279,13 @@ function ReceiptForm() {
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex h-8 items-center gap-2">
-                <Icon3D emoji={popup === 'items' ? '🛒' : '🧾'} className="h-6 w-6" />
-                <span className="flex-1 truncate text-sm font-semibold">
-                  {popup === 'items' ? `${items.length} sản phẩm · ${formatMoney(sum)}` : 'Chữ đọc được'}
-                </span>
+                <Icon3D emoji="🧾" className="h-6 w-6" />
+                <span className="flex-1 truncate text-sm font-semibold">Chữ đọc được</span>
                 <button type="button" onClick={() => setPopup(null)} className="h-8 rounded-lg bg-white/15 px-3 text-sm font-semibold">
                   Đóng
                 </button>
               </div>
-              {popup === 'items' ? (
-                <ul className="min-h-0 flex-1 divide-y divide-white/10 overflow-auto rounded-xl bg-black/30 px-3">
-                  {items.map((it, i) => (
-                    <li key={i} className="flex items-center gap-3 py-2 text-sm leading-5">
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate font-semibold">{it.name}</span>
-                        <span className="block text-xs leading-4 text-white/60">SL {formatQty(it.qty)}</span>
-                      </span>
-                      <span className="shrink-0 font-semibold tabular-nums">{formatMoney(it.amount)}</span>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <pre className="min-h-0 flex-1 overflow-auto rounded-xl bg-black/30 p-3 text-xs leading-5 whitespace-pre-wrap text-white/85 select-text">{text}</pre>
-              )}
+              <pre className="min-h-0 flex-1 overflow-auto rounded-xl bg-black/30 p-3 text-xs leading-5 whitespace-pre-wrap text-white/85 select-text">{text}</pre>
             </div>
           </div>,
           document.body,

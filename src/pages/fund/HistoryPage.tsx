@@ -17,6 +17,7 @@ import { deleteTransaction, lockedBySummary } from './data/api'
 import { useFund, useFundRuns } from './data/FundContext'
 import { monthId } from './data/orders'
 import type { FundTransaction, TxType } from './data/types'
+import { ReceiptItemsPopup } from './ReceiptItems'
 
 // "Chuyển" gồm cả chuyển đi và nhận về giữa các quỹ
 type TypeFilter = 'all' | 'deposit' | 'withdraw' | 'interest' | 'transfer'
@@ -71,6 +72,8 @@ function History() {
   const [message, setMessage] = useState<{ type: 'error' | 'success'; text: string } | null>(null)
   const [fundFilter, setFundFilter] = useState(params.get('fund') ?? 'all')
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('all')
+  // Giao dịch rút theo hoá đơn đang mở xem danh sách sản phẩm
+  const [receiptOf, setReceiptOf] = useState<FundTransaction | null>(null)
 
   // Giao dịch đã bị tổng kết (tháng đó đã tổng kết, giao dịch ghi trước lúc tổng kết) thì không xoá được.
   // Chưa tải xong các đợt tổng kết thì tạm khoá (hàm xoá cũng kiểm tra lại trên server)
@@ -171,6 +174,7 @@ function History() {
                     onClose={() => setOpenId((id) => (id === t.id ? null : id))}
                     onDelete={() => remove(t)}
                     onReopen={() => reopen(t)}
+                    onShowReceipt={t.items.length > 0 ? () => setReceiptOf(t) : undefined}
                   />
                 ))}
               </div>
@@ -178,6 +182,17 @@ function History() {
           ))
         )}
       </ScrollArea>
+
+      {/* Chạm giao dịch rút theo hoá đơn: xem đã mua những gì, bao nhiêu */}
+      {receiptOf && (
+        <ReceiptItemsPopup
+          title={receiptOf.note || 'Hoá đơn'}
+          subtitle={`${formatDate(receiptOf.date)} · ${nameOf(receiptOf.fundId)}${receiptOf.createdByName ? ` · ${receiptOf.createdByName}` : ''}`}
+          items={receiptOf.items}
+          paid={receiptOf.amount}
+          onClose={() => setReceiptOf(null)}
+        />
+      )}
     </PageShell>
   )
 }
@@ -219,6 +234,7 @@ function SwipeRow({
   onClose,
   onDelete,
   onReopen,
+  onShowReceipt,
 }: {
   tx: FundTransaction
   locked: boolean
@@ -228,6 +244,7 @@ function SwipeRow({
   onClose: () => void
   onDelete: () => Promise<void>
   onReopen: () => void
+  onShowReceipt?: () => void // giao dịch rút theo hoá đơn có danh sách sản phẩm: chạm thẻ để xem
 }) {
   const [confirm, setConfirm] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -280,21 +297,47 @@ function SwipeRow({
         )
       }
     >
-      <TxRow tx={tx} fundName={fundName} locked={locked} />
+      {onShowReceipt ? (
+        // Chạm thẻ (không phải trượt) để xem các sản phẩm của hoá đơn
+        <button
+          type="button"
+          onClick={() => (open ? onClose() : onShowReceipt())}
+          aria-label={`Xem ${tx.items.length} sản phẩm của hoá đơn`}
+          className="block w-full text-left transition active:bg-white/5"
+        >
+          <TxRow tx={tx} fundName={fundName} locked={locked} />
+        </button>
+      ) : (
+        <TxRow tx={tx} fundName={fundName} locked={locked} />
+      )}
     </SwipeActions>
   )
 }
 
 function TxRow({ tx, fundName, locked }: { tx: FundTransaction; fundName: string; locked?: boolean }) {
   const style = TYPE_STYLE[tx.type]
+  // Rút theo hoá đơn (Đọc hoá đơn) có danh sách sản phẩm: đánh dấu bằng huy hiệu 🧾 + "n sản phẩm ›"
+  const fromReceipt = tx.items.length > 0
   return (
     <div className={`${SIZE.row} flex items-center gap-3 px-6 ${tx.deleted ? 'opacity-60 grayscale' : ''}`}>
       <span className={`relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br ${BLOCK_3D} ${style.badge}`}>
         <span className={GLOSS_3D} />
         <Icon3D emoji={style.icon} className="h-7 w-7" />
+        {fromReceipt && (
+          <span className="absolute -right-1.5 -bottom-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-white shadow-md shadow-black/40">
+            <Icon3D emoji="🧾" className="h-4 w-4" />
+          </span>
+        )}
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block truncate text-sm leading-5 font-semibold">{fundName}</span>
+        <span className="flex min-w-0 items-center gap-1.5">
+          <span className="truncate text-sm leading-5 font-semibold">{fundName}</span>
+          {fromReceipt && (
+            <span className="shrink-0 rounded-md bg-fuchsia-400/25 px-1.5 text-[11px] leading-4 font-semibold text-fuchsia-100">
+              {tx.items.length} sản phẩm ›
+            </span>
+          )}
+        </span>
         <span className="block truncate text-xs leading-5 text-white/60">
           {tx.deleted
             ? `Đã xoá${tx.deletedByName ? ` bởi ${tx.deletedByName}` : ''} · ${formatDate(tx.date)} · ${tx.note || TYPE_LABEL[tx.type]}`

@@ -6,7 +6,7 @@ import type { Actor } from '../../../lib/firestore'
 import { applyDueInterest, fundsCol, settingsDoc, txCol } from './api'
 import { nextInterestDate } from './interest'
 import { ordersCol, runDoc, runsCol, salariesCol } from './orders'
-import { DEFAULT_SETTINGS, type Fund, type FundOrder, type FundRun, type FundSettings, type FundTransaction, type Salary } from './types'
+import { DEFAULT_SETTINGS, type Fund, type FundOrder, type FundRun, type FundSettings, type FundTransaction, type Salary, type TxItem } from './types'
 
 interface FundData {
   // Người đang đăng nhập (quỹ và giao dịch là dữ liệu dùng chung, cài đặt là của riêng người này)
@@ -98,6 +98,10 @@ function toTransaction(id: string, d: DocumentData): FundTransaction {
     deleted: !!d.deleted,
     deletedByName: d.deletedByName ?? '',
     createdAt: toDate(d.createdAt),
+    receipt: d.receipt ?? null,
+    items: Array.isArray(d.items)
+      ? (d.items as Partial<TxItem>[]).map((i) => ({ name: String(i.name ?? ''), qty: Number(i.qty) || 0, amount: Number(i.amount) || 0 }))
+      : [],
   }
 }
 

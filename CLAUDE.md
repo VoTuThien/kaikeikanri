@@ -147,6 +147,9 @@ Dữ liệu gia đình (xem `src/pages/family/data/api.ts`):
   đã tổng kết và giao dịch được ghi (`createdAt`) trước lúc tổng kết (`lockedBySummary`) → thẻ khoá trượt, dòng phụ ghi "Đã tổng kết";
   `deleteTransaction` cũng đọc lại đợt tổng kết trong transaction để chặn. Giao dịch ghi sau lúc tổng kết (vd chạy lệnh ở bước 3) vẫn xoá được. Giao dịch đã xoá vẫn hiện với **nền xám**, không tính vào tổng;
   **trượt thẻ xám sang trái** thì mở màn hình nạp / rút / chuyển với giá trị điền sẵn (`?fund=&to=&amount=&note=&date=`), lưu sẽ tạo **giao dịch mới**.
+  **Giao dịch rút theo hoá đơn** (có `items`, từ Đọc hoá đơn) được **đánh dấu**: huy hiệu 🧾 nhỏ ở góc icon + nhãn "n sản phẩm ›" cạnh tên quỹ;
+  **chạm thẻ** (không phải trượt) mở khung **`ReceiptItemsPopup`** (`src/pages/fund/ReceiptItems.tsx`, dùng chung với Đọc hoá đơn): tên hoá đơn, ngày · quỹ · người rút,
+  từng sản phẩm (STT, tên tối đa 2 dòng, SL, thành tiền) và tổng (lệch số đã rút thì ghi thêm "đã rút …").
 - [x] Thống kê (`/fund/stats`): số dư các quỹ **theo tháng**, lấy từ số liệu lưu lúc tổng kết. 2 tab (`Segmented`):
   **Theo tháng** (‹ Tháng ›, tổng số dư + thay đổi so với tháng trước, bảng số dư từng quỹ + chênh lệch) và
   **Biểu đồ năm** (‹ Năm ›, biểu đồ đường 12 tháng `FundLineChart`, SVG tự vẽ). Biểu đồ **chỉ vẽ đường của quỹ được chạm chọn** ở lưới bên dưới

@@ -30,6 +30,15 @@ export interface FundTransaction {
   deleted: boolean // đã xoá (vẫn hiện trên Tra cứu với nền xám, không tính vào tổng, số dư quỹ đã được hoàn lại)
   deletedByName: string
   createdAt: Date | null // lúc ghi giao dịch (so với lúc tổng kết để biết giao dịch đã bị tổng kết chưa)
+  receipt: string | null // rút theo hoá đơn (màn hình Đọc hoá đơn): loại hoá đơn, vd "bhx"
+  items: TxItem[] // các sản phẩm trên hoá đơn (rỗng nếu không phải rút theo hoá đơn có danh sách sản phẩm)
+}
+
+// 1 sản phẩm trên hoá đơn đã lưu kèm giao dịch rút: tên, số lượng (có thể lẻ), thành tiền
+export interface TxItem {
+  name: string
+  qty: number
+  amount: number
 }
 
 // Lệnh chuyển soạn sẵn, chạy ở bước 3 của màn hình Thực thi:
