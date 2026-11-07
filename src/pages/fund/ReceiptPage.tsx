@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import { AppHeader, AppHeaderSkeleton } from '../../components/AppHeader'
 import { FIT_CLASS, PageShell } from '../../components/PageShell'
 import { Alert } from '../../components/ui/Alert'
-import { Fab, FabGroup, FabSkeleton } from '../../components/ui/Fab'
+import { FAB_SPACE, Fab, FabGroup, FabSkeleton } from '../../components/ui/Fab'
 import { GlassPanel } from '../../components/ui/GlassPanel'
 import { Icon3D } from '../../components/ui/Icon3D'
 import { MoneyField, MoneyFieldSkeleton } from '../../components/ui/MoneyField'
@@ -156,7 +156,8 @@ function ReceiptForm() {
     <PageShell>
       <AppHeader title="Đọc hoá đơn" backTo="/fund" />
       <GlassPanel className={FIT_CLASS}>
-        <form id={FORM_ID} onSubmit={handleSubmit} className="space-y-3" noValidate>
+        {/* Mỗi ô 1 dòng nên form dài: cuộn trong khung, chừa chỗ cuối cho nút nổi để ô Ghi chú không bị che */}
+        <form id={FORM_ID} onSubmit={handleSubmit} className={`space-y-3 ${FAB_SPACE}`} noValidate>
           {/* Ảnh hoá đơn: chạm để chụp / chọn ảnh (thư viện hoặc máy ảnh) */}
           <input
             ref={fileRef}
@@ -234,23 +235,22 @@ function ReceiptForm() {
           )}
 
           {/* Loại hoá đơn (mỗi loại tách dữ liệu theo cách riêng; nhớ lựa chọn lần trước) + quỹ rút */}
+          <Select id="kind" label="Loại hoá đơn" value={kind} onChange={(e) => changeKind(e.target.value as ReceiptKind)}>
+            {RECEIPT_KINDS.map((k) => (
+              <option key={k.value} value={k.value}>
+                {k.label}
+              </option>
+            ))}
+          </Select>
+
           <div className="space-y-1.5">
-            <div className="grid grid-cols-2 gap-3">
-              <Select id="kind" label="Loại hoá đơn" value={kind} onChange={(e) => changeKind(e.target.value as ReceiptKind)}>
-                {RECEIPT_KINDS.map((k) => (
-                  <option key={k.value} value={k.value}>
-                    {k.label}
-                  </option>
-                ))}
-              </Select>
-              <Select id="fund" label="Rút từ quỹ" value={fund.id} onChange={(e) => setFundId(e.target.value)}>
-                {funds.map((f) => (
-                  <option key={f.id} value={f.id}>
-                    {f.icon} {f.name}
-                  </option>
-                ))}
-              </Select>
-            </div>
+            <Select id="fund" label="Rút từ quỹ" value={fund.id} onChange={(e) => setFundId(e.target.value)}>
+              {funds.map((f) => (
+                <option key={f.id} value={f.id}>
+                  {f.icon} {f.name}
+                </option>
+              ))}
+            </Select>
             <p className={`${SIZE.label} truncate text-xs leading-5 text-white/60`}>
               Số dư hiện tại: <span className="font-semibold text-white">{showMoney(fund.balance)}</span>
             </p>
@@ -258,10 +258,8 @@ function ReceiptForm() {
 
           <MoneyField id="amount" label="Số tiền" placeholder="0" value={amount} onChange={setAmount} />
 
-          <div className="grid grid-cols-2 gap-3">
-            <TextField id="date" label="Ngày" type="date" value={dateText} onChange={(e) => setDateText(e.target.value)} />
-            <TextField id="note" label="Ghi chú" placeholder="Hoá đơn…" value={note} maxLength={100} onChange={(e) => setNote(e.target.value)} />
-          </div>
+          <TextField id="date" label="Ngày" type="date" value={dateText} onChange={(e) => setDateText(e.target.value)} />
+          <TextField id="note" label="Ghi chú" placeholder="Hoá đơn…" value={note} maxLength={100} onChange={(e) => setNote(e.target.value)} />
 
           {error && <Alert type="error">{error}</Alert>}
           {success && <Alert type="success">{success}</Alert>}
@@ -316,7 +314,7 @@ export function ReceiptPageSkeleton() {
     <PageShell>
       <AppHeaderSkeleton />
       <GlassPanel className={FIT_CLASS}>
-        <div className="space-y-3">
+        <div className={`space-y-3 ${FAB_SPACE}`}>
           <div className={`${PHOTO} flex items-center gap-3`}>
             <Skeleton className="h-24 w-[4.5rem] shrink-0 rounded-xl" />
             <div className="flex-1 space-y-1.5">
@@ -324,18 +322,14 @@ export function ReceiptPageSkeleton() {
               <Skeleton className="h-8 w-full rounded-md" />
             </div>
           </div>
+          <TextFieldSkeleton />
           <div className="space-y-1.5">
-            <div className="grid grid-cols-2 gap-3">
-              <TextFieldSkeleton />
-              <TextFieldSkeleton />
-            </div>
+            <TextFieldSkeleton />
             <Skeleton className={`${SIZE.label} w-40 rounded-md`} />
           </div>
           <MoneyFieldSkeleton />
-          <div className="grid grid-cols-2 gap-3">
-            <TextFieldSkeleton />
-            <TextFieldSkeleton />
-          </div>
+          <TextFieldSkeleton />
+          <TextFieldSkeleton />
         </div>
       </GlassPanel>
       <FabSkeleton />
