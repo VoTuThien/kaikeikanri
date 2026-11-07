@@ -8,10 +8,12 @@ export interface Feature {
   label: string
   hint: string
   to?: string // chưa có = chức năng sắp ra mắt
-  wide?: boolean // trải hết hàng (mọi cột) để thẳng mép với các ô phía trên
+  wide?: boolean | 2 // true = trải hết hàng (mọi cột), 2 = chiếm 2 cột; để thẳng mép với các ô phía trên
 }
 
 const TILE = `${SIZE.tile} flex w-full flex-col items-center justify-center gap-1 rounded-2xl border border-white/20 bg-white/10 shadow-lg shadow-black/20 backdrop-blur-xl`
+
+const spanOf = (wide: Feature['wide']) => (wide === 2 ? 'col-span-2' : wide ? 'col-span-full' : '')
 
 // Ô chức năng ở trang chính của mỗi app con (đặt trong lưới 2 cột)
 export function FeatureTile({ icon, label, hint, to, wide }: Feature) {
@@ -23,7 +25,7 @@ export function FeatureTile({ icon, label, hint, to, wide }: Feature) {
       <span className="max-w-full truncate px-2 text-xs leading-4 text-white/50">{to ? hint : 'Sắp có'}</span>
     </>
   )
-  const span = wide ? 'col-span-full' : ''
+  const span = spanOf(wide)
   return to ? (
     <Link to={to} className={`${TILE} ${span} transition hover:bg-white/15 active:scale-[0.98]`}>
       {content}
@@ -35,6 +37,6 @@ export function FeatureTile({ icon, label, hint, to, wide }: Feature) {
   )
 }
 
-export function FeatureTileSkeleton({ wide }: { wide?: boolean }) {
-  return <Skeleton className={`${SIZE.tile} ${wide ? 'col-span-full' : ''} rounded-2xl`} />
+export function FeatureTileSkeleton({ wide }: { wide?: Feature['wide'] }) {
+  return <Skeleton className={`${SIZE.tile} ${spanOf(wide)} rounded-2xl`} />
 }

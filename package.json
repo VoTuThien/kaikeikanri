@@ -4,7 +4,9 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
+    "predev": "node scripts/copy-tesseract.mjs",
     "dev": "vite --host",
+    "prebuild": "node scripts/copy-tesseract.mjs",
     "build": "tsc -b && vite build",
     "preview": "vite preview --host",
     "icons3d": "node scripts/fetch-icons3d.mjs",
@@ -12,10 +14,12 @@
   },
   "dependencies": {
     "@react-three/fiber": "^9.8.2",
+    "@tesseract.js-data/vie": "^1.0.0",
     "firebase": "^13.1.0",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "react-router-dom": "^7.18.5",
+    "tesseract.js": "^7.0.0",
     "three": "^0.186.1"
   },
   "devDependencies": {

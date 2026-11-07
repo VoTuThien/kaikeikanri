@@ -31,6 +31,7 @@ import { FundListPage } from './pages/fund/FundListPage'
 import { FundSettingsPage } from './pages/fund/FundSettingsPage'
 import { HistoryPage } from './pages/fund/HistoryPage'
 import { TransactionPage } from './pages/fund/TransactionPage'
+import { ReceiptPage } from './pages/fund/ReceiptPage'
 import { TransferPage } from './pages/fund/TransferPage'
 import { OrderListPage } from './pages/fund/OrderListPage'
 import { OrderFormPage } from './pages/fund/OrderFormPage'
@@ -107,6 +108,7 @@ function AppRoutes({ location }: { location?: string }) {
         <Route path="groups/:id/tx" element={<FundActionPage />} />
         <Route path="deposit" element={<TransactionPage kind="deposit" />} />
         <Route path="withdraw" element={<TransactionPage kind="withdraw" />} />
+        <Route path="receipt" element={<ReceiptPage />} />
         <Route path="transfer" element={<TransferPage />} />
         <Route path="salary" element={<SalaryPage />} />
         <Route path="orders" element={<OrderListPage />} />

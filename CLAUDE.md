@@ -93,6 +93,16 @@ Dữ liệu gia đình (xem `src/pages/family/data/api.ts`):
   Form tạo / sửa có ô "Số thứ tự" (`NumberField`, cạnh ô tên); thêm / đổi số / xoá / kéo thả đều đánh số lại mọi quỹ cùng 1 batch. Quỹ cũ chưa có số thì xếp theo lúc tạo.
   Tạo các nhóm quỹ (chi tiêu hàng tháng, quỹ cho con, quỹ du lịch…). Nhóm quỹ có thể có **lãi suất**; khi có lãi suất thì số dư tự tăng theo **lãi kép hàng tháng**.
   Ô check **"Đã chuyển đi"** (`transferred`): tiền của quỹ không còn trong tài khoản nên **không tính vào tổng số dư** ở màn hình app Quỹ (thẻ quỹ hiện số dư gạch ngang)
+- [x] **Đọc hoá đơn** (`/fund/receipt`, `ReceiptPage`): chạm khung ảnh để chụp / chọn ảnh hoá đơn → **đọc chữ NGAY TRÊN MÁY bằng Tesseract.js**
+  (miễn phí, ảnh không gửi đi đâu; `data/receipt.ts`) → tách dữ liệu (`data/receiptParse.ts`, `parseReceipt`) và **điền sẵn form RÚT QUỸ**: số tiền
+  (ưu tiên dòng "tổng cộng / tổng tiền / thanh toán / phải trả / total" hoặc dòng ngay dưới, bỏ "tiền mặt / khách đưa / tiền thừa / giảm giá / VAT", bỏ số trên dòng SĐT / MST),
+  ngày (dd/mm/yyyy…, "ngày .. tháng .. năm", không lấy ngày tương lai), ghi chú "Hoá đơn <tên cửa hàng>". Đọc sai thì chạm số khác ở hàng "Số tiền tìm thấy"
+  (tối đa 4 số) hoặc sửa tay; "Xem chữ đọc được" mở chữ thô. FAB check rút như màn hình Rút quỹ (`addTransaction`), xong thì dọn form cho hoá đơn tiếp theo.
+  Ảnh được thu nhỏ (cạnh dài ≤ 1800px), chuyển xám + kéo giãn tương phản trước khi đọc; rời màn hình thì tắt worker (`stopOcr`).
+  **File Tesseract tự host** ở `public/tesseract/` (worker, lõi WASM bản LSTM thường / SIMD, `vie.traineddata.gz` best_int), chép từ `node_modules`
+  bằng `scripts/copy-tesseract.mjs` (chạy tự động ở `predev` / `prebuild`, thư mục bị gitignore); **không đưa vào precache** của PWA
+  (`globIgnores`), chỉ tải lần đầu mở màn hình (~5MB) rồi lưu bằng runtime cache `CacheFirst`. Thư viện được import động.
+  **Không dùng regex lookbehind** trong phần tách dữ liệu (iOS 15.1 lỗi cú pháp).
 - [x] Nạp vào quỹ (`/fund/deposit`)
 - [x] Rút từ quỹ (`/fund/withdraw`)
 - [x] Chuyển quỹ (`/fund/transfer`): chuyển tiền từ quỹ A sang quỹ B (giao diện giống nạp / rút, có 2 ô chọn "Từ quỹ" / "Sang quỹ",

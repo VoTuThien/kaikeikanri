@@ -6,18 +6,19 @@ import { Skeleton } from '../../components/ui/Skeleton'
 import { SIZE } from '../../components/ui/sizes'
 import { useFund } from './data/FundContext'
 
-// 10 ô chức năng xếp lưới 3 cột (Cài đặt trải hết hàng cuối) cho vừa màn hình iPhone; chữ gợi ý ngắn để không bị cắt
+// 11 ô chức năng xếp lưới 3 cột (Cài đặt trải 2 cột ở hàng cuối) cho vừa màn hình iPhone; chữ gợi ý ngắn để không bị cắt
 const FEATURES: Feature[] = [
   { icon: '🔍', label: 'Tra cứu', hint: 'Lịch sử', to: '/fund/history' },
   { icon: '📊', label: 'Thống kê', hint: 'Số dư theo tháng', to: '/fund/stats' },
   { icon: '➖', label: 'Rút quỹ', hint: 'Lấy tiền ra', to: '/fund/withdraw' },
+  { icon: '🧾', label: 'Đọc hoá đơn', hint: 'Chụp để rút', to: '/fund/receipt' },
   { icon: '➕', label: 'Nạp quỹ', hint: 'Thêm tiền', to: '/fund/deposit' },
   { icon: '🔄', label: 'Chuyển quỹ', hint: 'Giữa 2 quỹ', to: '/fund/transfer' },
   { icon: '💼', label: 'Lương', hint: 'Ngày nhận, quỹ', to: '/fund/salary' },
   { icon: '📝', label: 'Lệnh chuyển', hint: 'Soạn sẵn', to: '/fund/orders' },
   { icon: '🚀', label: 'Thực thi', hint: 'Theo tháng', to: '/fund/execute' },
   { icon: '🗂️', label: 'Nhóm quỹ', hint: 'Tạo, sửa quỹ', to: '/fund/groups' },
-  { icon: '⚙️', label: 'Cài đặt', hint: 'Tuỳ chỉnh app Quỹ', to: '/fund/settings', wide: true },
+  { icon: '⚙️', label: 'Cài đặt', hint: 'Tuỳ chỉnh app Quỹ', to: '/fund/settings', wide: 2 },
 ]
 
 const GRID = 'grid grid-cols-3 gap-3'

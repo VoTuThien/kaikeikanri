@@ -19,6 +19,16 @@ export default defineConfig({
       workbox: {
         // Lưu sẵn cả ảnh (gồm icon 3D trong public/icons3d) để app dùng được khi mất mạng
         globPatterns: ['**/*.{js,css,html,svg,png,webp}'],
+        // Bộ đọc chữ hoá đơn (Tesseract.js, ~13MB) không tải sẵn khi cài app: chỉ tải lần đầu mở màn hình Đọc hoá đơn,
+        // rồi lưu lại trong máy (CacheFirst) để lần sau đọc được cả khi mất mạng
+        globIgnores: ['tesseract/**'],
+        runtimeCaching: [
+          {
+            urlPattern: ({ url }) => url.pathname.startsWith('/tesseract/'),
+            handler: 'CacheFirst',
+            options: { cacheName: 'tesseract', expiration: { maxEntries: 10 } },
+          },
+        ],
       },
       includeAssets: ['apple-touch-icon-v2.png', 'icon-v2.svg'],
       manifest: {

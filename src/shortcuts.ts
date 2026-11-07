@@ -16,6 +16,7 @@ export const SHORTCUTS: ShortcutEntry[] = [
   { id: 'fund-history', appId: 'fund', name: 'Tra cứu', icon: '🔍', path: '/fund/history' },
   { id: 'fund-stats', appId: 'fund', name: 'Thống kê', icon: '📊', path: '/fund/stats' },
   { id: 'fund-withdraw', appId: 'fund', name: 'Rút quỹ', icon: '➖', path: '/fund/withdraw' },
+  { id: 'fund-receipt', appId: 'fund', name: 'Đọc hoá đơn', icon: '🧾', path: '/fund/receipt' },
   { id: 'fund-deposit', appId: 'fund', name: 'Nạp quỹ', icon: '➕', path: '/fund/deposit' },
   { id: 'fund-transfer', appId: 'fund', name: 'Chuyển quỹ', icon: '🔄', path: '/fund/transfer' },
   { id: 'fund-salary', appId: 'fund', name: 'Lương', icon: '💼', path: '/fund/salary' },

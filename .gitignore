@@ -6,3 +6,6 @@ dev-dist
 *.local
 *.tsbuildinfo
 .firebase
+
+# Tesseract.js (chép từ node_modules khi dev / build, xem scripts/copy-tesseract.mjs)
+public/tesseract
