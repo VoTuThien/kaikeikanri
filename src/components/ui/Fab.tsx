@@ -54,15 +54,18 @@ export function LineIcon({ icon, className = 'h-7 w-7' }: { icon: FabIcon; class
   )
 }
 
-type Variant = 'primary' | 'secondary' | 'danger'
+// primary: chức năng chính (tím); secondary: chức năng phụ (xanh dương); danger: xoá; gray: CHỈ dùng cho nút đăng xuất
+type Variant = 'primary' | 'secondary' | 'danger' | 'gray'
 
 const VARIANTS: Record<Variant, string> = {
-  primary: 'bg-gradient-to-br from-fuchsia-500 to-indigo-500 shadow-fuchsia-900/50',
-  secondary: 'bg-slate-500/70 backdrop-blur-xl shadow-black/40',
-  danger: 'bg-rose-500 shadow-rose-900/50',
+  primary: 'bg-gradient-to-br from-fuchsia-500/80 to-indigo-500/80 shadow-fuchsia-900/50',
+  secondary: 'bg-gradient-to-br from-sky-400/75 to-blue-600/80 shadow-blue-900/50',
+  danger: 'bg-gradient-to-br from-rose-400/80 to-rose-600/85 shadow-rose-900/50',
+  gray: 'bg-gradient-to-br from-slate-400/60 to-slate-600/70 shadow-black/40',
 }
 
-const BASE = `${FAB_SIZE} flex shrink-0 items-center justify-center rounded-full shadow-lg transition hover:brightness-110 active:scale-90 disabled:opacity-60`
+// Kính: nền gradient bán trong suốt + làm mờ phía sau + viền mảnh sáng + vệt sáng mép trên
+const BASE = `${FAB_SIZE} flex shrink-0 items-center justify-center rounded-full border border-white/30 shadow-lg inset-shadow-[0_1px_0_rgba(255,255,255,0.45)] backdrop-blur-xl transition hover:brightness-110 active:scale-90 disabled:opacity-60`
 
 // Nhóm FAB: nhiều nút thì xếp HÀNG NGANG, nút chính đặt cuối (nằm sát góc phải).
 // `bottom`: đặt nhóm cao hơn góc dưới (vd nằm ngay trên khay thẻ của Time line để không che khay), dùng `raisedAbove`.

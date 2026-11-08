@@ -136,6 +136,7 @@ export function EditableList({
   onCommit,
   onDelete,
   suggest,
+  status,
 }: {
   rows: EditRow[]
   idPrefix: string
@@ -146,6 +147,7 @@ export function EditableList({
   onCommit?: (key: string) => void // rời ô nhập (vd lưu nội dung ở Thẻ ghi chú)
   onDelete: (key: string) => void | Promise<void>
   suggest?: (key: string, text: string) => string[]
+  status?: (key: string) => { done: boolean; byName: string } | null // trạng thái của thẻ (null = thẻ mới, chưa có trạng thái)
 }) {
   const [openKey, setOpenKey] = useState<string | null>(null)
   const [active, setActive] = useState<string | null>(null)
@@ -176,6 +178,7 @@ export function EditableList({
       {rows.map((r, i) => {
         const dragging = reorder.isDragging(i)
         const tips = suggest && active === r.key && !reorder.dragging ? suggest(r.key, r.text).slice(0, SUGGEST_LIMIT) : []
+        const state = status?.(r.key) ?? null
         return (
           <div
             key={r.key}
@@ -221,7 +224,7 @@ export function EditableList({
                     id={`${idPrefix}-text-${r.key}`}
                     label={`Nội dung thẻ ${i + 1}`}
                     hideLabel
-                    className={TEXT}
+                    className={`${TEXT} ${state?.done ? '!text-white/50 line-through' : ''}`}
                     placeholder={placeholder}
                     autoComplete="off"
                     enterKeyHint="done"
@@ -244,6 +247,17 @@ export function EditableList({
                     }}
                   />
                 </div>
+                {/* Trạng thái của thẻ: vòng xanh có dấu check = đã xong, vòng rỗng = chưa xong */}
+                {state && (
+                  <span
+                    role="img"
+                    aria-label={state.done ? `Đã xong${state.byName ? ` bởi ${state.byName}` : ''}` : 'Chưa xong'}
+                    title={state.done ? `Đã xong${state.byName ? ` bởi ${state.byName}` : ''}` : 'Chưa xong'}
+                    className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 ${state.done ? 'border-emerald-300 bg-emerald-400' : 'border-white/40'}`}
+                  >
+                    {state.done && <LineIcon icon="save" className="h-4 w-4" />}
+                  </span>
+                )}
               </div>
             </SwipeActions>
             {/* Gợi ý từ các thẻ đã từng nhập (theo thứ tự ưu tiên ở màn hình Thẻ ghi chú) */}

@@ -116,6 +116,62 @@ export async function updateNote(
   await commit(batch.commit())
 }
 
+/**
+ * Tạo ghi chú mới từ các nội dung CHƯA XONG của ghi chú `sourceId` (1 transaction): `rows` có key = id thẻ của ghi chú cũ thì CHUYỂN thẻ đó sang
+ * (giữ các lần nạp / rút, lấy nội dung đã sửa), key khác là thẻ mới. Thẻ vừa được đánh dấu xong trong lúc soạn thì ở lại ghi chú cũ.
+ * `ids` = các ghi chú của người nhận theo thứ tự hiện tại; thông báo của ghi chú cũ cập nhật lại "Hoàn thành" (còn lại toàn thẻ đã xong).
+ */
+export async function moveItemsToNewNote(
+  sourceId: string,
+  name: string,
+  rows: { key: string; text: string }[],
+  by: Actor,
+  cards: NoteCard[],
+  ids: string[],
+  position: number,
+) {
+  const sourceRef = doc(notesCol(), sourceId)
+  const ref = doc(notesCol())
+  await commit(
+    runTransaction(requireDb(), async (tx) => {
+      const snap = await tx.get(sourceRef)
+      if (!snap.exists()) throw new Error('Ghi chú cũ không còn.')
+      const notice = await tx.get(doc(notificationsCol(), noteNoticeId(sourceId)))
+      const data = snap.data()
+      const old = (data.items ?? []) as NoteItem[]
+      const byId = new Map(old.map((i) => [i.id, i]))
+      const items: NoteItem[] = rows.flatMap((r) => {
+        const prev = byId.get(r.key)
+        if (prev?.done) return []
+        return [prev ? { ...prev, text: r.text } : { id: r.key, text: r.text, done: false, doneByName: '', money: [] }]
+      })
+      if (items.length === 0) throw new Error('Ghi chú mới không còn nội dung để chuyển.')
+      const moved = new Set(items.map((i) => i.id))
+      const rest = old.filter((i) => !moved.has(i.id))
+      if (rest.length === 0) throw new Error('Ghi chú cũ sẽ không còn nội dung nào.')
+
+      const order = insertAt(ids, ref.id, position)
+      for (const id of ids) tx.update(doc(notesCol(), id), { position: order.indexOf(id) + 1 })
+      tx.update(sourceRef, { items: rest })
+      if (notice.exists()) tx.update(notice.ref, { done: noteDone({ items: rest }) })
+      tx.set(ref, {
+        name,
+        position: order.indexOf(ref.id) + 1,
+        toUid: data.toUid,
+        toName: data.toName,
+        fromUid: by.uid,
+        fromName: by.name,
+        items,
+        createdAt: serverTimestamp(),
+      })
+      if (data.toUid !== by.uid) setNoteNotice(tx, { id: ref.id, name, toUid: data.toUid, fromUid: by.uid, fromName: by.name })
+      newTexts(items.map((i) => i.text), cards).forEach((text, i) => {
+        tx.set(doc(noteCardsCol()), { text, position: cards.length + i + 1, createdAt: serverTimestamp(), createdBy: by.uid })
+      })
+    }),
+  )
+}
+
 // Lưu các thẻ có nội dung mới vào Thẻ ghi chú, thêm vào cuối danh sách gợi ý
 function addNewCards(batch: WriteBatch, texts: string[], cards: NoteCard[], by: Actor) {
   newTexts(texts, cards).forEach((text, i) => {

@@ -1,4 +1,4 @@
-import { collection, doc, onSnapshot, serverTimestamp, updateDoc, type Timestamp, type WriteBatch } from 'firebase/firestore'
+import { collection, doc, onSnapshot, serverTimestamp, updateDoc, type Timestamp, type DocumentData, type DocumentReference, type WriteBatch } from 'firebase/firestore'
 import { useAuth } from '../contexts/AuthContext'
 import { useFamily } from '../contexts/FamilyContext'
 import { requireFamily } from './family'
@@ -108,7 +108,7 @@ export function useNotices(): { list: Notice[]; active: number } {
 
 // Gửi ghi chú cho thành viên khác: tạo thông báo cho người nhận (chưa xong)
 export function setNoteNotice(
-  batch: WriteBatch,
+  batch: { set: (ref: DocumentReference, data: DocumentData) => unknown }, // WriteBatch hoặc Transaction
   note: { id: string; name: string; toUid: string; fromUid: string; fromName: string },
   done = false,
 ) {

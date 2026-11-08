@@ -231,7 +231,7 @@ export function LauncherPage() {
           </FabGroup>
         ) : (
           <FabGroup>
-            <Fab icon="logout" label="Đăng xuất" variant="secondary" onClick={logout} />
+            <Fab icon="logout" label="Đăng xuất" variant="gray" onClick={logout} />
             {bubbleHidden && user && <Fab icon="bell" label="Hiện bong bóng thông báo" onClick={() => revealBubble(user.uid)} />}
           </FabGroup>
         )}

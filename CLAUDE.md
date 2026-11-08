@@ -306,6 +306,10 @@ Code: `src/pages/note/` (`components.tsx`: `NoteLayout`, `MemberPicker`, `Editab
   FAB [+ thêm thẻ] [gửi / lưu]: thẻ mới thêm vào cuối, **số thứ tự = tổng số thẻ tính cả thẻ mới**. **Đang gõ thì gợi ý** ngay dưới thẻ từ các Thẻ ghi chú
   (chứa chữ đang gõ, không phân biệt dấu / hoa thường `foldKey`, theo thứ tự ưu tiên, tối đa 4; chưa gõ thì gợi ý các thẻ đầu; bỏ thẻ đã có trong ghi chú).
   Gửi / lưu: bỏ thẻ trống / trùng, ghi chú (chèn đúng số thứ tự, đánh số lại các ghi chú khác của người nhận) + **thẻ có nội dung mới được lưu vào Thẻ ghi chú** (thêm cuối danh sách) cùng 1 batch (`createNote` / `updateNote`).
+  **Khi sửa, mỗi thẻ hiện trạng thái** (vòng xanh có dấu check = đã xong, nội dung gạch ngang; vòng rỗng = chưa xong; prop `status` của `EditableList`).
+  **FAB [nhân bản] "Tạo ghi chú mới từ nội dung chưa hoàn thành"** (chỉ hiện khi ghi chú có cả thẻ đã xong và chưa xong; đang có thay đổi chưa lưu thì báo lưu trước):
+  mở `/note/sent/new?from=id`, danh sách điền sẵn các thẻ chưa xong; lưu bằng `moveItemsToNewNote` (1 transaction): các thẻ còn trong form được **chuyển** sang ghi chú mới
+  (giữ lịch sử nạp / rút), biến mất khỏi ghi chú cũ; thẻ người dùng gỡ khỏi form thì ở lại ghi chú cũ; ghi chú cũ còn toàn thẻ đã xong nên thông báo thành "Hoàn thành".
 - [x] Thẻ ghi chú (`/note/cards`): quản lý thẻ đã từng nhập, **giao diện giống Tạo ghi chú** (`EditableList`); sửa nội dung trực tiếp, **rời ô là lưu**;
   thêm / kéo thả / sửa số / xoá đều đánh số lại cả danh sách. **Không lưu thẻ trùng nội dung** (`sameKey`: bỏ khoảng trắng thừa, không phân biệt hoa thường).
   **Thứ tự ở đây = thứ tự ưu tiên trong danh sách gợi ý** ở Tạo ghi chú.
@@ -410,7 +414,7 @@ Dữ liệu Firestore (xem `src/pages/note/data/api.ts`), thuộc gia đình đa
 - **Khi dùng emoji mới**: thêm emoji vào danh sách `EMOJIS` trong `scripts/fetch-icons3d.mjs` rồi chạy `npm run icons3d` để tải ảnh về. Nếu emoji không có bản 3D, script sẽ báo và `Icon3D` tự hiện emoji thường.
 - Icon nằm trên nền màu (icon app, icon quỹ, huy hiệu...) thì đặt trong **khối nổi 3D**: `BLOCK_3D` + lớp bóng loáng `GLOSS_3D` (`src/components/ui/style3d.ts`). Ô chọn dạng kính dùng `TILE_3D` / `TILE_3D_SELECTED`.
 - Góc nhìn: thẳng từ trên xuống (không nghiêng xéo).
-- Ngoại lệ: chữ trong `<option>` của ô chọn gốc (native select) không hiển thị được ảnh, giữ emoji dạng chữ. Các ký hiệu điều khiển nhỏ (mũi tên quay lại ‹, mũi tên ▾ của ô chọn) không tính là icon.
+- Ngoại lệ: chữ trong `<option>` và chữ trên ô `Select` (lúc chưa mở) giữ emoji dạng chữ. Các ký hiệu điều khiển nhỏ (mũi tên quay lại ‹, mũi tên ▾ của ô chọn) không tính là icon.
 - **Ngoại lệ: icon trên nút nổi (FAB) KHÔNG dùng 3D**, xem mục 10.
 - **Ngoại lệ: icon trong sự kiện TRƯỢT THẺ** (nút hiện ra khi trượt thẻ trong danh sách, vd thùng rác / nhập lại ở Tra cứu) **KHÔNG dùng 3D**:
   dùng icon nét trắng đơn giản giống FAB (`LineIcon` trong `src/components/ui/Fab.tsx`, cùng bộ `ICON_PATHS`; thiếu icon thì vẽ thêm vào `ICON_PATHS`).
@@ -419,7 +423,10 @@ Dữ liệu Firestore (xem `src/pages/note/data/api.ts`), thuộc gia đình đa
 - **Ưu tiên dùng FAB cho các chức năng của màn hình** (thêm, lưu, xoá, sửa...). Màn hình có 1 nút chức năng thì nút đó **bắt buộc là FAB**.
 - FAB: nút **tròn**, nằm **góc phải dưới**, **chỉ có icon, không có chữ** (chữ để trong `label` cho trình đọc màn hình). Dùng `Fab` / `FabLink` / `FabGroup` trong `src/components/ui/Fab.tsx`.
 - **Icon trên FAB là icon nét màu trắng đơn giản** (SVG trong `Fab.tsx`), **không dùng icon 3D**.
-  Nút **không có hiệu ứng 3D** (không khối nổi, không lớp bóng loáng), chỉ có **bóng đổ** để nổi lên trên giao diện.
+  Nút **không có hiệu ứng 3D** (không khối nổi, không lớp bóng loáng), có **bóng đổ** để nổi lên trên giao diện.
+- **Mọi FAB phải có màu GRADIENT và hiệu ứng GLASS** (nền gradient bán trong suốt, `backdrop-blur`, viền mảnh sáng; đã có sẵn trong `Fab` / `FabLink`, không tự viết lại).
+  **Hạn chế màu xám cho các nút chức năng; ưu tiên tím và xanh dương** (hợp với màu nền): `primary` tím cho chức năng chính, `secondary` xanh dương cho chức năng phụ, `danger` đỏ cho xoá.
+  **Màu xám (`gray`) chỉ dùng cho nút đăng xuất.**
 - Icon theo chức năng (`icon=` của `Fab`):
   - Thêm: dấu cộng (`add`)
   - Xoá: thùng rác (`delete`)
@@ -500,3 +507,9 @@ Dữ liệu Firestore (xem `src/pages/note/data/api.ts`), thuộc gia đình đa
   **13–24 giờ (nút ☀️) = chế độ TỐI** (trời sao, tinh vân, sao băng). Đổi nửa ngày: `.td-day` trượt khung trời 2,4s, `.td-light` đổi màu giữa chừng
   (sang sáng sau 1,4s, sang tối sau 0,8s). Màu chữ / số lấy từ biến `--td-*`.
 - Đang dùng: Time line (Bắt đầu / Kết thúc), form thông tin con (Giờ sinh, `clearable`).
+
+### 18. Ô chọn (Select)
+- **Mọi ô chọn dùng `Select`** (`src/components/ui/Select.tsx`), không dùng `<select>` gốc. Cách dùng như `<select>`: `<option>` trong children, đọc `e.target.value` trong `onChange`; skeleton dùng `TextFieldSkeleton`.
+- Ô hiển thị như ô chọn thường; **chạm vào mở popup BÁNH XE HÌNH QUẠT**: lựa chọn xếp quanh hình tròn có tâm ở mép TRÁI popup, popup là khung nhìn nên chỉ lộ 1 phần (đuôi quạt bên trái, cho ngón cái tay phải).
+  **Lựa chọn đang hiện trên quạt thì CHẠM để chọn** (bánh xe quay tới đó rồi đóng popup); **chưa hiện thì KÉO để xoay quạt** (chỉ xoay, không chọn; quán tính tối đa 3 lựa chọn, 2 đầu nặng tay) rồi chạm. Giá trị hiện tại là **cung quạt lồi ra khỏi mép quạt và nổi lên bằng bóng đổ** (`SelectedSector`), xoay cùng quạt; **Huỷ** / chạm nền mờ / Esc để bỏ. Chữ bắt đầu bằng emoji thì hiện icon 3D trong popup.
+- Lúc kéo chỉ đổi style trực tiếp (`paint`), không render lại React. Popup vẽ bằng `createPortal`, có `data-no-swipe`.

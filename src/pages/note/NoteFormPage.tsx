@@ -14,9 +14,9 @@ import { useFamily } from '../../contexts/FamilyContext'
 import type { Member } from '../family/data/api'
 import { useMembers } from '../family/data/useMembers'
 import { EditableList, EditableListSkeleton, LIST_CLASS, recipientLabel, type EditRow } from './components'
-import { createNote, updateNote } from './data/api'
+import { createNote, moveItemsToNewNote, updateNote } from './data/api'
 import { useNote, useNoteDoc, useNotesTo } from './data/NoteContext'
-import { foldKey, MAX_TEXT, sameKey, type Note, type NoteItem } from './data/types'
+import { foldKey, MAX_TEXT, noteTitle, sameKey, type Note, type NoteItem } from './data/types'
 
 // Tạo ghi chú (bước 2): nội dung bên trong 1 ghi chú — tạo mới (/note/sent/new?to=uid) hoặc sửa (/note/sent/:id).
 // Trên cùng: [số thứ tự] [tên ghi chú] (số = ưu tiên giữa các ghi chú của người nhận; tạo mới mặc định đứng cuối).
@@ -38,7 +38,11 @@ export function NoteFormPage() {
   const members = useMembers(useFamily().current?.familyId)
   const { id } = useParams()
   const note = useNoteDoc(id)
-  if (loading || !members || (id && note === undefined)) return <NoteFormPageSkeleton />
+  // Tạo mới từ nội dung chưa xong của 1 ghi chú (?from=id)
+  const [params] = useSearchParams()
+  const fromId = id ? undefined : (params.get('from') ?? undefined)
+  const source = useNoteDoc(fromId)
+  if (loading || !members || (id && note === undefined) || (fromId && source === undefined)) return <NoteFormPageSkeleton />
   if (id && !note) {
     return (
       <PageShell>
@@ -55,16 +59,16 @@ export function NoteFormPage() {
       </PageShell>
     )
   }
-  return <NoteForm key={id ?? 'new'} members={members} note={note ?? null} />
+  return <NoteForm key={id ?? `new-${fromId ?? ''}`} members={members} note={note ?? null} source={source ?? null} />
 }
 
-function NoteForm({ members, note }: { members: Member[]; note: Note | null }) {
+function NoteForm({ members, note, source }: { members: Member[]; note: Note | null; source: Note | null }) {
   const { actor, cards } = useNote()
   const [params] = useSearchParams()
   const navigate = useNavigate()
   const isNew = !note
   // Người nhận: sửa thì theo ghi chú; tạo mới thì theo người đang chọn ở danh sách (?to=), không có thì chính mình
-  const to = members.find((m) => m.uid === (note ? note.toUid : params.get('to'))) ?? members.find((m) => m.uid === actor.uid)
+  const to = members.find((m) => m.uid === (note ? note.toUid : (source?.toUid ?? params.get('to')))) ?? members.find((m) => m.uid === actor.uid)
   const toUid = note?.toUid ?? to?.uid ?? actor.uid
   const toLabel = note && !to ? note.toName : recipientLabel(to, actor.uid)
   const back = `/note/sent?to=${toUid}`
@@ -72,7 +76,11 @@ function NoteForm({ members, note }: { members: Member[]; note: Note | null }) {
   const [name, setName] = useState(note?.name ?? '')
   // Số thứ tự người dùng đã sửa; null = mặc định (tạo mới: đứng cuối; sửa: giữ số hiện tại)
   const [position, setPosition] = useState<number | null>(null)
-  const [rows, setRows] = useState<EditRow[]>(() => (note && note.items.length > 0 ? note.items.map((i) => ({ key: i.id, text: i.text })) : emptyRows()))
+  // Sửa: các thẻ của ghi chú; tạo từ ghi chú khác: các thẻ chưa xong của ghi chú đó (key = id thẻ cũ, lúc lưu sẽ chuyển sang)
+  const [rows, setRows] = useState<EditRow[]>(() => {
+    const initial = note ? note.items : (source?.items.filter((i) => !i.done) ?? [])
+    return initial.length > 0 ? initial.map((i) => ({ key: i.id, text: i.text })) : emptyRows()
+  })
   const [focusKey, setFocusKey] = useState<string | null>(null)
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
@@ -97,6 +105,22 @@ function NoteForm({ members, note }: { members: Member[]; note: Note | null }) {
     return cards
       .filter((c) => !used.has(sameKey(c.text)) && sameKey(c.text) !== sameKey(text) && foldKey(c.text).includes(q))
       .map((c) => c.text)
+  }
+
+  // Trạng thái thẻ theo dữ liệu mới nhất của ghi chú (thẻ vừa thêm chưa lưu thì chưa có trạng thái)
+  const itemById = new Map(note?.items.map((i) => [i.id, i]))
+  function status(key: string) {
+    const item = itemById.get(key)
+    return item ? { done: item.done, byName: item.doneByName } : null
+  }
+
+  // Tạo ghi chú mới từ nội dung chưa xong: chỉ khi có cả thẻ đã xong và chưa xong (nếu không, ghi chú cũ sẽ trống hoặc không có gì để chuyển)
+  const canSplit = !!note && note.items.some((i) => i.done) && note.items.some((i) => !i.done)
+  function split() {
+    if (!note) return
+    const dirty = clean(name) !== clean(note.name) || rows.length !== note.items.length || rows.some((r, i) => r.key !== note.items[i].id || clean(r.text) !== clean(note.items[i].text))
+    if (dirty) return setError('Bạn hãy lưu thay đổi của ghi chú này trước khi tạo ghi chú mới.')
+    navigate(`/note/sent/new?from=${note.id}`)
   }
 
   async function save() {
@@ -126,6 +150,8 @@ function NoteForm({ members, note }: { members: Member[]; note: Note | null }) {
           return prev ? { ...prev, text: r.text } : { id: r.key, text: r.text, done: false, doneByName: '', money: [] }
         })
         await updateNote(note.id, title, items, actor, cards, ids, pos, { toUid: note.toUid, fromUid: note.fromUid, fromName: note.fromName })
+      } else if (source) {
+        await moveItemsToNewNote(source.id, title, kept, actor, cards, ids, pos)
       } else {
         const target = to ?? { uid: actor.uid, name: actor.name, email: '' }
         await createNote(
@@ -141,7 +167,7 @@ function NoteForm({ members, note }: { members: Member[]; note: Note | null }) {
       navigate(back)
     } catch (err) {
       console.error(err)
-      setError('Lưu thất bại. Vui lòng thử lại.')
+      setError(err instanceof Error && err.message.startsWith('Ghi chú') ? err.message : 'Lưu thất bại. Vui lòng thử lại.')
       setSaving(false)
     }
   }
@@ -151,7 +177,7 @@ function NoteForm({ members, note }: { members: Member[]; note: Note | null }) {
       {/* Dòng phụ dưới tiêu đề: người nhận (+ số thẻ đã xong khi sửa) */}
       <AppHeader
         title={isNew ? 'Ghi chú mới' : 'Sửa ghi chú'}
-        subtitle={`Gửi cho: ${toLabel}${note ? ` · ${note.items.filter((i) => i.done).length}/${note.items.length} thẻ đã xong` : ''}`}
+        subtitle={`Gửi cho: ${toLabel}${note ? ` · ${note.items.filter((i) => i.done).length}/${note.items.length} thẻ đã xong` : source ? ` · Chuyển từ: ${noteTitle(source)}` : ''}`}
         backTo={back}
       />
       <GlassPanel className={HEAD_CLASS}>
@@ -191,9 +217,11 @@ function NoteForm({ members, note }: { members: Member[]; note: Note | null }) {
           onChange={(key, text) => setRows((list) => list.map((r) => (r.key === key ? { ...r, text } : r)))}
           onDelete={(key) => setRows((list) => (list.length > 1 ? list.filter((r) => r.key !== key) : emptyRows()))}
           suggest={suggest}
+          status={note ? status : undefined}
         />
       </ScrollArea>
       <FabGroup>
+        {canSplit && <Fab icon="copy" label="Tạo ghi chú mới từ nội dung chưa hoàn thành" variant="secondary" onClick={split} />}
         <Fab icon="add" label="Thêm thẻ" variant="secondary" onClick={add} />
         <Fab icon={isNew ? 'send' : 'save'} label={isNew ? 'Gửi ghi chú' : 'Lưu ghi chú'} loading={saving} onClick={save} />
       </FabGroup>
