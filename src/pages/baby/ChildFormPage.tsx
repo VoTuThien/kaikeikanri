@@ -1,8 +1,9 @@
-import { useRef, useState, type ChangeEvent, type FormEvent } from 'react'
+import { useState, type ChangeEvent, type FormEvent } from 'react'
 import { Navigate, useNavigate, useParams } from 'react-router-dom'
 import { AppHeader, AppHeaderSkeleton } from '../../components/AppHeader'
 import { FIT_CLASS, PageShell } from '../../components/PageShell'
 import { Alert } from '../../components/ui/Alert'
+import { ImagePicker } from '../../components/ui/ImagePicker'
 import { FabSkeleton, SaveDeleteFabs } from '../../components/ui/Fab'
 import { GlassPanel } from '../../components/ui/GlassPanel'
 import { Icon3D } from '../../components/ui/Icon3D'
@@ -52,7 +53,6 @@ function ChildForm({ child }: { child?: Child }) {
   const avatar = child?.avatar ?? CHILD_AVATARS[0]
   const [photo, setPhoto] = useState<string | null>(child?.photo ?? null)
   const [processing, setProcessing] = useState(false)
-  const fileRef = useRef<HTMLInputElement>(null)
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
@@ -114,11 +114,9 @@ function ChildForm({ child }: { child?: Child }) {
         <form id={FORM_ID} onSubmit={handleSubmit} className={FORM_CLASS} noValidate>
           {/* Avatar tròn: chạm để chọn / đổi ảnh; chưa có ảnh thì hiện camera. Bên cạnh là tên + tuổi xem trước */}
           <div className={PREVIEW}>
-            <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={pickPhoto} />
-            <button
-              type="button"
-              onClick={() => fileRef.current?.click()}
-              aria-label={photo ? 'Đổi ảnh của con' : 'Chọn ảnh của con'}
+            <ImagePicker
+              label={photo ? 'Đổi ảnh của con' : 'Chọn ảnh của con'}
+              onChange={pickPhoto}
               className={`${AVATAR} relative shrink-0 rounded-full transition active:scale-95`}
             >
               {processing ? (
@@ -132,7 +130,7 @@ function ChildForm({ child }: { child?: Child }) {
                   <Icon3D emoji="📷" className="h-10 w-10" />
                 </span>
               )}
-            </button>
+            </ImagePicker>
             <span className="min-w-0 flex-1">
               <span className="block truncate text-base leading-6 font-semibold">
                 {name.trim() || 'Tên của con'}

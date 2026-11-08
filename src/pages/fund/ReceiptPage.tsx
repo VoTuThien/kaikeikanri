@@ -1,8 +1,9 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { createPortal } from 'react-dom'
 import { AppHeader, AppHeaderSkeleton } from '../../components/AppHeader'
 import { FIT_CLASS, PageShell } from '../../components/PageShell'
 import { Alert } from '../../components/ui/Alert'
+import { ImagePicker } from '../../components/ui/ImagePicker'
 import { FAB_SPACE, Fab, FabGroup, FabSkeleton } from '../../components/ui/Fab'
 import { GlassPanel } from '../../components/ui/GlassPanel'
 import { Icon3D } from '../../components/ui/Icon3D'
@@ -63,7 +64,6 @@ export function ReceiptPage() {
 
 function ReceiptForm() {
   const { actor, funds, showMoney } = useFund()
-  const fileRef = useRef<HTMLInputElement>(null)
   const [preview, setPreview] = useState<string | null>(null)
   const [reading, setReading] = useState<OcrProgress | null>(null)
   const [text, setText] = useState('')
@@ -157,28 +157,20 @@ function ReceiptForm() {
         {/* Mỗi ô 1 dòng nên form dài: cuộn trong khung, chừa chỗ cuối cho nút nổi để ô Ghi chú không bị che */}
         <form id={FORM_ID} onSubmit={handleSubmit} className={`space-y-3 ${FAB_SPACE}`} noValidate>
           {/* Ảnh hoá đơn: chạm để chụp / chọn ảnh (thư viện hoặc máy ảnh) */}
-          <input
-            ref={fileRef}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={(e) => {
-              void onFile(e.target.files?.[0])
-              e.target.value = '' // chọn lại cùng 1 ảnh vẫn đọc lại
-            }}
-          />
           <div className={`${PHOTO} flex items-center gap-3`}>
-            <button
-              type="button"
+            <ImagePicker
+              label={preview ? 'Chụp / chọn hoá đơn khác' : 'Chụp / chọn ảnh hoá đơn'}
               disabled={!!reading}
-              onClick={() => fileRef.current?.click()}
-              aria-label={preview ? 'Chụp / chọn hoá đơn khác' : 'Chụp / chọn ảnh hoá đơn'}
+              onChange={(e) => {
+                void onFile(e.target.files?.[0])
+                e.target.value = '' // chọn lại cùng 1 ảnh vẫn đọc lại
+              }}
               className={`flex h-24 w-[4.5rem] shrink-0 items-center justify-center overflow-hidden rounded-xl transition active:scale-95 ${
                 preview ? 'border border-white/30' : 'border-2 border-dashed border-white/40 bg-white/5'
               }`}
             >
               {preview ? <img src={preview} alt="Ảnh hoá đơn" className="block h-full w-full object-cover" /> : <Icon3D emoji="📷" className="h-9 w-9" />}
-            </button>
+            </ImagePicker>
             <div className="min-w-0 flex-1 space-y-1.5">
               {reading ? (
                 <>

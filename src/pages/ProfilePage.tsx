@@ -1,9 +1,10 @@
-import { useRef, useState, type ChangeEvent, type FormEvent } from 'react'
+import { useState, type ChangeEvent, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AppHeader, AppHeaderSkeleton } from '../components/AppHeader'
 import { Avatar } from '../components/Avatar'
 import { FIT_CLASS, PageShell } from '../components/PageShell'
 import { Alert } from '../components/ui/Alert'
+import { ImagePicker } from '../components/ui/ImagePicker'
 import { Fab, FabGroup, FabSkeleton } from '../components/ui/Fab'
 import { GlassPanel } from '../components/ui/GlassPanel'
 import { Segmented, SegmentedSkeleton } from '../components/ui/Segmented'
@@ -41,7 +42,6 @@ function ProfileForm({ uid, email, displayName, profile }: { uid: string; email:
   const [job, setJob] = useState(profile?.job ?? '')
   const [photo, setPhoto] = useState<string | null>(profile?.photo ?? null)
   const [processing, setProcessing] = useState(false)
-  const fileRef = useRef<HTMLInputElement>(null)
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
 
@@ -88,11 +88,9 @@ function ProfileForm({ uid, email, displayName, profile }: { uid: string; email:
         <form id={FORM_ID} onSubmit={handleSubmit} className={FORM_CLASS} noValidate>
           {/* Avatar tròn: chạm để chọn / đổi ảnh; chưa có ảnh thì hiện 2 chữ cái. Bên cạnh là tên + thông tin xem trước */}
           <div className={PREVIEW}>
-            <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={pickPhoto} />
-            <button
-              type="button"
-              onClick={() => fileRef.current?.click()}
-              aria-label={photo ? 'Đổi ảnh đại diện' : 'Chọn ảnh đại diện'}
+            <ImagePicker
+              label={photo ? 'Đổi ảnh đại diện' : 'Chọn ảnh đại diện'}
+              onChange={pickPhoto}
               className={`${AVATAR} relative shrink-0 rounded-full transition active:scale-95`}
             >
               {processing ? (
@@ -102,7 +100,7 @@ function ProfileForm({ uid, email, displayName, profile }: { uid: string; email:
               ) : (
                 <Avatar uid={uid} name={name || email} photo={photo} size={`${AVATAR} text-2xl`} />
               )}
-            </button>
+            </ImagePicker>
             <span className="min-w-0 flex-1">
               <span className="block truncate text-base leading-6 font-semibold">
                 {name.trim() || 'Tên của bạn'}

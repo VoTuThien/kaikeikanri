@@ -508,6 +508,9 @@ Dữ liệu Firestore (xem `src/pages/note/data/api.ts`), thuộc gia đình đa
   (sang sáng sau 1,4s, sang tối sau 0,8s). Màu chữ / số lấy từ biến `--td-*`.
 - Đang dùng: Time line (Bắt đầu / Kết thúc), form thông tin con (Giờ sinh, `clearable`).
 
+### 19. Chọn / chụp ảnh
+- **Mọi chỗ chọn ảnh dùng `ImagePicker`** (`src/components/ui/ImagePicker.tsx`): ô chọn tệp gốc trong suốt phủ lên nội dung để ngón tay chạm thẳng vào. **Không dùng `<input className="hidden">` + `input.click()`** (iOS 15.1 có lúc không bật bảng Thư viện ảnh / Chụp ảnh / Chọn tệp).
+
 ### 18. Ô chọn (Select)
 - **Mọi ô chọn dùng `Select`** (`src/components/ui/Select.tsx`), không dùng `<select>` gốc. Cách dùng như `<select>`: `<option>` trong children, đọc `e.target.value` trong `onChange`; skeleton dùng `TextFieldSkeleton`.
 - Ô hiển thị như ô chọn thường; **chạm vào mở popup BÁNH XE HÌNH QUẠT**: lựa chọn xếp quanh hình tròn có tâm ở mép TRÁI popup, popup là khung nhìn nên chỉ lộ 1 phần (đuôi quạt bên trái, cho ngón cái tay phải).
