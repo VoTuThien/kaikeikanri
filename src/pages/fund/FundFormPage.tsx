@@ -19,10 +19,10 @@ import { nextInterestDate, projectBalance } from './data/interest'
 import type { Fund } from './data/types'
 
 const ICONS = [
-  '💰', '🏠', '👶', '✈️', '🎓', '🚗',
+  '💰', '🏠', '🦔', '✈️', '🎓', '🚗',
   '🏥', '🎁', '🛒', '💍', '📈', '🐷',
-  // Hiếu hỉ (ông bà), lì xì Tết, sinh nhật, ăn uống, thú cưng, hoá đơn
-  '👴', '🧧', '🎂', '🍜', '🐶', '🧾',
+  // May mắn, lì xì Tết, sinh nhật, ăn uống, thú cưng, hoá đơn
+  '🍀', '🧧', '🎂', '🍜', '🐶', '🧾',
 ]
 const COLORS = [
   'from-amber-400 to-orange-500',
