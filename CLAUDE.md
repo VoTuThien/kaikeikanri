@@ -102,11 +102,11 @@ Dữ liệu gia đình (xem `src/pages/family/data/api.ts`):
   (ưu tiên dòng "tổng cộng / tổng tiền / thanh toán / phải trả / total" hoặc dòng ngay dưới, bỏ "tiền mặt / khách đưa / tiền thừa / giảm giá / VAT", bỏ số trên dòng SĐT / MST),
   ngày (dd/mm/yyyy…, "ngày .. tháng .. năm", không lấy ngày tương lai), ghi chú "Hoá đơn <tên cửa hàng>". Đọc sai thì chạm số khác ở hàng "Số tiền tìm thấy"
   (tối đa 4 số) hoặc sửa tay; "Xem chữ đọc được" mở chữ thô. FAB check rút như màn hình Rút quỹ (`addTransaction`), xong thì dọn form cho hoá đơn tiếp theo.
-  Ảnh được thu nhỏ (cạnh dài ≤ 1800px), chuyển xám + kéo giãn tương phản trước khi đọc; rời màn hình thì tắt worker (`stopOcr`).
+  Ảnh được thu nhỏ (cạnh dài ≤ 1800px; đã thử 2400px và phóng to ảnh nhỏ thì đọc KÉM hơn), chuyển xám + kéo giãn tương phản trước khi đọc; rời màn hình thì tắt worker (`stopOcr`).
   **File Tesseract tự host** ở `public/tesseract/` (worker, lõi WASM bản LSTM thường / SIMD, `vie.traineddata.gz` best_int), chép từ `node_modules`
   bằng `scripts/copy-tesseract.mjs` (chạy tự động ở `predev` / `prebuild`, thư mục bị gitignore); **không đưa vào precache** của PWA
   (`globIgnores`), chỉ tải lần đầu mở màn hình (~5MB) rồi lưu bằng runtime cache `CacheFirst`. Thư viện được import động.
-  **Không dùng regex lookbehind** trong phần tách dữ liệu (iOS 15.1 lỗi cú pháp).
+  **Không dùng regex lookbehind** trong phần tách dữ liệu (iOS 15.1 lỗi cú pháp). Dấu phân cách hàng nghìn bị đọc nhầm (`55/000`) được sửa ở `fixMoney`.
   **Ô "Loại hoá đơn"** (`RECEIPT_KINDS`, nhớ lựa chọn ở localStorage `receipt-kind`, mặc định **Bách Hoá Xanh**; đổi loại thì tách lại chữ đã đọc, không đọc ảnh lại):
   - **BHX** (`parseBhx`, "PHIẾU THANH TOÁN BÁCH HÓA XANH"): bảng từ dòng tiêu đề "SL / Giá bán / Thành tiền" tới dòng "Phải thanh toán";
     mỗi sản phẩm = dòng tên (có thể nhiều dòng) + dòng số liệu "SL … thành tiền"; **chỉ lấy tên, SL (lẻ được, "0,274") và thành tiền**, bỏ cột giá bán.

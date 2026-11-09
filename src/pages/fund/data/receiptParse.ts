@@ -62,12 +62,18 @@ function fixDigits(line: string) {
   return s.replace(/(\d)\s*([.,])\s+(\d{3})(?!\d)/g, '$1$2$3').replace(/(\d)\s+([.,])(\d{3})(?!\d)/g, '$1$2$3')
 }
 
+// Số tiền: OCR hay đọc nhầm dấu phân cách hàng nghìn thành / : ; ' ` _ | ("55/000" -> "55,000"). Chỉ sửa khi sau dấu là đúng 3 chữ số,
+// nên ngày "07/11/2026" và giờ "18:49" không bị ảnh hưởng. Không dùng cho phần tìm ngày.
+function fixMoney(line: string) {
+  return fixDigits(line.replace(/(\d)\s?[/:;'`´‘’_|]\s?(?=\d{3}(?!\d))/g, '$1,'))
+}
+
 // Dòng thông tin liên hệ / mã số: số trên dòng này không phải tiền
 const CONTACT = ['sdt', 'dt:', 'dt ', 'tel', 'hotline', 'mst', 'ma so thue', 'so hd', 'so hoa don', 'ma hd', 'stk', 'tai khoan']
 
 // Các số tiền trong 1 dòng: "125.000", "125,000", "125 000", "1.250.000đ", "125000", "125k"
 export function moneyIn(raw: string): number[] {
-  const line = fixDigits(raw)
+  const line = fixMoney(raw)
   const out: number[] = []
   // "125k" / "1.5k"
   for (const m of line.matchAll(/(\d+(?:[.,]\d+)?)\s*k\b/gi)) {
@@ -192,7 +198,7 @@ function parseBhx(text: string, today: Date): ReceiptData {
   const items: ReceiptItem[] = []
   let name: string[] = []
   for (let i = head + 1; i < end; i++) {
-    const line = fixDigits(lines[i])
+    const line = fixMoney(lines[i])
     const m = line.match(ITEM_ROW)
     // Dòng số liệu: có SL ở đầu + thành tiền ở cuối, và có "VAT" hoặc ít nhất 1 số ở giữa (giá bán)
     if (m && (/vat/i.test(m[2]) || /\d/.test(m[2]))) {
@@ -236,7 +242,7 @@ function parseKiotViet(text: string, today: Date): ReceiptData {
   const items: ReceiptItem[] = []
   let name: string[] = []
   for (let i = head + 1; i < end; i++) {
-    const m = fixDigits(lines[i]).match(KV_ROW)
+    const m = fixMoney(lines[i]).match(KV_ROW)
     if (m) {
       const amount = Number(m[3].replace(/\D/g, ''))
       if (amount > 0) items.push({ name: [...name, m[1]].join(' ').trim(), qty: parseQty(m[2]), amount })
