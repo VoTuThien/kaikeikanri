@@ -8,9 +8,10 @@
 import { MAX_MONEY } from '../../../lib/format'
 
 // Loại hoá đơn: mỗi loại có cách tách riêng (chọn ở ô "Loại hoá đơn" của màn hình Đọc hoá đơn)
-export type ReceiptKind = 'general' | 'bhx'
+export type ReceiptKind = 'general' | 'bhx' | 'kiotviet'
 export const RECEIPT_KINDS: { value: ReceiptKind; label: string; store: string }[] = [
   { value: 'bhx', label: 'Bách Hoá Xanh (BHX)', store: 'Bách Hoá Xanh' },
+  { value: 'kiotviet', label: 'KiotViet', store: '' },
   { value: 'general', label: 'Hoá đơn khác', store: '' },
 ]
 
@@ -132,6 +133,7 @@ const toLines = (text: string) =>
 
 export function parseReceipt(text: string, today = new Date(), kind: ReceiptKind = 'general'): ReceiptData {
   if (kind === 'bhx') return parseBhx(text, today)
+  if (kind === 'kiotviet') return parseKiotViet(text, today)
   const lines = toLines(text)
 
   // Chấm điểm từng số tiền theo từ khoá của dòng chứa nó (và dòng ngay trên, vì nhiều hoá đơn để số ở dòng dưới chữ "Tổng cộng")
@@ -213,6 +215,49 @@ function parseBhx(text: string, today: Date): ReceiptData {
   const amounts = [...new Set([total, sum].filter((v) => v > 0))]
 
   return { amounts, date: pickDate(lines, today), store: 'Bách Hoá Xanh', items }
+}
+
+// ---- Hoá đơn in từ phần mềm KiotViet ("Powered by KiotViet", vd quán cà phê) ----
+// Bảng 4 cột "Tên hàng | Đ.Giá | SL | Thành tiền"; mỗi sản phẩm 1 dòng (tên dài có thể xuống dòng):
+//   Trà Lựu Hibiscus     55,000 x 1         55,000
+// Tên cửa hàng = dòng đầu hoá đơn. Số tiền rút = "Tổng Cộng" (đã trừ chiết khấu; không đọc được thì = "Tổng tiền hàng" / tổng thành tiền).
+
+// Tên ... đơn giá [x] SL thành tiền; dấu "x" có thể bị đọc nhầm nên chấp nhận 1 ký tự bất kỳ không phải số
+const KV_ROW = /^(.*?\S)\s+\d{1,3}(?:[.,]\d{3})+\s*[^\d\s]?\s*([0-9lI|]+(?:[.,]\d{1,3})?)\s+(\d{1,3}(?:[.,]\d{3})+|\d{1,7})\s*$/
+
+function parseKiotViet(text: string, today: Date): ReceiptData {
+  const lines = toLines(text)
+  const folded = lines.map(fold)
+  const head = folded.findIndex((l) => l.includes('thanh tien') && (l.includes('ten hang') || l.includes('gia')))
+  const isFooter = (l: string) => /^tong|chiet khau|giam gia|thanh toan|phai tra/.test(l)
+  let end = folded.findIndex((l, i) => i > head && isFooter(l))
+  if (end < 0) end = lines.length
+
+  const items: ReceiptItem[] = []
+  let name: string[] = []
+  for (let i = head + 1; i < end; i++) {
+    const m = fixDigits(lines[i]).match(KV_ROW)
+    if (m) {
+      const amount = Number(m[3].replace(/\D/g, ''))
+      if (amount > 0) items.push({ name: [...name, m[1]].join(' ').trim(), qty: parseQty(m[2]), amount })
+      name = []
+    } else if (/\p{L}/u.test(lines[i])) {
+      name.push(lines[i])
+    }
+  }
+
+  // "Tổng Cộng: 110,000" (ưu tiên hơn "Tổng tiền hàng" vì đã trừ chiết khấu); số có thể nằm ở dòng dưới
+  const moneyAt = (words: string) => {
+    const i = folded.findIndex((l, n) => n >= end && l.includes(words))
+    if (i < 0) return 0
+    const here = moneyIn(lines[i])
+    const next = i + 1 < lines.length ? moneyIn(lines[i + 1]) : []
+    return here[here.length - 1] ?? next[next.length - 1] ?? 0
+  }
+  const total = moneyAt('tong cong') || moneyAt('thanh toan') || moneyAt('tong tien')
+  const amounts = [...new Set([total, itemsTotal(items)].filter((v) => v > 0))]
+
+  return { amounts, date: pickDate(lines, today), store: pickStore(lines), items }
 }
 
 // Tổng thành tiền các sản phẩm, để so với số phải thanh toán (lệch = OCR đọc sót / sai 1 dòng)

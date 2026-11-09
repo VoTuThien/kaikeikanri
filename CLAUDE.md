@@ -111,6 +111,8 @@ Dữ liệu gia đình (xem `src/pages/family/data/api.ts`):
   - **BHX** (`parseBhx`, "PHIẾU THANH TOÁN BÁCH HÓA XANH"): bảng từ dòng tiêu đề "SL / Giá bán / Thành tiền" tới dòng "Phải thanh toán";
     mỗi sản phẩm = dòng tên (có thể nhiều dòng) + dòng số liệu "SL … thành tiền"; **chỉ lấy tên, SL (lẻ được, "0,274") và thành tiền**, bỏ cột giá bán.
     **Số tiền rút = "Phải thanh toán"** (không đọc được thì = tổng thành tiền). Màn hình hiện "n sản phẩm · tổng · khớp / lệch" và "Xem sản phẩm".
+  - **KiotViet** (`parseKiotViet`, "Powered by KiotViet"): bảng "Tên hàng / Đ.Giá / SL / Thành tiền" tới dòng tổng; mỗi sản phẩm 1 dòng "tên đơn giá x SL thành tiền" (lấy tên, SL, thành tiền).
+    **Số tiền rút = "Tổng Cộng"** (không đọc được thì "Tổng tiền hàng" / tổng thành tiền); ghi chú theo tên cửa hàng ở dòng đầu hoá đơn.
   - **Hoá đơn khác**: cách tách chung ở trên (không có danh sách sản phẩm).
   Có danh sách sản phẩm thì **lưu kèm vào giao dịch rút**: `receipt` (loại) + `items` = `[{ name, qty, amount }]` (`addTransaction` tham số `receipt`).
   Thêm loại hoá đơn mới: thêm vào `RECEIPT_KINDS` + hàm tách riêng trong `receiptParse.ts`.
