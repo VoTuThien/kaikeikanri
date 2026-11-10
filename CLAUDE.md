@@ -410,15 +410,17 @@ Dữ liệu Firestore (xem `src/pages/note/data/api.ts`), thuộc gia đình đa
 - **Bên dưới ô luôn hiện số tiền bằng chữ** (`moneyToWords` trong `src/lib/format.ts`, vd "Một triệu năm trăm nghìn đồng"), dòng cao cố định 2 dòng.
   Skeleton của ô tiền phải dùng **`MoneyFieldSkeleton`** (không dùng `TextFieldSkeleton`) để cao bằng ô thật.
 
-### 9. Icon dạng 3D ảnh
-- **Mọi icon trong app phải hiển thị dạng 3D ảnh**: dùng component `Icon3D` (`src/components/ui/Icon3D.tsx`) với emoji tương ứng, vd `<Icon3D emoji="💰" className="h-8 w-8" />`. Không hiển thị emoji dạng chữ, không dùng icon SVG phẳng.
-- Ảnh lấy từ bộ **Microsoft Fluent Emoji 3D** (giấy phép MIT), **đã tải về `public/icons3d/`** (tên file = mã Unicode, bỏ FE0F). App không tải ảnh từ mạng ngoài.
-- **Khi dùng emoji mới**: thêm emoji vào danh sách `EMOJIS` trong `scripts/fetch-icons3d.mjs` rồi chạy `npm run icons3d` để tải ảnh về. Nếu emoji không có bản 3D, script sẽ báo và `Icon3D` tự hiện emoji thường.
+### 9. Icon: bộ icon NÉT ĐƠN SẮC riêng của app
+- **Mọi icon trong app dùng bộ icon nét đơn sắc tự vẽ** (`src/components/ui/Glyph.tsx`, bảng `GLYPHS`): khung 24×24, nét tròn đầu / tròn góc dày 1.8,
+  **không tô màu**, màu = `currentColor` (trắng) nên luôn hợp nền. Linh vật của app là **con nhím** (🦔, cũng là icon của 👶 / app Chăm con).
+- Vẫn gọi qua `Icon3D` (`src/components/ui/Icon3D.tsx`) với emoji, vd `<Icon3D emoji="💰" className="h-8 w-8" />`: emoji (dữ liệu cũ giữ nguyên) được tra sang icon nét;
+  **emoji chưa có trong `GLYPHS` mới hiện ảnh 3D cũ** (Fluent Emoji 3D ở `public/icons3d/`, chỉ còn là dự phòng). Không hiển thị emoji dạng chữ.
+- **Khi dùng emoji mới: vẽ thêm icon nét vào `GLYPHS`** cùng phong cách (đơn giản, ít chi tiết, nhìn rõ ở 16–44px), mở xem trên nền app trước khi dùng.
 - Icon nằm trên nền màu (icon app, icon quỹ, huy hiệu...) thì đặt trong **khối nổi 3D**: `BLOCK_3D` + lớp bóng loáng `GLOSS_3D` (`src/components/ui/style3d.ts`). Ô chọn dạng kính dùng `TILE_3D` / `TILE_3D_SELECTED`.
 - Góc nhìn: thẳng từ trên xuống (không nghiêng xéo).
 - Ngoại lệ: chữ trong `<option>` và chữ trên ô `Select` (lúc chưa mở) giữ emoji dạng chữ. Các ký hiệu điều khiển nhỏ (mũi tên quay lại ‹, mũi tên ▾ của ô chọn) không tính là icon.
-- **Ngoại lệ: icon trên nút nổi (FAB) KHÔNG dùng 3D**, xem mục 10.
-- **Ngoại lệ: icon trong sự kiện TRƯỢT THẺ** (nút hiện ra khi trượt thẻ trong danh sách, vd thùng rác / nhập lại ở Tra cứu) **KHÔNG dùng 3D**:
+- Icon trên nút nổi (FAB) dùng bộ `ICON_PATHS` riêng trong `Fab.tsx`, xem mục 10.
+- **Icon trong sự kiện TRƯỢT THẺ** (nút hiện ra khi trượt thẻ trong danh sách, vd thùng rác / nhập lại ở Tra cứu):
   dùng icon nét trắng đơn giản giống FAB (`LineIcon` trong `src/components/ui/Fab.tsx`, cùng bộ `ICON_PATHS`; thiếu icon thì vẽ thêm vào `ICON_PATHS`).
 
 ### 10. Nút nổi (Floating Action Button - FAB)

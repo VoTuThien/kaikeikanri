@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Glyph, hasGlyph } from './Glyph'
 
 // Ảnh 3D của bộ Microsoft Fluent Emoji (giấy phép MIT), đã tải về public/icons3d/ (xem scripts/fetch-icons3d.mjs).
 // Tên file là mã Unicode của emoji, bỏ ký tự ẩn FE0F. Ví dụ 💰 -> 1f4b0.webp, ⚙️ -> 2699.webp
@@ -12,8 +13,10 @@ interface Icon3DProps {
   className?: string // kích thước, vd "h-8 w-8"
 }
 
-// Icon dạng 3D ảnh: dùng cho MỌI icon trong app (quy ước trong CLAUDE.md)
+// Icon dùng cho MỌI icon trong app (quy ước mục 9 trong CLAUDE.md): ưu tiên icon NÉT ĐƠN SẮC tự vẽ (Glyph.tsx),
+// emoji chưa có icon nét thì mới hiện ảnh 3D cũ
 export function Icon3D(props: Icon3DProps) {
+  if (hasGlyph(props.emoji)) return <Glyph emoji={props.emoji} className={props.className ?? 'h-8 w-8'} />
   // key theo emoji để đổi icon thì thử tải lại
   return <Icon3DImage key={props.emoji} {...props} />
 }
