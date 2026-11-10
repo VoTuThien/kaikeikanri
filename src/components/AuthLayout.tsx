@@ -20,7 +20,7 @@ export function AuthLayout({ title, subtitle, children }: { title: string; subti
     <Shell>
       <header className="mb-6 flex flex-col items-center text-center">
         <div
-          className={`${SIZE.logo} relative mb-4 flex items-center justify-center rounded-2xl bg-gradient-to-br from-fuchsia-500 to-indigo-500 ${BLOCK_3D}`}
+          className={`${SIZE.logo} relative mb-4 flex items-center justify-center bg-gradient-to-br from-fuchsia-500 to-indigo-500 ${BLOCK_3D}`}
         >
           <span className={GLOSS_3D} />
           <Icon3D emoji="🏠" className="h-10 w-10" />

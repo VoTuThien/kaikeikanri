@@ -595,7 +595,7 @@ export function TimelinePageSkeleton() {
           itemWidth={TRAY_ITEM_WIDTH}
           renderItem={() => (
             <div className="flex flex-col items-center gap-1">
-              <Skeleton className="h-12 w-12 rounded-[22%]" />
+              <Skeleton className="h-12 w-12 rounded-none" />
               <Skeleton className="h-4 w-12 rounded-md" />
             </div>
           )}

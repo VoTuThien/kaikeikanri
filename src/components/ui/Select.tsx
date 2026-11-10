@@ -277,7 +277,8 @@ function FanPicker({
         {/* Khung nhìn: chỉ lộ 1 phần hình tròn (cây quạt, đuôi bên trái) */}
         <div
           ref={viewRef}
-          className="relative touch-none overflow-hidden rounded-2xl bg-black/20 select-none"
+          data-round
+          className="relative touch-none overflow-hidden bg-black/20 select-none"
           style={{ height: 'min(60vh, 440px)' }}
           onPointerDown={onDown}
           onPointerMove={onMove}

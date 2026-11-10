@@ -1,17 +1,15 @@
-// Hiệu ứng nổi 3D dùng chung cho icon và các ô chọn
+// Kiểu khối nền icon / ô chọn dùng chung. Đã bỏ hiệu ứng nổi 3D (viền sáng / tối bên trong, lớp bóng loáng):
+// khối PHẲNG, chỉ giữ bóng đổ để nổi khỏi nền. Tên cũ giữ nguyên để không phải sửa chỗ dùng.
 
-// Khối màu nổi (nền icon app, icon quỹ, ô chọn màu): sáng mép trên, tối mép dưới, đổ bóng xuống nền
-export const BLOCK_3D =
-  'shadow-[inset_0_2px_0_rgba(255,255,255,0.45),inset_0_-4px_0_rgba(0,0,0,0.22),0_4px_8px_rgba(0,0,0,0.35)]'
+// Khối màu (nền icon app, icon quỹ, ô chọn màu): phẳng + bóng đổ
+export const BLOCK_3D = 'shadow-[0_4px_10px_rgba(0,0,0,0.35)]'
 
-// Lớp bóng loáng ở nửa trên khối, tạo cảm giác bề mặt cong (đặt trong khối có `relative`)
-export const GLOSS_3D =
-  'pointer-events-none absolute inset-x-1 top-1 h-2/5 rounded-[inherit] bg-gradient-to-b from-white/50 to-transparent'
+// Lớp bóng loáng cũ: không còn dùng (để rỗng cho các chỗ đang gắn)
+export const GLOSS_3D = 'hidden'
 
-// Ô kính nổi (ô chọn biểu tượng)
-export const TILE_3D =
-  'bg-gradient-to-b from-white/30 to-white/5 border border-white/30 shadow-[inset_0_1px_0_rgba(255,255,255,0.5),inset_0_-3px_0_rgba(0,0,0,0.18),0_4px_8px_rgba(0,0,0,0.3)] hover:from-white/40 active:translate-y-0.5'
+// Ô kính (ô chọn biểu tượng): phẳng + bóng đổ
+export const TILE_3D = 'bg-white/15 border border-white/25 shadow-[0_4px_10px_rgba(0,0,0,0.3)] hover:bg-white/25'
 
-// Ô kính đang được chọn: nổi cao hơn, có quầng sáng hồng
+// Ô kính đang được chọn: nền tím hồng + quầng sáng
 export const TILE_3D_SELECTED =
-  '-translate-y-0.5 bg-gradient-to-b from-fuchsia-300/70 to-indigo-400/40 border border-fuchsia-100/70 shadow-[inset_0_1px_0_rgba(255,255,255,0.7),inset_0_-3px_0_rgba(0,0,0,0.2),0_8px_16px_rgba(217,70,239,0.5)]'
+  'bg-gradient-to-b from-fuchsia-400/70 to-indigo-500/50 border border-fuchsia-100/70 shadow-[0_6px_14px_rgba(217,70,239,0.45)]'

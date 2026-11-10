@@ -86,7 +86,7 @@ interface FabProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'childr
 
 export function Fab({ icon, label, variant = 'primary', loading, disabled, className = '', ...rest }: FabProps) {
   return (
-    <button aria-label={label} title={label} className={`${BASE} ${VARIANTS[variant]} ${className}`} disabled={disabled || loading} {...rest}>
+    <button data-round aria-label={label} title={label} className={`${BASE} ${VARIANTS[variant]} ${className}`} disabled={disabled || loading} {...rest}>
       {loading ? <span className="h-6 w-6 animate-spin rounded-full border-2 border-white/40 border-t-white" /> : <LineIcon icon={icon} />}
     </button>
   )
@@ -94,7 +94,7 @@ export function Fab({ icon, label, variant = 'primary', loading, disabled, class
 
 export function FabLink({ to, icon, label, variant = 'primary', badge = 0 }: { to: string; icon: FabIcon; label: string; variant?: Variant; badge?: number }) {
   return (
-    <Link to={to} aria-label={badge ? `${label} (${badge})` : label} title={label} className={`${BASE} ${VARIANTS[variant]} relative`}>
+    <Link data-round to={to} aria-label={badge ? `${label} (${badge})` : label} title={label} className={`${BASE} ${VARIANTS[variant]} relative`}>
       <LineIcon icon={icon} />
       {/* Số đếm (vd số yêu cầu chưa xử lý) ở góc trên phải */}
       {badge > 0 && (
@@ -156,7 +156,7 @@ export function FabSkeleton({ count = 1, bottom }: { count?: number; bottom?: st
   return (
     <FabGroup bottom={bottom}>
       {Array.from({ length: count }, (_, i) => (
-        <Skeleton key={i} className={`${FAB_SIZE} rounded-full`} />
+        <Skeleton key={i} round className={`${FAB_SIZE} rounded-full`} />
       ))}
     </FabGroup>
   )

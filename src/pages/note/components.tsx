@@ -49,6 +49,7 @@ export function MemberPicker({ members, value, me, onChange }: { members: Member
         type="button"
         onClick={() => setOpen(true)}
         aria-label={`Gửi cho: ${current ? label(current) : 'Bạn'}. Chạm để chọn người khác`}
+        data-round
         className={`${PICKER} flex shrink-0 items-center justify-center rounded-full transition active:scale-95`}
       >
         <Avatar uid={value} name={current?.name || current?.email || ''} size="h-12 w-12 text-base" />
@@ -79,7 +80,7 @@ export function MemberPicker({ members, value, me, onChange }: { members: Member
                     }}
                     className="flex flex-col items-center gap-1 transition active:scale-95"
                   >
-                    <span className={`flex rounded-full p-0.5 ${m.uid === value ? 'bg-white' : ''}`}>
+                    <span data-round className={`flex rounded-full p-0.5 ${m.uid === value ? 'bg-white' : ''}`}>
                       <Avatar uid={m.uid} name={m.name || m.email} size="h-14 w-14 text-lg" />
                     </span>
                     <span className="line-clamp-2 h-8 w-full text-center text-xs leading-4 break-words">{label(m)}</span>
@@ -95,7 +96,7 @@ export function MemberPicker({ members, value, me, onChange }: { members: Member
 }
 
 export function MemberPickerSkeleton() {
-  return <Skeleton className={`${PICKER} rounded-full`} />
+  return <Skeleton round className={`${PICKER} rounded-full`} />
 }
 
 // Thông tin chung của danh sách ghi chú: hiện ở dòng phụ ngay dưới tiêu đề màn hình (AppHeader subtitle, giống màn hình xem 1 ghi chú)
@@ -471,7 +472,7 @@ export function SentNoteListSkeleton({ rows = 6 }: { rows?: number }) {
     <div className={LIST_CARDS_GAP}>
       {Array.from({ length: rows }, (_, i) => (
         <div key={i} className={`${CARD} gap-3 pr-4 pl-3`}>
-          <Skeleton className="h-9 w-9 shrink-0 rounded-full" />
+          <Skeleton round className="h-9 w-9 shrink-0 rounded-full" />
           <div className="flex-1 space-y-1">
             <Skeleton className="h-4 w-36 rounded-md" />
             <Skeleton className="h-3 w-44 rounded-md" />

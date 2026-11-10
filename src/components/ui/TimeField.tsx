@@ -216,7 +216,7 @@ function TimeDial({
 
           {/* Vòng tròn: to nhất có thể (bề rộng khung, nhưng không cao quá màn hình).
               Lớp dưới là các tấm KÍNH (HTML, có backdrop-filter): vòng phút, vòng giờ; lớp trên là SVG (số, điểm, kim, nút kéo) */}
-          <div className="relative mx-auto w-full" style={{ maxWidth: 'min(100%, calc(100vh - 13rem))' }}>
+          <div data-round className="relative mx-auto w-full" style={{ maxWidth: 'min(100%, calc(100vh - 13rem))' }}>
             {/* Kính vòng phút: r 196/400 */}
             <div className="td-glass" style={{ inset: '1%', opacity: zoom ? 0.35 : 1, transition: `opacity ${ZOOM_MS}ms ease` }} />
             {/* Kính vòng giờ: r SPLIT/400, phóng to cùng nét SVG của vòng giờ */}
@@ -351,7 +351,7 @@ function TimeDial({
 // .td-day làm khung trời trượt sang cảnh ngày; xem timeDial.css
 function SpaceSky() {
   return (
-    <div className="td-sky" aria-hidden="true">
+    <div data-round className="td-sky" aria-hidden="true">
       <div className="td-pan">
         <div className="td-neb-dark" />
         <div className="td-starfield">

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { APPS } from '../apps'
 import { AppHeader, AppHeaderSkeleton } from '../components/AppHeader'
-import { HOME_GRID, HomeIconSkeleton, IconFace, IconLabel, shortcutLook } from '../components/HomeIcon'
+import { HOME_GRID, HomeIconSkeleton, IconFace, shortcutLook } from '../components/HomeIcon'
 import { PageShell, ScrollArea } from '../components/PageShell'
 import { Alert } from '../components/ui/Alert'
 import { FAB_SPACE, Fab, FabGroup, FabSkeleton } from '../components/ui/Fab'
@@ -21,7 +21,7 @@ import { SIDE_TEXT } from './SidePage'
 
 const LIST_CLASS = `${GLASS_CLASS} space-y-4 !pt-6`
 const SECTION_TITLE = `${SIZE.sectionTitle} flex items-center text-sm leading-6 font-semibold text-white/80`
-const BADGE = 'absolute -top-1.5 -right-1.5 rounded-full bg-white/90 px-1.5 text-[10px] leading-4 font-semibold text-slate-700'
+const BADGE = 'absolute inset-x-0 top-0 truncate bg-white/90 text-center px-1.5 text-[10px] leading-4 font-semibold text-slate-700'
 
 // Nhóm màn hình theo app con, theo thứ tự icon ở màn hình chính
 const GROUPS = APPS.map((app) => ({ app, items: SHORTCUTS.filter((s) => s.appId === app.id) })).filter((g) => g.items.length > 0)
@@ -75,13 +75,12 @@ export function ShortcutPickerPage() {
                     type="button"
                     onClick={() => pick(s.id)}
                     disabled={added}
-                    className="flex flex-col items-center gap-1.5 transition active:scale-95 disabled:opacity-50"
+                    className="block w-full transition active:scale-95 disabled:opacity-50"
                   >
-                    <IconFace icon={s.icon} {...shortcutLook(s)}>
+                    <IconFace icon={s.icon} name={s.name} {...shortcutLook(s)}>
                       {added && <span className={BADGE}>Đã thêm</span>}
                       {selected && <span className={BADGE}>Đang chọn</span>}
                     </IconFace>
-                    <IconLabel>{s.name}</IconLabel>
                   </button>
                 )
               })}

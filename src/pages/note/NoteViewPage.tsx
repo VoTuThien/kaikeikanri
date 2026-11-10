@@ -355,7 +355,7 @@ export function NoteViewPageSkeleton() {
         <div className={LIST_CARDS_GAP}>
           {Array.from({ length: SKELETON_ROWS }, (_, i) => (
             <div key={i} className={`${CARD} gap-3 pl-4`}>
-              <Skeleton className="h-8 w-8 rounded-full" />
+              <Skeleton round className="h-8 w-8 rounded-full" />
               <div className="flex-1 space-y-1">
                 <Skeleton className="h-4 w-36 rounded-md" />
                 <Skeleton className="h-3 w-44 rounded-md" />

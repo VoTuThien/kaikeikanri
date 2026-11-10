@@ -24,7 +24,8 @@ export function AppHeader({ title, subtitle, backTo = '/', right }: { title: str
         ‹
       </Link>
       <div className="min-w-0 flex-1">
-        <h1 className={`${SIZE.title} truncate text-xl leading-8 font-bold`}>{title}</h1>
+        {/* Tiêu đề kiểu Metro: chữ thường, to, nét mảnh */}
+        <h1 className={`${SIZE.title} truncate text-[26px] leading-8 font-light lowercase`}>{title}</h1>
         {subtitle && <p className={`${SUBTITLE} truncate text-xs text-white/70`}>{subtitle}</p>}
       </div>
       {right}

@@ -137,7 +137,7 @@ export function SalaryPageSkeleton({ others = 1 }: { others?: number }) {
   const card = (key: number, hint: boolean) => (
     <GlassPanel key={key} className={CARD}>
       <div className={CARD_HEAD}>
-        <Skeleton className="h-9 w-9 rounded-full" />
+        <Skeleton round className="h-9 w-9 rounded-full" />
         <Skeleton className="h-5 w-32 rounded-md" />
       </div>
       <div className={FIELDS}>

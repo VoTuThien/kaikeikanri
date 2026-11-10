@@ -240,7 +240,7 @@ function ChartSkeleton() {
         <div className="flex flex-1 gap-1">
           {SKELETON_BARS.map((_, i) => (
             <div key={i} className="flex flex-1 justify-center">
-              <Skeleton className="h-7 w-7 rounded-[22%]" />
+              <Skeleton className="h-7 w-7 rounded-none" />
             </div>
           ))}
         </div>
@@ -254,7 +254,7 @@ function RowsSkeleton() {
     <div className="divide-y divide-white/10">
       {Array.from({ length: SKELETON_ROWS }, (_, i) => (
         <div key={i} className={`${ROW} flex items-center gap-3 px-4`}>
-          <Skeleton className="h-9 w-9 rounded-[22%]" />
+          <Skeleton className="h-9 w-9 rounded-none" />
           <div className="flex-1 space-y-1">
             <Skeleton className="h-4 w-24 rounded-md" />
             <Skeleton className="h-3 w-16 rounded-md" />

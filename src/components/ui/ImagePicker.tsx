@@ -8,17 +8,19 @@ export function ImagePicker({
   label,
   disabled,
   className = '',
+  round,
   onChange,
   children,
 }: {
   label: string
   disabled?: boolean
   className?: string
+  round?: boolean // giữ hình tròn (ô chọn avatar)
   onChange: (e: ChangeEvent<HTMLInputElement>) => void
   children: ReactNode
 }) {
   return (
-    <div className={`relative ${className}`}>
+    <div data-round={round || undefined} className={`relative ${className}`}>
       {children}
       <input
         type="file"

@@ -134,7 +134,7 @@ export function LiveStatusPageSkeleton() {
           className={PEOPLE_ROW}
           renderItem={() => (
             <div className="flex flex-col items-center gap-1">
-              <Skeleton className="h-9 w-9 rounded-full" />
+              <Skeleton round className="h-9 w-9 rounded-full" />
               <Skeleton className="h-3 w-12 rounded-md" />
               <Skeleton className="h-2.5 w-10 rounded-md" />
             </div>

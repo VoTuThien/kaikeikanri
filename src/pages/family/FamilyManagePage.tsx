@@ -186,7 +186,7 @@ export function FamilyManagePageSkeleton() {
         <div className="divide-y divide-white/10">
           {Array.from({ length: 3 }, (_, i) => (
             <div key={i} className={`${SIZE.row} flex items-center gap-3 px-4`}>
-              <Skeleton className="h-9 w-9 rounded-full" />
+              <Skeleton round className="h-9 w-9 rounded-full" />
               <div className="flex-1 space-y-1">
                 <Skeleton className="h-4 w-28 rounded-md" />
                 <Skeleton className="h-3 w-36 rounded-md" />

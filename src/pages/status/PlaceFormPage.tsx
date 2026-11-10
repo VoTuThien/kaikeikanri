@@ -150,7 +150,7 @@ function PlaceForm({ place }: { place?: Place }) {
                     aria-pressed={t.value === type}
                     aria-label={t.label}
                     title={t.label}
-                    className={`${TYPE_TILE} flex w-full items-center justify-center rounded-xl transition duration-150 ${
+                    className={`${TYPE_TILE} flex w-full items-center justify-center rounded-none transition duration-150 ${
                       t.value === type ? TILE_3D_SELECTED : TILE_3D
                     }`}
                   >
@@ -234,7 +234,7 @@ export function PlaceFormPageSkeleton({ isNew }: { isNew: boolean }) {
               <PagedRowSkeleton
                 itemWidth={TYPE_ITEM_WIDTH}
                 perPage={TYPES_PER_PAGE}
-                renderItem={() => <Skeleton className={`${TYPE_TILE} w-full rounded-xl`} />}
+                renderItem={() => <Skeleton className={`${TYPE_TILE} w-full rounded-none`} />}
               />
             </div>
           </div>

@@ -32,7 +32,7 @@ const TYPE_COLOR: Record<PlaceType, string> = {
 
 export function PlaceIcon({ type, box = 'h-12 w-12', img = 'h-9 w-9' }: { type: PlaceType; box?: string; img?: string }) {
   return (
-    <span className={`${box} relative flex shrink-0 items-center justify-center rounded-[22%] bg-gradient-to-br ${BLOCK_3D} ${TYPE_COLOR[type]}`}>
+    <span className={`${box} relative flex shrink-0 items-center justify-center bg-gradient-to-br ${BLOCK_3D} ${TYPE_COLOR[type]}`}>
       <span className={GLOSS_3D} />
       <Icon3D emoji={placeTypeInfo(type).emoji} className={img} />
     </span>

@@ -2,7 +2,7 @@ import { Link, Navigate, useParams } from 'react-router-dom'
 import { AppHeader, AppHeaderSkeleton } from '../components/AppHeader'
 import { PageShell } from '../components/PageShell'
 import { GlassPanel } from '../components/ui/GlassPanel'
-import { Icon3D } from '../components/ui/Icon3D'
+import { LineIcon } from '../components/ui/Fab'
 import { Skeleton } from '../components/ui/Skeleton'
 import { useAuth } from '../contexts/AuthContext'
 import { sidePath, useShortcuts, type Side } from '../lib/shortcuts'
@@ -15,7 +15,7 @@ export const SIDE_TEXT: Record<Side, { title: string; open: string; back: string
   right: { title: 'Màn hình bên phải', open: 'vuốt sang trái', back: 'Vuốt sang phải' },
 }
 
-const PLUS_SIZE = 'h-40 w-40 rounded-[22%]'
+const PLUS_SIZE = 'h-40 w-40 rounded-none'
 const PLUS = `${PLUS_SIZE} flex items-center justify-center border-2 border-dashed border-white/40 bg-white/10`
 const PANEL_CLASS = 'flex min-h-0 flex-1 flex-col items-center justify-center gap-5 text-center'
 
@@ -37,7 +37,7 @@ export function SidePage() {
       <AppHeader title={text.title} backTo="/" />
       <GlassPanel className={PANEL_CLASS}>
         <Link to={`/shortcuts?side=${side}`} aria-label="Chọn màn hình" className={`${PLUS} transition active:scale-95`}>
-          <Icon3D emoji="➕" className="h-20 w-20" />
+          <LineIcon icon="add" className="h-20 w-20" />
         </Link>
         <p className="max-w-xs text-sm leading-6 text-white/80">
           Chưa thiết đặt màn hình nào. Chạm dấu + để chọn; sau đó ở màn hình chính chỉ cần {text.open} là vào thẳng màn hình đó.

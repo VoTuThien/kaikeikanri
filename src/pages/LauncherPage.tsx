@@ -30,9 +30,9 @@ const HEADER_CLASS = 'space-y-3'
 const GREETING = 'flex items-center gap-3'
 const EDIT_BUTTON = `${SIZE.control} flex w-12 shrink-0 items-center justify-center rounded-xl border border-white/25 bg-white/10 transition hover:bg-white/20 active:scale-95`
 const ME_AVATAR = 'h-12 w-12 text-sm'
-// Nhiều icon thì chỉ lưới icon cuộn (có thanh cuộn); chừa lề trên cho nút gỡ và icon rung không bị cắt,
+// Nhiều icon thì chỉ lưới icon cuộn (có thanh cuộn); chừa lề trên cho nút gỡ không bị cắt,
 // lề dưới để hàng icon cuối không bị nút nổi che
-const GRID_PANEL_CLASS = 'min-h-0 !shrink overflow-y-auto overscroll-contain scroll-thin !pt-6 !pb-20'
+const GRID_PANEL_CLASS = 'min-h-0 !shrink overflow-y-auto overscroll-contain scroll-thin pt-3 pb-20'
 
 // Ô đổi màn hình 2 bên (hiện khi nhấn giữ): 2 nút bằng nhau
 const SIDES_CLASS = 'grid grid-cols-2 gap-3 !p-3'
@@ -72,7 +72,7 @@ export function LauncherPage() {
   const { families, current, selectFamily, owned, sentRequests } = useFamily()
   const navigate = useNavigate()
   const { ids: shortcuts, ...sides } = useShortcuts(user?.uid)
-  // Nhấn giữ 1 icon: vào chế độ gỡ phím tắt (icon rung), bấm nút check để xong
+  // Nhấn giữ 1 icon: vào chế độ gỡ phím tắt (icon đứng yên), bấm nút check để xong
   const [editing, setEditing] = useState(false)
   const startEditing = () => setEditing(true)
   // Về tới màn hình chính: bỏ dấu "mở từ phím tắt" để vào app con bằng icon app thì quay lại như bình thường
@@ -138,7 +138,7 @@ export function LauncherPage() {
               return (
                 <div key={side} className="relative">
                   <Link to={`/shortcuts?side=${side}`} className={SIDE_BUTTON}>
-                    <Icon3D emoji={s?.icon ?? '➕'} className="h-7 w-7 shrink-0" />
+                    {s ? <Icon3D emoji={s.icon} className="h-7 w-7 shrink-0" /> : <LineIcon icon="add" className="h-7 w-7 shrink-0" />}
                     <span className="min-w-0">
                       <span className="block truncate text-[11px] leading-4 text-white/60">{SIDE_LABEL[side]}</span>
                       <span className="block truncate text-sm leading-5 font-semibold">{s?.name ?? 'Chưa đặt'}</span>
@@ -164,10 +164,10 @@ export function LauncherPage() {
         )}
 
         {current ? (
-          <GlassPanel className={GRID_PANEL_CLASS}>
+          <div className={GRID_PANEL_CLASS}>
             <div className={HOME_GRID}>
               {/* Icon các app con: không gỡ được */}
-              {APPS.map((app, i) => (
+              {APPS.map((app) => (
                 <HomeIcon
                   key={app.id}
                   icon={app.icon}
@@ -175,13 +175,13 @@ export function LauncherPage() {
                   gradient={app.gradient}
                   to={app.path}
                   soon={!app.path}
+                  wide
                   editing={editing}
-                  index={i}
                   onLongPress={startEditing}
                 />
               ))}
               {/* Phím tắt riêng của tài khoản này */}
-              {shortcuts.map((id, i) => {
+              {shortcuts.map((id) => {
                 const s = shortcutById.get(id)!
                 return (
                   <HomeIcon
@@ -191,7 +191,6 @@ export function LauncherPage() {
                     to={s.path}
                     {...shortcutLook(s)}
                     editing={editing}
-                    index={APPS.length + i}
                     onLongPress={startEditing}
                     onOpen={() => markShortcutEntry(s.path)}
                     onRemove={() => user && removeShortcut(user.uid, id).catch((e) => console.error('Gỡ phím tắt thất bại', e))}
@@ -200,7 +199,7 @@ export function LauncherPage() {
               })}
               <AddShortcutIcon />
             </div>
-          </GlassPanel>
+          </div>
         ) : (
           // Chưa thuộc gia đình nào: tạo mới hoặc tham gia bằng mã
           <GlassPanel className="space-y-4 text-center">
@@ -247,7 +246,7 @@ export function LauncherPageSkeleton() {
     <PageShell>
       <GlassPanel className={HEADER_CLASS}>
         <div className={GREETING}>
-          <Skeleton className={`${ME_AVATAR} shrink-0 rounded-full`} />
+          <Skeleton round className={`${ME_AVATAR} shrink-0 rounded-full`} />
           <div className="min-w-0 flex-1">
             <Skeleton className={`${SIZE.subtitle} w-20 rounded-md`} />
             <Skeleton className={`${SIZE.title} w-48`} />
@@ -259,14 +258,14 @@ export function LauncherPageSkeleton() {
           <Skeleton className={`${SIZE.label} w-52 rounded-md`} />
         </div>
       </GlassPanel>
-      <GlassPanel className={GRID_PANEL_CLASS}>
+      <div className={GRID_PANEL_CLASS}>
         <div className={HOME_GRID}>
           {/* App con + phím tắt đã lưu lần trước + ô "+" */}
           {Array.from({ length: APPS.length + getCachedShortcuts().length + 1 }, (_, i) => (
-            <HomeIconSkeleton key={i} />
+            <HomeIconSkeleton key={i} wide={i < APPS.length} />
           ))}
         </div>
-      </GlassPanel>
+      </div>
       <FabSkeleton count={bubbleHidden ? 2 : 1} />
     </PageShell>
   )

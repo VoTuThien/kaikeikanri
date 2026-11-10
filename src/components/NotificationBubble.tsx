@@ -253,6 +253,7 @@ function Bubble({ uid, count }: { uid: string; count: number }) {
           style={{ left: xCenter.x - 60, width: 120, bottom: X_BOTTOM }}
         >
           <span
+            data-round
             className={`flex items-center justify-center rounded-full border-2 shadow-lg shadow-black/40 backdrop-blur-xl transition ${
               locked
                 ? 'border-white/30 bg-slate-700/70 opacity-60'
@@ -283,6 +284,7 @@ function Bubble({ uid, count }: { uid: string; count: number }) {
       <button
         type="button"
         data-no-swipe
+        data-round
         aria-label={open ? 'Đóng thông báo' : count ? `Thông báo (${count})` : 'Thông báo'}
         aria-expanded={open}
         title="Thông báo"

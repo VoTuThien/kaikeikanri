@@ -4,7 +4,7 @@ export interface AppEntry {
   id: string
   name: string
   icon: string
-  gradient: string // màu nền icon (class Tailwind)
+  gradient: string // màu gradient nền ô (class Tailwind)
   path?: string // chưa có path = app sắp ra mắt
 }
 

@@ -24,7 +24,7 @@ export function BabyLayout() {
 // Icon của thẻ: khối màu nổi 3D, bên trong là icon 3D ảnh
 export function CardIcon({ icon, color, box = 'h-12 w-12', img = 'h-9 w-9' }: { icon: string; color: string; box?: string; img?: string }) {
   return (
-    <span className={`${box} relative flex shrink-0 items-center justify-center rounded-[22%] bg-gradient-to-br ${BLOCK_3D} ${color}`}>
+    <span className={`${box} relative flex shrink-0 items-center justify-center bg-gradient-to-br ${BLOCK_3D} ${color}`}>
       <span className={GLOSS_3D} />
       <Icon3D emoji={icon} className={img} />
     </span>
@@ -108,13 +108,13 @@ export function ChildAvatar({
 }) {
   if (child.photo) {
     return (
-      <span className={`${box} relative block shrink-0 overflow-hidden rounded-full border-2 border-white/40 shadow-lg shadow-black/30`}>
+      <span data-round className={`${box} relative block shrink-0 overflow-hidden rounded-full border-2 border-white/40 shadow-lg shadow-black/30`}>
         <img src={child.photo} alt="" className="block h-full w-full rounded-full object-cover" draggable={false} />
       </span>
     )
   }
   return (
-    <span className={`${box} relative flex shrink-0 items-center justify-center rounded-full bg-gradient-to-br ${BLOCK_3D} ${GENDER_COLORS[child.gender]}`}>
+    <span data-round className={`${box} relative flex shrink-0 items-center justify-center rounded-full bg-gradient-to-br ${BLOCK_3D} ${GENDER_COLORS[child.gender]}`}>
       <span className={`${GLOSS_3D} rounded-full`} />
       <Icon3D emoji={child.avatar} className={img} />
     </span>
@@ -169,6 +169,7 @@ export function ChildPicker() {
         type="button"
         onClick={() => setOpen(true)}
         aria-label={child ? `Đang xem: ${child.name}. Chạm để chọn con khác` : 'Chọn con'}
+        data-round
         className={`${PICKER} flex shrink-0 items-center justify-center rounded-full transition active:scale-95`}
       >
         {child ? (
@@ -195,7 +196,7 @@ export function ChildPicker() {
               <div className="grid max-h-[60vh] grid-cols-4 gap-x-2 gap-y-3 overflow-y-auto">
                 {children.map((c) => (
                   <button key={c.id} type="button" onClick={() => pick(c.id)} className="flex flex-col items-center gap-1 transition active:scale-95">
-                    <span className={`flex rounded-full p-0.5 ${c.id === child?.id ? 'bg-white' : ''}`}>
+                    <span data-round className={`flex rounded-full p-0.5 ${c.id === child?.id ? 'bg-white' : ''}`}>
                       <ChildAvatar child={c} box="h-14 w-14" img="h-10 w-10" />
                     </span>
                     <span className="line-clamp-2 h-8 w-full text-center text-xs leading-4 break-words">{c.nickname || c.name}</span>
@@ -207,7 +208,7 @@ export function ChildPicker() {
                   className="flex flex-col items-center gap-1 transition active:scale-95"
                 >
                   <span className="flex p-0.5">
-                    <span className="flex h-14 w-14 items-center justify-center rounded-full border-2 border-dashed border-white/50 bg-white/10 text-3xl">+</span>
+                    <span data-round className="flex h-14 w-14 items-center justify-center rounded-full border-2 border-dashed border-white/50 bg-white/10 text-3xl">+</span>
                   </span>
                   <span className="h-8 text-xs leading-4 text-white/70">Thêm con</span>
                 </button>
@@ -221,5 +222,5 @@ export function ChildPicker() {
 }
 
 export function ChildPickerSkeleton() {
-  return <Skeleton className={`${PICKER} rounded-full`} />
+  return <Skeleton round className={`${PICKER} rounded-full`} />
 }

@@ -26,7 +26,7 @@ export function FundLayout() {
 // Icon của quỹ: khối màu nổi 3D, bên trong là icon 3D ảnh
 export function FundIcon({ icon, color, box = 'h-12 w-12', img = 'h-9 w-9' }: { icon: string; color: string; box?: string; img?: string }) {
   return (
-    <span className={`${box} relative flex shrink-0 items-center justify-center rounded-[22%] bg-gradient-to-br ${BLOCK_3D} ${color}`}>
+    <span className={`${box} relative flex shrink-0 items-center justify-center bg-gradient-to-br ${BLOCK_3D} ${color}`}>
       <span className={GLOSS_3D} />
       <Icon3D emoji={icon} className={img} />
     </span>

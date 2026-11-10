@@ -126,7 +126,7 @@ function CardForm({ card }: { card?: BabyCard }) {
                   aria-pressed={i.emoji === icon}
                   aria-label={i.label}
                   title={i.label}
-                  className={`${SIZE.control} flex items-center justify-center rounded-xl transition duration-150 ${
+                  className={`${SIZE.control} flex items-center justify-center rounded-none transition duration-150 ${
                     i.emoji === icon ? TILE_3D_SELECTED : TILE_3D
                   }`}
                 >

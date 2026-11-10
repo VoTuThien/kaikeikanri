@@ -41,6 +41,7 @@ export function Avatar({ uid, name, me, size = 'h-9 w-9 text-xs', photo }: { uid
     return (
       // Khung block + overflow-hidden rounded-full, img cũng rounded-full: cắt tròn chắc chắn cả trên iOS cũ
       <span
+        data-round
         title={name}
         className={`${size} relative block shrink-0 overflow-hidden rounded-full border-2 border-white/40 shadow-lg shadow-black/30 ${me ? 'ring-2 ring-white' : ''}`}
       >
@@ -50,7 +51,8 @@ export function Avatar({ uid, name, me, size = 'h-9 w-9 text-xs', photo }: { uid
   }
   return (
     <span
-      title={name}
+      data-round
+        title={name}
       className={`${size} relative flex shrink-0 items-center justify-center rounded-full bg-gradient-to-br font-bold text-white ${BLOCK_3D} ${avatarColor(uid)} ${
         me ? 'ring-2 ring-white' : ''
       }`}

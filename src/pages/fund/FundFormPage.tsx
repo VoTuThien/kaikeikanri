@@ -136,7 +136,7 @@ function FundForm({ fund }: { fund?: Fund }) {
                   type="button"
                   onClick={() => setIcon(i)}
                   aria-pressed={i === icon}
-                  className={`${SIZE.control} flex items-center justify-center rounded-xl transition duration-150 ${
+                  className={`${SIZE.control} flex items-center justify-center rounded-none transition duration-150 ${
                     i === icon ? TILE_3D_SELECTED : TILE_3D
                   }`}
                 >

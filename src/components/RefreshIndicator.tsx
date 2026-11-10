@@ -18,7 +18,7 @@ export function RefreshIndicator() {
       style={POSITION}
       role="status"
     >
-      <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+      <span data-round className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
       <span className="sr-only">Đang cập nhật</span>
     </div>
   )

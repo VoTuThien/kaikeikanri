@@ -5,7 +5,7 @@
 
 @theme {
   /* iPhone/Mac dùng font SF của Apple; nơi khác dùng Be Vietnam Pro để dấu tiếng Việt hiển thị đúng */
-  --font-sans: -apple-system, BlinkMacSystemFont, 'Be Vietnam Pro', 'Segoe UI', Roboto, Arial, sans-serif;
+  --font-sans: 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Be Vietnam Pro', Roboto, Arial, sans-serif;
 }
 
 html,
@@ -60,21 +60,12 @@ body {
   -webkit-tap-highlight-color: transparent;
 }
 
-/* Icon rung khi nhấn giữ ở màn hình chính (chế độ gỡ phím tắt, giống iPhone); 2 nhịp lệch nhau cho tự nhiên */
-@keyframes jiggle {
-  0%,
-  100% {
-    transform: rotate(-2deg);
-  }
-  50% {
-    transform: rotate(2deg);
-  }
-}
-@utility animate-jiggle {
-  animation: jiggle 0.28s ease-in-out infinite;
-}
-@utility animate-jiggle-alt {
-  animation: jiggle 0.28s ease-in-out -0.14s infinite;
+/* Kiểu Metro: KHÔNG bo góc ở bất kỳ đâu (kể cả nút, ô nhập, avatar, nút nổi).
+   Chỉ giữ hình tròn trong vùng có data-round: mặt đồng hồ chọn giờ, bánh xe của ô chọn, vòng xoay đang tải */
+*:not([data-round]):not([data-round] *),
+*:not([data-round] *)::before,
+*:not([data-round] *)::after {
+  border-radius: 0 !important;
 }
 
 /* Popup thông báo (mở từ bong bóng): từng dòng trượt lên + hiện dần, lần lượt (animation-delay đặt theo thứ tự dòng) */

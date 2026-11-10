@@ -14,7 +14,7 @@ mỗi icon là một app con (Quỹ, sau này thêm các app quản lý khác). 
 **Mỗi app con có màn hình Cài đặt riêng của nó** bên trong app, không có màn hình cài đặt chung cho tất cả.
 
 - [x] Đăng nhập / Tạo tài khoản / Quên mật khẩu (Firebase Auth, email + mật khẩu)
-- [x] Màn hình chính dạng lưới icon (`/`), đăng xuất ở màn hình này. Hàng lời chào: **[avatar của mình] [Xin chào, tên] [nút cây bút]**
+- [x] Màn hình chính dạng lưới ô Live Tile kiểu Windows Phone (`/`, xem quy ước mục 5), đăng xuất ở màn hình này. Hàng lời chào: **[avatar của mình] [Xin chào, tên] [nút cây bút]**
   (nút bút là icon nét `LineIcon edit`, không 3D) → mở **Thông tin cá nhân**
 - [x] **Thông tin cá nhân** (`/profile`, `src/pages/ProfilePage.tsx`, giống form thông tin con): **tên, nickname, ngày sinh, giới tính (Nam / Nữ), nghề nghiệp, avatar**.
   Chạm avatar tròn ở đầu form để chọn / đổi ảnh (có "Bỏ ảnh"); ảnh **không dùng Storage**, cắt vuông + thu nhỏ 256px (`fileToSquareDataUrl`) lưu thẳng vào `photo`.
@@ -26,7 +26,7 @@ mỗi icon là một app con (Quỹ, sau này thêm các app quản lý khác). 
   (liệt kê theo nhóm các màn hình **mở trực tiếp từ ô chức năng ở trang chính của app con**, trừ Cài đặt; chạm để thêm). Phím tắt có màu nền của app con + icon nhỏ của app ở góc.
   **Mở màn hình từ phím tắt thì nút quay lại (‹) của màn hình đó về thẳng màn hình chính** (`markShortcutEntry` / `isShortcutEntry` trong `AppHeader`, lưu ở sessionStorage;
   màn hình chính xoá dấu này mỗi khi hiện ra).
-  **Nhấn giữ** 1 icon (~0.5 giây, `useLongPress`) thì vào chế độ gỡ giống iPhone: icon rung, phím tắt có nút "−" để gỡ, FAB check để xong;
+  **Nhấn giữ** 1 icon (~0.5 giây, `useLongPress`) thì vào chế độ gỡ: icon **đứng yên (không rung)**, phím tắt có nút "−" để gỡ, FAB check để xong;
   lúc này hiện thêm 2 nút "Bên trái" / "Bên phải": chạm để đổi màn hình 2 bên, đã thiết đặt thì có nút "−" ở góc để gỡ ngay (`REMOVE_BADGE`). Nhiều icon thì chỉ lưới icon cuộn (có thanh cuộn).
 - [x] **Màn hình 2 bên** của màn hình chính (`src/components/SideSwipe.tsx`, vẽ `AppRoutes` trong `App.tsx`; khi kéo thì vẽ sẵn màn hình bên cạnh ở mép (`<Routes location>`) và cho 2 màn hình đi theo ngón tay, thả tay thì trượt nốt — kéo quá 30% hoặc vuốt nhanh thì chuyển): ở màn hình chính **vuốt sang phải** mở màn hình **bên trái**,
   **vuốt sang trái** mở màn hình **bên phải**. Chưa thiết đặt thì mở `/side/left|right` có dấu **"+"** để chọn (`/shortcuts?side=…`, cùng danh sách `SHORTCUTS`;
@@ -381,10 +381,17 @@ Dữ liệu Firestore (xem `src/pages/note/data/api.ts`), thuộc gia đình đa
 - Chiều cao của skeleton và giao diện thật phải bằng nhau, để khi loading xong **trang không bị nhảy (layout shift)**.
 - Nên dùng chung chiều cao cố định / class kích thước giữa skeleton và component thật (ví dụ đặt hằng số hoặc class dùng chung).
 
-### 5. Phong cách hiện đại: gradient + glass
-- Nền dùng **màu gradient**.
-- Panel / card theo kiểu **glassmorphism**: nền bán trong suốt, `backdrop-blur`, viền mảnh sáng nhẹ.
-- Panel **bo tròn góc** (khoảng `rounded-2xl` trở lên) và có **shadow** để nổi bật so với nền.
+### 5. Phong cách: gradient + glass, KHÔNG bo góc, bố cục ô kiểu Live Tile (Windows Phone)
+- Nền dùng **màu gradient** (`body` trong `index.css`).
+- Panel / card theo kiểu **glassmorphism**: nền bán trong suốt, `backdrop-blur`, viền mảnh sáng nhẹ, **luôn có shadow** để nổi bật so với nền.
+- **KHÔNG BO GÓC Ở BẤT KỲ ĐÂU** (nút, ô nhập, panel, thẻ, popup…): `index.css` có quy tắc chung ép `border-radius: 0 !important` cho mọi phần tử.
+  **Chỉ vùng có `data-round` giữ hình tròn**: **avatar người dùng / con** (`Avatar`, `ChildAvatar`, ô chọn avatar, popup chọn người / con), **nút nổi FAB**, **bong bóng thông báo (chuông)**
+  và dấu X để ẩn nó, mặt đồng hồ của `TimeField`, khung bánh xe của `Select`, vòng xoay tải (`RefreshIndicator`). Skeleton tròn dùng `<Skeleton round />`; ô chọn ảnh tròn dùng `<ImagePicker round>`.
+  Thêm hình tròn mang chức năng mới thì gắn `data-round`; không thêm class `rounded-*` mới.
+- **Ô kiểu Live Tile**: màn hình chính (`HomeIcon.tsx`) là lưới 4 cột khe hẹp; **app con = ô vừa 2×2**, phím tắt / ô "+" = ô nhỏ 1×1; ô vuông nền gradient của app (`APPS.gradient`)
+  + viền mảnh + bóng đổ, icon ở giữa, **tên nằm trong ô ở góc trái dưới**, phím tắt có icon app nhỏ ở góc phải trên.
+  Ô chức năng trong app con (`FeatureTile`) là ô kính gradient có bóng đổ, icon góc trái trên, tên + dòng phụ góc trái dưới.
+- **Tiêu đề trang** (`AppHeader`): chữ thường (`lowercase`), to, nét mảnh (`font-light`).
 - Giữ độ tương phản chữ đủ để dễ đọc trên nền glass.
 
 ### 6. Vừa khít màn hình iPhone 11 / iPhone 12, không có thanh cuộn trang
@@ -416,8 +423,7 @@ Dữ liệu Firestore (xem `src/pages/note/data/api.ts`), thuộc gia đình đa
 - Vẫn gọi qua `Icon3D` (`src/components/ui/Icon3D.tsx`) với emoji, vd `<Icon3D emoji="💰" className="h-8 w-8" />`: emoji (dữ liệu cũ giữ nguyên) được tra sang icon nét;
   **emoji chưa có trong `GLYPHS` mới hiện ảnh 3D cũ** (Fluent Emoji 3D ở `public/icons3d/`, chỉ còn là dự phòng). Không hiển thị emoji dạng chữ.
 - **Khi dùng emoji mới: vẽ thêm icon nét vào `GLYPHS`** cùng phong cách (đơn giản, ít chi tiết, nhìn rõ ở 16–44px), mở xem trên nền app trước khi dùng.
-- Icon nằm trên nền màu (icon app, icon quỹ, huy hiệu...) thì đặt trong **khối nổi 3D**: `BLOCK_3D` + lớp bóng loáng `GLOSS_3D` (`src/components/ui/style3d.ts`). Ô chọn dạng kính dùng `TILE_3D` / `TILE_3D_SELECTED`.
-- Góc nhìn: thẳng từ trên xuống (không nghiêng xéo).
+- Icon nằm trên nền màu (icon app, icon quỹ, huy hiệu...) thì đặt trong **khối màu PHẲNG có bóng đổ** `BLOCK_3D` (`src/components/ui/style3d.ts`; tên cũ, đã bỏ hiệu ứng nổi 3D; `GLOSS_3D` để trống). Ô chọn icon dùng `TILE_3D` / `TILE_3D_SELECTED` (phẳng, vuông).
 - Ngoại lệ: chữ trong `<option>` và chữ trên ô `Select` (lúc chưa mở) giữ emoji dạng chữ. Các ký hiệu điều khiển nhỏ (mũi tên quay lại ‹, mũi tên ▾ của ô chọn) không tính là icon.
 - Icon trên nút nổi (FAB) dùng bộ `ICON_PATHS` riêng trong `Fab.tsx`, xem mục 10.
 - **Icon trong sự kiện TRƯỢT THẺ** (nút hiện ra khi trượt thẻ trong danh sách, vd thùng rác / nhập lại ở Tra cứu):
@@ -425,7 +431,7 @@ Dữ liệu Firestore (xem `src/pages/note/data/api.ts`), thuộc gia đình đa
 
 ### 10. Nút nổi (Floating Action Button - FAB)
 - **Ưu tiên dùng FAB cho các chức năng của màn hình** (thêm, lưu, xoá, sửa...). Màn hình có 1 nút chức năng thì nút đó **bắt buộc là FAB**.
-- FAB: nút **tròn**, nằm **góc phải dưới**, **chỉ có icon, không có chữ** (chữ để trong `label` cho trình đọc màn hình). Dùng `Fab` / `FabLink` / `FabGroup` trong `src/components/ui/Fab.tsx`.
+- FAB: nút **tròn** (có `data-round`, xem mục 5), nằm **góc phải dưới**, **chỉ có icon, không có chữ** (chữ để trong `label` cho trình đọc màn hình). Dùng `Fab` / `FabLink` / `FabGroup` trong `src/components/ui/Fab.tsx`.
 - **Icon trên FAB là icon nét màu trắng đơn giản** (SVG trong `Fab.tsx`), **không dùng icon 3D**.
   Nút **không có hiệu ứng 3D** (không khối nổi, không lớp bóng loáng), có **bóng đổ** để nổi lên trên giao diện.
 - **Mọi FAB phải có màu GRADIENT và hiệu ứng GLASS** (nền gradient bán trong suốt, `backdrop-blur`, viền mảnh sáng; đã có sẵn trong `Fab` / `FabLink`, không tự viết lại).
@@ -458,12 +464,11 @@ Dữ liệu Firestore (xem `src/pages/note/data/api.ts`), thuộc gia đình đa
 - **Mọi ô nhập số phút phải dùng `MinutesField`** (`src/components/ui/MinutesField.tsx`), không tự viết bằng `TextField`.
 - Bên phải ô có **2 nút tam giác lên / xuống** (bằng nhau, xếp dọc): bấm lên **tăng 5 phút**, bấm xuống **giảm 5 phút**; vẫn gõ số trực tiếp được.
 - Giới hạn bằng `min` / `max` (mặc định 1 phút đến 24 giờ); hết giới hạn thì nút tương ứng mờ đi.### 13. Avatar (người, con...)
-- **Mọi avatar trong app đều hiển thị trong KHUNG TRÒN** (`rounded-full`), ở mọi nơi: danh sách, form, thanh tiêu đề, popup chọn, kể cả ngay sau khi vừa chọn ảnh. Không bao giờ hiện nguyên ảnh vuông.
-- Ảnh thật: khung `block` / `flex` (**không để `span` inline**, vì inline bỏ qua `h-*` / `w-*` làm ảnh hiện nguyên hình vuông) + `overflow-hidden rounded-full`;
-  thẻ `<img>` thêm `block h-full w-full rounded-full object-cover` để cắt tròn chắc chắn cả trên iOS cũ.
-- Chưa có ảnh: khối tròn màu nổi 3D (`BLOCK_3D` + `GLOSS_3D` có `rounded-full`) với icon 3D bên trong; ô "chọn ảnh" / "thêm" cũng là hình tròn (viền nét đứt).
-- Skeleton của avatar cũng là `rounded-full`, cùng kích thước với avatar thật.
-- Dùng lại component có sẵn (vd `ChildAvatar` trong `src/pages/baby/components.tsx`) thay vì tự viết lại.
+- **Mọi avatar trong app đều hiển thị trong KHUNG TRÒN** (`rounded-full` + **`data-round`**, vì toàn app không bo góc — mục 5), ở mọi nơi: danh sách, form, thanh tiêu đề, popup chọn.
+- Ảnh thật: khung `block` / `flex` (**không để `span` inline**, vì inline bỏ qua `h-*` / `w-*`) + `overflow-hidden rounded-full`; thẻ `<img>` thêm `block h-full w-full rounded-full object-cover`.
+- Chưa có ảnh: khối tròn màu có bóng đổ (`BLOCK_3D`) với icon bên trong; ô "chọn ảnh" / "thêm" cũng là hình tròn (viền nét đứt).
+- Skeleton của avatar là `<Skeleton round />`, cùng kích thước với avatar thật.
+- Dùng lại component có sẵn (vd `ChildAvatar` trong `src/pages/baby/components.tsx`, `Avatar`) thay vì tự viết lại.
 
 ### 14. Ô số (số thứ tự…) nằm trên thẻ nhập trực tiếp
 - Thẻ / hàng trong danh sách cho **nhập dữ liệu trực tiếp** mà có ô số (vd số thứ tự của thẻ nội dung, của ghi chú ở app Ghi chú):

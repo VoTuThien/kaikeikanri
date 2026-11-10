@@ -115,6 +115,7 @@ function ChildForm({ child }: { child?: Child }) {
           {/* Avatar tròn: chạm để chọn / đổi ảnh; chưa có ảnh thì hiện camera. Bên cạnh là tên + tuổi xem trước */}
           <div className={PREVIEW}>
             <ImagePicker
+              round
               label={photo ? 'Đổi ảnh của con' : 'Chọn ảnh của con'}
               onChange={pickPhoto}
               className={`${AVATAR} relative shrink-0 rounded-full transition active:scale-95`}
@@ -198,7 +199,7 @@ export function ChildFormPageSkeleton({ isNew }: { isNew: boolean }) {
       <GlassPanel className={FIT_CLASS}>
         <div className={FORM_CLASS}>
           <div className={PREVIEW}>
-            <Skeleton className={`${AVATAR} rounded-full`} />
+            <Skeleton round className={`${AVATAR} rounded-full`} />
             <div className="flex-1 space-y-1.5">
               <Skeleton className="h-5 w-32 rounded-md" />
               <Skeleton className="h-4 w-44 rounded-md" />
