@@ -17,6 +17,7 @@ import { EditableList, EditableListSkeleton, LIST_CLASS, MemberPicker, MemberPic
 import { createNote, moveItemsToNewNote, updateNote } from './data/api'
 import { useNote, useNoteDoc, useNotesTo } from './data/NoteContext'
 import { foldKey, MAX_TEXT, noteTitle, sameKey, type Note, type NoteItem } from './data/types'
+import { useChanged, useUnsavedChanges } from '../../components/UnsavedGuard'
 
 // Tạo ghi chú (bước 2): nội dung bên trong 1 ghi chú — tạo mới (/note/sent/new?to=uid) hoặc sửa (/note/sent/:id).
 // Trên cùng: [số thứ tự] [tên ghi chú] (số = ưu tiên giữa các ghi chú của người nhận; tạo mới mặc định đứng cuối).
@@ -90,6 +91,9 @@ function NoteForm({ members, note, source }: { members: Member[]; note: Note | n
   const [focusKey, setFocusKey] = useState<string | null>(null)
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
+  // Có thay đổi chưa lưu: chấm đỏ trên nút lưu, rời màn hình thì hỏi lại (UnsavedGuard); Lưu ở hộp thoại = bấm nút lưu
+  const dirty = useChanged({ name, position, toUid, rows: rows.map((r) => [r.key, r.text]) })
+  const leave = useUnsavedChanges(dirty && !saving, () => void save())
 
   // Các ghi chú hiện có của người nhận đang chọn: tạo mới / chuyển sang người khác thì tổng số tính cả ghi chú này (mặc định đứng cuối)
   const siblings = useNotesTo(toUid)
@@ -183,7 +187,7 @@ function NoteForm({ members, note, source }: { members: Member[]; note: Note | n
           pos,
         )
       }
-      navigate(`/note/sent?to=${toUid}`)
+      leave(`/note/sent?to=${toUid}`)
     } catch (err) {
       console.error(err)
       setError(err instanceof Error && err.message.startsWith('Ghi chú') ? err.message : 'Lưu thất bại. Vui lòng thử lại.')
@@ -243,7 +247,7 @@ function NoteForm({ members, note, source }: { members: Member[]; note: Note | n
       <FabGroup>
         {canSplit && <Fab icon="copy" label="Tạo ghi chú mới từ nội dung chưa hoàn thành" variant="secondary" onClick={split} />}
         <Fab icon="add" label="Thêm thẻ" variant="secondary" onClick={add} />
-        <Fab icon={isNew ? 'send' : 'save'} label={isNew ? 'Gửi ghi chú' : 'Lưu ghi chú'} loading={saving} onClick={save} />
+        <Fab icon={isNew ? 'send' : 'save'} label={isNew ? 'Gửi ghi chú' : 'Lưu ghi chú'} loading={saving} onClick={save} dirty={dirty} />
       </FabGroup>
     </PageShell>
   )

@@ -19,6 +19,7 @@ import { useFund, useFundRun } from './data/FundContext'
 import { executeOrders, monthId, monthLabel, setSummarized, shiftMonth } from './data/orders'
 import { saveSalary, useSalaryInfos, type SalaryInfo } from './data/salary'
 import type { FundOrder, FundRun, Salary } from './data/types'
+import { submitForm, useUnsavedChanges } from '../../components/UnsavedGuard'
 
 // Thực thi theo từng tháng, gồm 3 bước:
 //   1. Lương: mỗi thành viên nhập lương thực lãnh của mình (cả gia đình xem được); lưu là tự nạp vào quỹ nhận lương
@@ -162,6 +163,9 @@ function SalaryStep({ month, run, people, infos }: { month: string; run: FundRun
   const [saving, setSaving] = useState(false)
   // Đã tổng kết thì không sửa lương đã nhập (vẫn nhập mới được, giống màn hình Lương)
   const locked = (!!run.summarizedByName && !!mine) || noSalary
+  // Có thông tin chưa lưu: chấm đỏ trên nút lưu, rời màn hình thì hỏi lại (UnsavedGuard)
+  const dirty = !locked && amount !== (mine?.amount ?? 0)
+  useUnsavedChanges(dirty && !saving, () => submitForm(FORM_ID))
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
@@ -204,7 +208,7 @@ function SalaryStep({ month, run, people, infos }: { month: string; run: FundRun
       <SalaryList people={people} />
       {!locked && (
         <FabGroup>
-          <Fab type="submit" form={FORM_ID} icon="save" label="Lưu lương" loading={saving} />
+          <Fab type="submit" form={FORM_ID} icon="save" label="Lưu lương" loading={saving} dirty={dirty} />
         </FabGroup>
       )}
     </>

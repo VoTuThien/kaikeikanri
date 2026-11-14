@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { AppHeader, AppHeaderSkeleton } from '../../components/AppHeader'
 import { PageShell, ScrollArea } from '../../components/PageShell'
@@ -18,6 +18,7 @@ import { TextField } from '../../components/ui/TextField'
 import { addItemMoney, addNoteItem, setItemDone } from './data/api'
 import { useNote } from './data/NoteContext'
 import { itemMemo, MAX_TEXT, moneyTotal, noteDone, noteTitle, type Note, type NoteItem, type NoteMoney } from './data/types'
+import { submitForm, useUnsavedChanges } from '../../components/UnsavedGuard'
 
 // Xem ghi chú (bước 2): các thẻ nội dung của 1 ghi chú gửi đến mình, theo thứ tự ưu tiên.
 // Ghi chú MÌNH GỬI CHO NGƯỜI KHÁC (tab "Mình đã gửi") thì CHỈ XEM (`readOnly`): thấy thẻ nào đã xong và các lần nạp / rút quỹ,
@@ -74,6 +75,12 @@ function NoteView({ note, readOnly }: { note: Note; readOnly: boolean }) {
   // Đang thêm thẻ mới vào cuối ghi chú (người nhận, vd phát sinh khoản nạp / rút chưa có trong ghi chú)
   const [adding, setAdding] = useState(false)
   const [draft, setDraft] = useState('')
+  // Ô nạp / rút đang mở đã nhập số tiền mà chưa lưu
+  const [moneyDirty, setMoneyDirty] = useState(false)
+  // Có thông tin chưa lưu: chấm đỏ trên nút lưu, rời màn hình thì hỏi lại (UnsavedGuard)
+  const draftDirty = adding && draft.trim() !== ''
+  const dirty = draftDirty || (!!openId && moneyDirty)
+  useUnsavedChanges(dirty && !saving, () => submitForm(draftDirty ? ADD_FORM_ID : FORM_ID))
 
   async function handleAdd(e: FormEvent) {
     e.preventDefault()
@@ -172,7 +179,7 @@ function NoteView({ note, readOnly }: { note: Note; readOnly: boolean }) {
                 </button>
               </div>
               {openId === item.id &&
-                (readOnly ? <ItemMoneyHistory item={item} /> : <ItemMoneyForm key={item.id} note={note} item={item} onSaving={setSaving} />)}
+                (readOnly ? <ItemMoneyHistory item={item} /> : <ItemMoneyForm key={item.id} note={note} item={item} onSaving={setSaving} onDirty={setMoneyDirty} />)}
             </div>
           ))}
           {/* Thẻ mới đang nhập (thêm vào cuối ghi chú) */}
@@ -215,7 +222,7 @@ function NoteView({ note, readOnly }: { note: Note; readOnly: boolean }) {
                   setError('')
                 }}
               />
-              <Fab type="submit" form={ADD_FORM_ID} icon="save" label="Thêm nội dung vào ghi chú" loading={saving} />
+              <Fab type="submit" form={ADD_FORM_ID} icon="save" label="Thêm nội dung vào ghi chú" loading={saving} dirty={draftDirty} />
             </>
           ) : (
             <>
@@ -230,7 +237,7 @@ function NoteView({ note, readOnly }: { note: Note; readOnly: boolean }) {
                   setAdding(true)
                 }}
               />
-              {open && <Fab type="submit" form={FORM_ID} icon="save" label={`Lưu nạp / rút cho "${open.text}"`} loading={saving} />}
+              {open && <Fab type="submit" form={FORM_ID} icon="save" label={`Lưu nạp / rút cho "${open.text}"`} loading={saving} dirty={moneyDirty} />}
             </>
           )}
         </FabGroup>
@@ -254,7 +261,17 @@ function ItemSummary({ item, open, readOnly }: { item: NoteItem; open: boolean; 
 }
 
 // Ô nạp / rút quỹ của 1 thẻ (mở ngay dưới thẻ trong bảng); các lần đã nạp / rút của thẻ hiện bên dưới
-function ItemMoneyForm({ note, item, onSaving }: { note: Note; item: NoteItem; onSaving: (saving: boolean) => void }) {
+function ItemMoneyForm({
+  note,
+  item,
+  onSaving,
+  onDirty,
+}: {
+  note: Note
+  item: NoteItem
+  onSaving: (saving: boolean) => void
+  onDirty: (dirty: boolean) => void // đã nhập số tiền mà chưa lưu
+}) {
   const { actor, funds, settings } = useNote()
   const [kind, setKind] = useState<Kind>('withdraw')
   // Quỹ chọn sẵn = quỹ mặc định trong Cài đặt (còn tồn tại), không có thì quỹ đầu tiên
@@ -262,6 +279,10 @@ function ItemMoneyForm({ note, item, onSaving }: { note: Note; item: NoteItem; o
   const [amount, setAmount] = useState(0)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+  useEffect(() => {
+    onDirty(amount > 0)
+    return () => onDirty(false)
+  }, [amount, onDirty])
 
   if (funds.length === 0) {
     return (

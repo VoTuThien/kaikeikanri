@@ -16,6 +16,7 @@ import { EmptyState, prefillAmount, prefillDate } from './components'
 import { transferFunds } from './data/api'
 import { getCachedSettings, useFund } from './data/FundContext'
 import type { Fund } from './data/types'
+import { submitForm, useUnsavedChanges } from '../../components/UnsavedGuard'
 
 const FORM_ID = 'transfer-form'
 // Thu gọn khoảng cách vì màn hình chuyển có 2 ô chọn quỹ (nhiều hơn màn hình nạp / rút 1 ô)
@@ -66,6 +67,9 @@ function TransferForm() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [saving, setSaving] = useState(false)
+  // Có thông tin chưa lưu (đã nhập số tiền mà chưa bấm lưu): chấm đỏ trên nút lưu, rời màn hình thì hỏi lại (UnsavedGuard)
+  const dirty = amount > 0
+  useUnsavedChanges(dirty && !saving, () => submitForm(FORM_ID))
 
   const from = funds.find((f) => f.id === fromId) ?? funds[0]
   const to = funds.find((f) => f.id === toId) ?? funds.find((f) => f.id !== from.id)!
@@ -155,7 +159,7 @@ function TransferForm() {
         </form>
       </GlassPanel>
       <FabGroup>
-        <Fab type="submit" form={FORM_ID} icon="save" label="Chuyển tiền" loading={saving} />
+        <Fab type="submit" form={FORM_ID} icon="save" label="Chuyển tiền" loading={saving} dirty={dirty} />
       </FabGroup>
     </PageShell>
   )

@@ -1,5 +1,5 @@
 import { useState, type ChangeEvent, type FormEvent } from 'react'
-import { Navigate, useNavigate, useParams } from 'react-router-dom'
+import { Navigate, useParams } from 'react-router-dom'
 import { AppHeader, AppHeaderSkeleton } from '../../components/AppHeader'
 import { FIT_CLASS, PageShell } from '../../components/PageShell'
 import { Alert } from '../../components/ui/Alert'
@@ -17,6 +17,7 @@ import { birthLabel, ChildAvatar } from './components'
 import { createChild, deleteChild, updateChild } from './data/api'
 import { useBaby } from './data/BabyContext'
 import { CHILD_AVATARS, childAge, GENDERS, type Child, type Gender } from './data/types'
+import { submitForm, useChanged, useUnsavedChanges } from '../../components/UnsavedGuard'
 
 // Thêm / sửa thông tin con: tên, nickname (không bắt buộc), ngày sinh, giờ sinh (không bắt buộc), giới tính, avatar.
 // Avatar hình tròn ở đầu form: CHẠM VÀO AVATAR để chọn / đổi ảnh (thư viện hoặc chụp; cắt vuông + thu nhỏ trên máy rồi lưu
@@ -41,7 +42,6 @@ export function ChildFormPage() {
 
 function ChildForm({ child }: { child?: Child }) {
   const { actor, selectChild } = useBaby()
-  const navigate = useNavigate()
   const isNew = !child
 
   const [name, setName] = useState(child?.name ?? '')
@@ -57,6 +57,9 @@ function ChildForm({ child }: { child?: Child }) {
   const [saving, setSaving] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  // Có thay đổi chưa lưu: chấm đỏ trên nút lưu, rời màn hình thì hỏi lại (UnsavedGuard)
+  const dirty = useChanged({ name, nickname, birthDate, birthTime, gender, photo })
+  const leave = useUnsavedChanges(dirty && !(saving || processing || deleting), () => submitForm(FORM_ID))
 
   // Chọn ảnh: cắt vuông ở giữa, thu nhỏ 256px rồi giữ dạng data URL (lưu cùng thông tin con)
   async function pickPhoto(e: ChangeEvent<HTMLInputElement>) {
@@ -85,7 +88,7 @@ function ChildForm({ child }: { child?: Child }) {
       const input = { name: name.trim(), nickname: nickname.trim(), birthDate, birthTime: birthTime || null, gender, avatar, photo }
       if (isNew) await createChild(input, actor)
       else await updateChild(child.id, input)
-      navigate('/baby/children')
+      leave('/baby/children')
     } catch (err) {
       console.error(err)
       setError('Lưu thất bại. Vui lòng thử lại.')
@@ -99,7 +102,7 @@ function ChildForm({ child }: { child?: Child }) {
     try {
       await deleteChild(child.id)
       selectChild('')
-      navigate('/baby/children')
+      leave('/baby/children')
     } catch (err) {
       console.error(err)
       setError('Xoá thất bại. Vui lòng thử lại.')
@@ -177,6 +180,7 @@ function ChildForm({ child }: { child?: Child }) {
         </form>
       </GlassPanel>
       <SaveDeleteFabs
+        dirty={dirty}
         formId={FORM_ID}
         canDelete={!isNew}
         confirming={confirmDelete}

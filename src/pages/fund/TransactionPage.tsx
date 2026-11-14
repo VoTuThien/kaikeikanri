@@ -15,6 +15,7 @@ import { formatMoney, fromDateInputValue } from '../../lib/format'
 import { EmptyState, prefillAmount, prefillDate } from './components'
 import { addTransaction } from './data/api'
 import { getCachedSettings, useFund } from './data/FundContext'
+import { submitForm, useUnsavedChanges } from '../../components/UnsavedGuard'
 
 type Kind = 'deposit' | 'withdraw'
 
@@ -67,6 +68,9 @@ function TransactionForm({ kind }: { kind: Kind }) {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [saving, setSaving] = useState(false)
+  // Có thông tin chưa lưu (đã nhập số tiền mà chưa bấm lưu): chấm đỏ trên nút lưu, rời màn hình thì hỏi lại (UnsavedGuard)
+  const dirty = amount > 0
+  useUnsavedChanges(dirty && !saving, () => submitForm(FORM_ID))
 
   const fund = funds.find((f) => f.id === fundId) ?? funds[0]
 
@@ -145,7 +149,7 @@ function TransactionForm({ kind }: { kind: Kind }) {
         </form>
       </GlassPanel>
       <FabGroup>
-        <Fab type="submit" form={FORM_ID} icon="save" label={text.button} loading={saving} />
+        <Fab type="submit" form={FORM_ID} icon="save" label={text.button} loading={saving} dirty={dirty} />
       </FabGroup>
     </PageShell>
   )

@@ -10,6 +10,7 @@ import { ToggleRow, ToggleRowSkeleton } from '../../components/ui/Toggle'
 import { SIZE } from '../../components/ui/sizes'
 import { saveSettings } from './data/api'
 import { useFund } from './data/FundContext'
+import { submitForm, useUnsavedChanges } from '../../components/UnsavedGuard'
 
 const PANEL_CLASS = '!p-5'
 const FORM_ID = 'fund-settings-form'
@@ -28,6 +29,9 @@ function Settings() {
   const [rateText, setRateText] = useState(String(settings.defaultInterestRate))
   const [message, setMessage] = useState<{ type: 'error' | 'success'; text: string } | null>(null)
   const [saving, setSaving] = useState(false)
+  // Có thông tin chưa lưu: chấm đỏ trên nút lưu, rời màn hình thì hỏi lại (UnsavedGuard)
+  const dirty = Number(rateText.replace(',', '.')) !== settings.defaultInterestRate
+  useUnsavedChanges(dirty && !saving, () => submitForm(FORM_ID))
 
   function toggle(key: 'hideBalance' | 'showQuickAmounts', value: boolean) {
     saveSettings(uid, { [key]: value }).catch((e) => console.error(e))
@@ -94,7 +98,7 @@ function Settings() {
 
       {/* Công tắc tự lưu ngay khi bấm; nút lưu chỉ dùng cho lãi suất mặc định */}
       <FabGroup>
-        <Fab type="submit" form={FORM_ID} icon="save" label="Lưu lãi suất mặc định" loading={saving} />
+        <Fab type="submit" form={FORM_ID} icon="save" label="Lưu lãi suất mặc định" loading={saving} dirty={dirty} />
       </FabGroup>
     </PageShell>
   )

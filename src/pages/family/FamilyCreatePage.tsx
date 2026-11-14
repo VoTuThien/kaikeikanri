@@ -1,5 +1,4 @@
 import { useState, type FormEvent } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { AppHeader, AppHeaderSkeleton } from '../../components/AppHeader'
 import { PageShell } from '../../components/PageShell'
 import { Alert } from '../../components/ui/Alert'
@@ -12,6 +11,7 @@ import { SIZE } from '../../components/ui/sizes'
 import { useAuth } from '../../contexts/AuthContext'
 import { useFamily } from '../../contexts/FamilyContext'
 import { createFamily } from './data/api'
+import { submitForm, useUnsavedChanges } from '../../components/UnsavedGuard'
 
 const FORM_ID = 'family-create-form'
 const PANEL_CLASS = 'space-y-4'
@@ -19,10 +19,12 @@ const PANEL_CLASS = 'space-y-4'
 export function FamilyCreatePage() {
   const { user } = useAuth()
   const { owned, selectFamily } = useFamily()
-  const navigate = useNavigate()
   const [name, setName] = useState('')
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
+  // Đã gõ tên mà chưa tạo: chấm đỏ trên nút lưu, rời màn hình thì hỏi lại (UnsavedGuard)
+  const dirty = name.trim() !== ''
+  const leave = useUnsavedChanges(dirty && !saving, () => submitForm(FORM_ID))
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
@@ -37,7 +39,7 @@ export function FamilyCreatePage() {
         email: user.email ?? '',
       })
       selectFamily(familyId)
-      navigate('/')
+      leave('/')
     } catch (err) {
       console.error(err)
       setError(
@@ -90,7 +92,7 @@ export function FamilyCreatePage() {
         </form>
       </GlassPanel>
       <FabGroup>
-        <Fab type="submit" form={FORM_ID} icon="save" label="Tạo gia đình" loading={saving} />
+        <Fab type="submit" form={FORM_ID} icon="save" label="Tạo gia đình" loading={saving} dirty={dirty} />
       </FabGroup>
     </PageShell>
   )

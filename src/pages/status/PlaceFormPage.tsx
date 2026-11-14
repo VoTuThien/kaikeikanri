@@ -1,5 +1,5 @@
 import { lazy, Suspense, useState, type FormEvent } from 'react'
-import { Navigate, useNavigate, useParams } from 'react-router-dom'
+import { Navigate, useParams } from 'react-router-dom'
 import { AppHeader, AppHeaderSkeleton } from '../../components/AppHeader'
 import { FIT_CLASS, PageShell } from '../../components/PageShell'
 import { Alert } from '../../components/ui/Alert'
@@ -16,6 +16,7 @@ import { createPlace, deletePlace, formatCoords, parseCoords, updatePlace } from
 import { footprint } from './data/layout'
 import { useStatus } from './data/StatusContext'
 import { PLACE_TYPES, placeTypeInfo, type Place, type PlaceType } from './data/types'
+import { submitForm, useChanged, useUnsavedChanges } from '../../components/UnsavedGuard'
 
 // Thư viện 3D chỉ tải khi mở màn hình này
 const PlacePreview = lazy(() => import('./models/PlacePreview'))
@@ -49,7 +50,6 @@ export function PlaceFormPage() {
 
 function PlaceForm({ place }: { place?: Place }) {
   const { actor } = useStatus()
-  const navigate = useNavigate()
   const isNew = !place
 
   const [type, setType] = useState<PlaceType>(place?.type ?? 'house')
@@ -62,6 +62,9 @@ function PlaceForm({ place }: { place?: Place }) {
   const [saving, setSaving] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  // Có thay đổi chưa lưu: chấm đỏ trên nút lưu, rời màn hình thì hỏi lại (UnsavedGuard)
+  const dirty = useChanged({ type, name, coordText, note })
+  const leave = useUnsavedChanges(dirty && !(saving || deleting), () => submitForm(FORM_ID))
 
   function fillCurrentLocation() {
     if (!navigator.geolocation) return setError('Thiết bị không hỗ trợ lấy vị trí.')
@@ -97,7 +100,7 @@ function PlaceForm({ place }: { place?: Place }) {
       const input = { name: name.trim(), type, ...coords, note: note.trim() }
       if (isNew) await createPlace(input, actor)
       else await updatePlace(place.id, input)
-      navigate('/status/places')
+      leave('/status/places')
     } catch (err) {
       console.error(err)
       setError('Lưu thất bại. Vui lòng thử lại.')
@@ -110,7 +113,7 @@ function PlaceForm({ place }: { place?: Place }) {
     setDeleting(true)
     try {
       await deletePlace(place.id)
-      navigate('/status/places')
+      leave('/status/places')
     } catch (err) {
       console.error(err)
       setError('Xoá thất bại. Vui lòng thử lại.')
@@ -206,6 +209,7 @@ function PlaceForm({ place }: { place?: Place }) {
         </form>
       </GlassPanel>
       <SaveDeleteFabs
+        dirty={dirty}
         formId={FORM_ID}
         canDelete={!isNew}
         confirming={confirmDelete}

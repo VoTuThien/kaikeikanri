@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { Navigate, useNavigate, useParams } from 'react-router-dom'
+import { Navigate, useParams } from 'react-router-dom'
 import { AppHeader, AppHeaderSkeleton } from '../../components/AppHeader'
 import { FIT_CLASS, PageShell } from '../../components/PageShell'
 import { Alert } from '../../components/ui/Alert'
@@ -17,6 +17,7 @@ import { createFund, deleteFund, updateFund } from './data/api'
 import { useFund } from './data/FundContext'
 import { nextInterestDate, projectBalance } from './data/interest'
 import type { Fund } from './data/types'
+import { submitForm, useChanged, useUnsavedChanges } from '../../components/UnsavedGuard'
 
 const ICONS = [
   '💰', '🏠', '🦔', '✈️', '🎓', '🚗',
@@ -55,7 +56,6 @@ export function FundFormPage() {
 
 function FundForm({ fund }: { fund?: Fund }) {
   const { actor, settings, funds } = useFund()
-  const navigate = useNavigate()
   const isNew = !fund
   const ids = funds.map((f) => f.id)
   // Số thứ tự: tạo mới mặc định = tổng số quỹ tính cả quỹ đang thêm (đứng cuối); gõ lớn hơn thì tự đưa về số đó
@@ -72,6 +72,9 @@ function FundForm({ fund }: { fund?: Fund }) {
   const [saving, setSaving] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  // Có thay đổi chưa lưu: chấm đỏ trên nút lưu, rời màn hình thì hỏi lại (UnsavedGuard)
+  const dirty = useChanged({ position, name, icon, color, rateText, initialBalance, transferred })
+  const leave = useUnsavedChanges(dirty && !(saving || deleting), () => submitForm(FORM_ID))
 
   const rate = Number(rateText.replace(',', '.'))
   const baseBalance = isNew ? initialBalance : fund.balance
@@ -88,7 +91,7 @@ function FundForm({ fund }: { fund?: Fund }) {
       const input = { name: name.trim(), icon, color, interestRate: rate, transferred }
       if (isNew) await createFund(input, initialBalance, actor, ids, position)
       else await updateFund(fund, input, ids, position)
-      navigate('/fund/groups')
+      leave('/fund/groups')
     } catch (err) {
       console.error(err)
       setError('Lưu thất bại. Vui lòng thử lại.')
@@ -101,7 +104,7 @@ function FundForm({ fund }: { fund?: Fund }) {
     setDeleting(true)
     try {
       await deleteFund(fund.id, ids)
-      navigate('/fund/groups')
+      leave('/fund/groups')
     } catch (err) {
       console.error(err)
       setError('Xoá thất bại. Vui lòng thử lại.')
@@ -239,6 +242,7 @@ function FundForm({ fund }: { fund?: Fund }) {
         </form>
       </GlassPanel>
       <SaveDeleteFabs
+        dirty={dirty}
         formId={FORM_ID}
         canDelete={!isNew}
         confirming={confirmDelete}

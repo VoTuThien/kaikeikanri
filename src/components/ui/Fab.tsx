@@ -84,12 +84,24 @@ interface FabProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'childr
   label: string // không hiện chữ, dùng cho trình đọc màn hình và chú thích khi giữ chuột
   variant?: Variant
   loading?: boolean
+  dirty?: boolean // có thông tin thay đổi chưa lưu: chấm đỏ ở góc phải trên (dùng cho nút lưu)
 }
 
-export function Fab({ icon, label, variant = 'primary', loading, disabled, className = '', ...rest }: FabProps) {
+// Chấm đỏ "chưa lưu" ở góc phải trên của nút lưu
+export const DIRTY_DOT = 'pointer-events-none absolute -top-0.5 -right-0.5 h-4 w-4 rounded-full border-2 border-white bg-rose-500 shadow-md shadow-black/40'
+
+export function Fab({ icon, label, variant = 'primary', loading, dirty, disabled, className = '', ...rest }: FabProps) {
   return (
-    <button data-round aria-label={label} title={label} className={`${BASE} ${VARIANTS[variant]} ${className}`} disabled={disabled || loading} {...rest}>
+    <button
+      data-round
+      aria-label={dirty ? `${label} (có thông tin chưa lưu)` : label}
+      title={label}
+      className={`${BASE} ${VARIANTS[variant]} relative ${className}`}
+      disabled={disabled || loading}
+      {...rest}
+    >
       {loading ? <span className="h-6 w-6 animate-spin rounded-full border-2 border-white/40 border-t-white" /> : <LineIcon icon={icon} />}
+      {dirty && !loading && <span className={DIRTY_DOT} />}
     </button>
   )
 }
@@ -123,6 +135,7 @@ export function SaveDeleteFabs({
   onAskDelete,
   onCancelDelete,
   onDelete,
+  dirty,
 }: {
   formId: string
   canDelete: boolean
@@ -134,6 +147,7 @@ export function SaveDeleteFabs({
   onAskDelete: () => void
   onCancelDelete: () => void
   onDelete: () => void
+  dirty?: boolean // có thông tin chưa lưu: chấm đỏ trên nút lưu
 }) {
   return (
     <FabGroup>
@@ -148,7 +162,7 @@ export function SaveDeleteFabs({
           className={confirming ? 'ring-4 ring-rose-300/60' : ''}
         />
       )}
-      {!confirming && <Fab type="submit" form={formId} icon="save" label={saveLabel} loading={saving} />}
+      {!confirming && <Fab type="submit" form={formId} icon="save" label={saveLabel} loading={saving} dirty={dirty} />}
     </FabGroup>
   )
 }

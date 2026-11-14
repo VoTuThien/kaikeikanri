@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import { createBrowserRouter, Navigate, Route, RouterProvider, Routes } from 'react-router-dom'
 import { AuthLayout } from './components/AuthLayout'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { FamilyProvider, useFamily } from './contexts/FamilyContext'
@@ -14,6 +14,7 @@ import { ShortcutPickerPage, ShortcutPickerPageSkeleton } from './pages/Shortcut
 import { SidePage, SidePageSkeleton } from './pages/SidePage'
 import { SideSwipe } from './components/SideSwipe'
 import { RefreshIndicator } from './components/RefreshIndicator'
+import { UnsavedGuard } from './components/UnsavedGuard'
 import { NotificationBubble } from './components/NotificationBubble'
 import { BabyHomePage } from './pages/baby/BabyHomePage'
 import { CardFormPage } from './pages/baby/CardFormPage'
@@ -172,20 +173,32 @@ function AppRoutes({ location }: { location?: string }) {
 
 const renderRoutes = (location?: string) => <AppRoutes location={location} />
 
+// Khung chung bên trong router: các màn hình (vuốt 2 bên) + các lớp nổi trên mọi màn hình
+function Shell() {
+  return (
+    <>
+      {/* Vuốt ngang giữa màn hình chính và 2 màn hình 2 bên */}
+      <SideSwipe render={renderRoutes} />
+      {/* Vòng xoay nhỏ góc trái dưới khi trang đang hiện dữ liệu nhớ tạm và cập nhật lại từ server */}
+      <RefreshIndicator />
+      {/* Bong bóng thông báo nổi trên mọi màn hình (kéo được, kéo vào X để ẩn khi không có thông báo) */}
+      <NotificationBubble />
+      {/* Hỏi lại khi rời màn hình mà còn thông tin chưa lưu */}
+      <UnsavedGuard />
+    </>
+  )
+}
+
+// Data router (cần cho useBlocker của UnsavedGuard); các route thật vẫn khai báo bằng <Routes> trong AppRoutes
+const router = createBrowserRouter([{ path: '*', element: <Shell /> }])
+
 export default function App() {
   if (!isFirebaseConfigured) return <FirebaseNotConfigured />
 
   return (
     <AuthProvider>
       <FamilyProvider>
-        <BrowserRouter>
-          {/* Vuốt ngang giữa màn hình chính và 2 màn hình 2 bên */}
-          <SideSwipe render={renderRoutes} />
-          {/* Vòng xoay nhỏ góc trái dưới khi trang đang hiện dữ liệu nhớ tạm và cập nhật lại từ server */}
-          <RefreshIndicator />
-          {/* Bong bóng thông báo nổi trên mọi màn hình (kéo được, kéo vào X để ẩn khi không có thông báo) */}
-          <NotificationBubble />
-        </BrowserRouter>
+        <RouterProvider router={router} />
       </FamilyProvider>
     </AuthProvider>
   )

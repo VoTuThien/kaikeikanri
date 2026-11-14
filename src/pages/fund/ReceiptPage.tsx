@@ -20,6 +20,7 @@ import { useFund } from './data/FundContext'
 import { readReceiptText, stopOcr, type OcrProgress } from './data/receipt'
 import { ReceiptItemsPopup } from './ReceiptItems'
 import { itemsTotal, parseReceipt, RECEIPT_KINDS, type ReceiptItem, type ReceiptKind } from './data/receiptParse'
+import { submitForm, useUnsavedChanges } from '../../components/UnsavedGuard'
 
 // Đọc hoá đơn (/fund/receipt): chụp / chọn ảnh hoá đơn -> đọc chữ NGAY TRÊN MÁY (Tesseract.js, miễn phí, ảnh không gửi đi đâu)
 // -> tự điền số tiền (ưu tiên dòng "Tổng cộng / Thanh toán..."), ngày, ghi chú "Hoá đơn <tên cửa hàng>" vào form RÚT QUỸ.
@@ -79,6 +80,9 @@ function ReceiptForm() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [saving, setSaving] = useState(false)
+  // Có thông tin chưa lưu: chấm đỏ trên nút lưu, rời màn hình thì hỏi lại (UnsavedGuard)
+  const dirty = amount > 0
+  useUnsavedChanges(dirty && !saving, () => submitForm(FORM_ID))
   const fund = funds.find((f) => f.id === fundId) ?? funds[0]
 
   // Tách dữ liệu từ chữ đã đọc theo loại hoá đơn rồi điền vào form (đổi loại hoá đơn thì tách lại, không cần đọc ảnh lại)
@@ -256,7 +260,7 @@ function ReceiptForm() {
         </form>
       </GlassPanel>
       <FabGroup>
-        <Fab type="submit" form={FORM_ID} icon="save" label="Rút tiền theo hoá đơn" loading={saving} disabled={!!reading} />
+        <Fab type="submit" form={FORM_ID} icon="save" label="Rút tiền theo hoá đơn" loading={saving} disabled={!!reading} dirty={dirty} />
       </FabGroup>
 
       {/* Khung xem: danh sách sản phẩm sẽ lưu (tên, SL, thành tiền) / chữ thô Tesseract đọc được (để tự kiểm tra khi tách sai) */}

@@ -1,5 +1,4 @@
 import { useState, type ChangeEvent, type FormEvent } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { AppHeader, AppHeaderSkeleton } from '../components/AppHeader'
 import { Avatar } from '../components/Avatar'
 import { FIT_CLASS, PageShell } from '../components/PageShell'
@@ -14,6 +13,7 @@ import { SIZE } from '../components/ui/sizes'
 import { useAuth } from '../contexts/AuthContext'
 import { fileToSquareDataUrl } from '../lib/image'
 import { PERSON_GENDERS, personAge, saveProfile, useProfile, type PersonGender, type ProfileInput } from '../lib/profile'
+import { submitForm, useChanged, useUnsavedChanges } from '../components/UnsavedGuard'
 
 // Thông tin cá nhân (mở bằng nút cây bút ở màn hình chính): tên, nickname, ngày sinh, giới tính, nghề nghiệp, avatar.
 // Giống form thông tin con: CHẠM VÀO AVATAR TRÒN ở đầu form để chọn / đổi ảnh (cắt vuông + thu nhỏ trên máy rồi lưu thẳng vào Firestore);
@@ -34,7 +34,6 @@ export function ProfilePage() {
 
 function ProfileForm({ uid, email, displayName, profile }: { uid: string; email: string; displayName: string; profile: ProfileInput | null }) {
   const { updateName } = useAuth()
-  const navigate = useNavigate()
   const [name, setName] = useState(profile?.name || displayName)
   const [nickname, setNickname] = useState(profile?.nickname ?? '')
   const [birthDate, setBirthDate] = useState(profile?.birthDate ?? '')
@@ -44,6 +43,9 @@ function ProfileForm({ uid, email, displayName, profile }: { uid: string; email:
   const [processing, setProcessing] = useState(false)
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
+  // Có thay đổi chưa lưu: chấm đỏ trên nút lưu, rời màn hình thì hỏi lại (UnsavedGuard)
+  const dirty = useChanged({ name, nickname, birthDate, gender, job, photo })
+  const leave = useUnsavedChanges(dirty && !saving && !processing, () => submitForm(FORM_ID))
 
   // Chọn ảnh: cắt vuông ở giữa, thu nhỏ 256px rồi giữ dạng data URL (lưu cùng hồ sơ)
   async function pickPhoto(e: ChangeEvent<HTMLInputElement>) {
@@ -71,7 +73,7 @@ function ProfileForm({ uid, email, displayName, profile }: { uid: string; email:
       await saveProfile(uid, { name: name.trim(), nickname: nickname.trim(), birthDate, gender, job: job.trim(), photo })
       // Tên hiển thị của tài khoản: lời chào ở màn hình chính, người thực hiện các thao tác sau này
       await updateName(name.trim())
-      navigate('/')
+      leave('/')
     } catch (err) {
       console.error(err)
       setError('Lưu thất bại. Vui lòng thử lại.')
@@ -143,7 +145,7 @@ function ProfileForm({ uid, email, displayName, profile }: { uid: string; email:
         </form>
       </GlassPanel>
       <FabGroup>
-        <Fab type="submit" form={FORM_ID} icon="save" label="Lưu thông tin cá nhân" loading={saving || processing} />
+        <Fab type="submit" form={FORM_ID} icon="save" label="Lưu thông tin cá nhân" loading={saving || processing} dirty={dirty} />
       </FabGroup>
     </PageShell>
   )

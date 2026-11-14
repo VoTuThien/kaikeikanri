@@ -15,6 +15,7 @@ import { formatMoney, fromDateInputValue, toDateInputValue } from '../../lib/for
 import { addTransaction, transferFunds } from './data/api'
 import { getCachedSettings, useFund } from './data/FundContext'
 import type { Fund } from './data/types'
+import { submitForm, useUnsavedChanges } from '../../components/UnsavedGuard'
 
 // Nạp / Rút / Chuyển của 1 nhóm quỹ (mở khi chạm thẻ quỹ ở màn hình Nhóm quỹ), giống form Tạo lệnh chuyển:
 // chọn loại, quỹ đang mở được điền sẵn (nạp: "Sang quỹ"; rút / chuyển: "Từ quỹ"), số tiền, ngày, ghi chú, FAB check để lưu.
@@ -61,6 +62,9 @@ function FundAction({ fund }: { fund: Fund }) {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [saving, setSaving] = useState(false)
+  // Có thông tin chưa lưu (đã nhập số tiền mà chưa bấm lưu): chấm đỏ trên nút lưu, rời màn hình thì hỏi lại (UnsavedGuard)
+  const dirty = amount > 0
+  useUnsavedChanges(dirty && !saving, () => submitForm(FORM_ID))
 
   const byId = (id: string) => funds.find((f) => f.id === id) ?? fund
   const from = byId(fromId)
@@ -168,7 +172,7 @@ function FundAction({ fund }: { fund: Fund }) {
         </form>
       </GlassPanel>
       <FabGroup>
-        <Fab type="submit" form={FORM_ID} icon="save" label={KINDS.find((k) => k.value === kind)!.label + ' tiền'} loading={saving} />
+        <Fab type="submit" form={FORM_ID} icon="save" label={KINDS.find((k) => k.value === kind)!.label + ' tiền'} loading={saving} dirty={dirty} />
       </FabGroup>
     </PageShell>
   )

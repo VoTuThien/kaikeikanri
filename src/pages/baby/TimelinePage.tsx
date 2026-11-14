@@ -27,6 +27,7 @@ import {
 import { useHistory } from './data/history'
 import { useBaby, useDayEntries } from './data/BabyContext'
 import { TimelineView, TimelineViewSkeleton } from './TimelineView'
+import { submitForm, useChanged, useUnsavedChanges } from '../../components/UnsavedGuard'
 import {
   addMinutes,
   formatDuration,
@@ -395,6 +396,11 @@ function EntrySheet({ sheet, day, entries, onClose }: { sheet: Sheet; day: Date;
   const [saving, setSaving] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  // Chưa lưu: hoạt động mới đang nhập (chưa thêm vào time line), hoặc đã sửa giờ / số phút của hoạt động cũ.
+  // Chấm đỏ trên nút lưu, rời màn hình thì hỏi lại (UnsavedGuard)
+  const changed = useChanged({ startText, completed, minutesText, endText })
+  const dirty = isNew || changed
+  useUnsavedChanges(dirty && !saving && !deleting, () => submitForm(FORM_ID))
 
   const start = fromTimeInput(baseDay, startText)
   const minutes = Number(minutesText) || 0
@@ -569,6 +575,7 @@ function EntrySheet({ sheet, day, entries, onClose }: { sheet: Sheet; day: Date;
       </GlassPanel>
 
       <SaveDeleteFabs
+        dirty={dirty}
         formId={FORM_ID}
         canDelete={!isNew}
         confirming={confirmDelete}

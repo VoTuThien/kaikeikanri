@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { Navigate, useNavigate, useParams } from 'react-router-dom'
+import { Navigate, useParams } from 'react-router-dom'
 import { AppHeader, AppHeaderSkeleton } from '../../components/AppHeader'
 import { FIT_CLASS, PageShell } from '../../components/PageShell'
 import { Alert } from '../../components/ui/Alert'
@@ -17,6 +17,7 @@ import { EmptyState, ORDER_TYPES } from './components'
 import { useFund } from './data/FundContext'
 import { createOrder, deleteOrder, updateOrder } from './data/orders'
 import type { FundOrder, OrderType } from './data/types'
+import { submitForm, useChanged, useUnsavedChanges } from '../../components/UnsavedGuard'
 
 // Tạo / sửa 1 lệnh chuyển. Loại lệnh quyết định có ô "Từ quỹ" (chuyển, rút) và ô "Sang quỹ" (chuyển, nạp).
 // Ô quỹ luôn chiếm đủ 2 hàng (ô không dùng thì khoá lại) để chiều cao form không đổi khi đổi loại lệnh.
@@ -50,7 +51,6 @@ export function OrderFormPage() {
 
 function OrderForm({ order }: { order?: FundOrder }) {
   const { actor, funds, orders } = useFund()
-  const navigate = useNavigate()
   const isNew = !order
   const ids = orders.map((o) => o.id)
   // Số thứ tự: tạo mới mặc định = tổng số lệnh tính cả lệnh đang thêm (đứng cuối); gõ lớn hơn thì tự đưa về số đó.
@@ -70,6 +70,9 @@ function OrderForm({ order }: { order?: FundOrder }) {
   const [saving, setSaving] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  // Có thay đổi chưa lưu: chấm đỏ trên nút lưu, rời màn hình thì hỏi lại (UnsavedGuard)
+  const dirty = useChanged({ type, fromId, toId, amount, position, allBalance, note })
+  const leave = useUnsavedChanges(dirty && !(saving || deleting), () => submitForm(FORM_ID))
 
   // Lệnh chuyển: chọn trùng quỹ ở ô kia thì đổi chỗ 2 quỹ cho nhau
   function changeFrom(id: string) {
@@ -101,7 +104,7 @@ function OrderForm({ order }: { order?: FundOrder }) {
       }
       if (isNew) await createOrder(input, actor, ids, position)
       else await updateOrder(order.id, input, ids, position)
-      navigate('/fund/orders')
+      leave('/fund/orders')
     } catch (err) {
       console.error(err)
       setError('Lưu thất bại. Vui lòng thử lại.')
@@ -114,7 +117,7 @@ function OrderForm({ order }: { order?: FundOrder }) {
     setDeleting(true)
     try {
       await deleteOrder(order.id, ids)
-      navigate('/fund/orders')
+      leave('/fund/orders')
     } catch (err) {
       console.error(err)
       setError('Xoá thất bại. Vui lòng thử lại.')
@@ -180,6 +183,7 @@ function OrderForm({ order }: { order?: FundOrder }) {
         </form>
       </GlassPanel>
       <SaveDeleteFabs
+        dirty={dirty}
         formId={FORM_ID}
         canDelete={!isNew}
         confirming={confirmDelete}

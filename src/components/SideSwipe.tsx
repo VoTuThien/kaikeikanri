@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import { hasUnsaved } from './UnsavedGuard'
 import { getCachedLauncher, loadHomeScreen, markShortcutEntry, saveHomeScreen, sidePath, useShortcuts } from '../lib/shortcuts'
 
 // Vuốt ngang giữa màn hình chính và 2 màn hình 2 bên, giống màn hình chính iPhone:
@@ -130,7 +131,8 @@ export function SideSwipe({ render }: { render: (location?: string) => ReactNode
 
     function onStart(e: TouchEvent) {
       const t = e.touches[0]
-      const blocked = animating || e.touches.length !== 1 || (e.target as Element).closest?.(IGNORE)
+      // Màn hình đang có thông tin chưa lưu: không cho vuốt chuyển trang (dùng nút quay lại để được hỏi lưu / bỏ)
+      const blocked = animating || hasUnsaved() || e.touches.length !== 1 || (e.target as Element).closest?.(IGNORE)
       const { targetOf } = latest.current
       g = blocked || (!targetOf(1) && !targetOf(-1)) ? null : { x: t.clientX, y: t.clientY, dx: 0, axis: null, peer: null, t: e.timeStamp, v: 0 }
     }

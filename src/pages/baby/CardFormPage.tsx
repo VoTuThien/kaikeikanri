@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { Navigate, useNavigate, useParams } from 'react-router-dom'
+import { Navigate, useParams } from 'react-router-dom'
 import { AppHeader, AppHeaderSkeleton } from '../../components/AppHeader'
 import { FIT_CLASS, PageShell } from '../../components/PageShell'
 import { Alert } from '../../components/ui/Alert'
@@ -16,6 +16,7 @@ import { CardIcon } from './components'
 import { createCard, deleteCard, updateCard } from './data/api'
 import { useBaby } from './data/BabyContext'
 import { CARD_COLORS, CARD_ICONS, formatDuration, MAX_MINUTES, type BabyCard } from './data/types'
+import { submitForm, useChanged, useUnsavedChanges } from '../../components/UnsavedGuard'
 
 // Lưới 6 cột cho chọn icon và màu: mọi ô cùng kích thước, thẳng cột với nhau
 const PICKER_GRID = 'grid grid-cols-6 gap-2'
@@ -41,7 +42,6 @@ export function CardFormPage() {
 
 function CardForm({ card }: { card?: BabyCard }) {
   const { actor } = useBaby()
-  const navigate = useNavigate()
   const isNew = !card
 
   const [icon, setIcon] = useState(card?.icon ?? CARD_ICONS[0].emoji)
@@ -53,6 +53,9 @@ function CardForm({ card }: { card?: BabyCard }) {
   const [saving, setSaving] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  // Có thay đổi chưa lưu: chấm đỏ trên nút lưu, rời màn hình thì hỏi lại (UnsavedGuard)
+  const dirty = useChanged({ icon, name, color, minutesText })
+  const leave = useUnsavedChanges(dirty && !(saving || deleting), () => submitForm(FORM_ID))
 
   const minutes = Number(minutesText) || 0
   const iconLabel = CARD_ICONS.find((i) => i.emoji === icon)?.label ?? ''
@@ -69,7 +72,7 @@ function CardForm({ card }: { card?: BabyCard }) {
       const input = { name: displayName, icon, color, defaultMinutes: minutes }
       if (isNew) await createCard(input, actor)
       else await updateCard(card.id, input)
-      navigate('/baby/cards')
+      leave('/baby/cards')
     } catch (err) {
       console.error(err)
       setError('Lưu thất bại. Vui lòng thử lại.')
@@ -82,7 +85,7 @@ function CardForm({ card }: { card?: BabyCard }) {
     setDeleting(true)
     try {
       await deleteCard(card.id)
-      navigate('/baby/cards')
+      leave('/baby/cards')
     } catch (err) {
       console.error(err)
       setError('Xoá thất bại. Vui lòng thử lại.')
@@ -178,6 +181,7 @@ function CardForm({ card }: { card?: BabyCard }) {
         </form>
       </GlassPanel>
       <SaveDeleteFabs
+        dirty={dirty}
         formId={FORM_ID}
         canDelete={!isNew}
         confirming={confirmDelete}

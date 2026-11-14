@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { Navigate, useNavigate } from 'react-router-dom'
+import { Navigate } from 'react-router-dom'
 import { AppHeader, AppHeaderSkeleton } from '../../components/AppHeader'
 import { Avatar } from '../../components/Avatar'
 import { PageShell, ScrollArea } from '../../components/PageShell'
@@ -14,6 +14,7 @@ import { useAuth } from '../../contexts/AuthContext'
 import { useFamily, type MyFamily } from '../../contexts/FamilyContext'
 import { removeMember, renameFamily, type Member } from './data/api'
 import { useMembers } from './data/useMembers'
+import { submitForm, useUnsavedChanges } from '../../components/UnsavedGuard'
 
 const FORM_ID = 'family-manage-form'
 const INFO_PANEL = 'space-y-3 !p-5'
@@ -31,7 +32,6 @@ export function FamilyManagePage() {
 
 function FamilyManage({ family, members }: { family: MyFamily; members: Member[] }) {
   const { user } = useAuth()
-  const navigate = useNavigate()
   const isOwner = family.role === 'owner'
   const owner = members.find((m) => m.role === 'owner')
 
@@ -43,6 +43,9 @@ function FamilyManage({ family, members }: { family: MyFamily; members: Member[]
   const [removing, setRemoving] = useState<string | null>(null)
   const [confirmLeave, setConfirmLeave] = useState(false)
   const [leaving, setLeaving] = useState(false)
+  // Có thông tin chưa lưu: chấm đỏ trên nút lưu, rời màn hình thì hỏi lại (UnsavedGuard)
+  const dirty = isOwner && name.trim() !== family.name
+  const leavePage = useUnsavedChanges(dirty && !saving, () => submitForm(FORM_ID))
 
   async function handleRename(e: FormEvent) {
     e.preventDefault()
@@ -83,7 +86,7 @@ function FamilyManage({ family, members }: { family: MyFamily; members: Member[]
     setLeaving(true)
     try {
       await removeMember(family.familyId, user.uid)
-      navigate('/')
+      leavePage('/')
     } catch (err) {
       console.error(err)
       setMessage({ type: 'error', text: 'Rời gia đình thất bại. Vui lòng thử lại.' })
@@ -153,7 +156,7 @@ function FamilyManage({ family, members }: { family: MyFamily; members: Member[]
 
       {isOwner ? (
         <FabGroup>
-          <Fab type="submit" form={FORM_ID} icon="save" label="Lưu tên gia đình" loading={saving} />
+          <Fab type="submit" form={FORM_ID} icon="save" label="Lưu tên gia đình" loading={saving} dirty={dirty} />
         </FabGroup>
       ) : (
         // Thành viên rời gia đình: bấm lần 1 hỏi lại, lần 2 mới rời

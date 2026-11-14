@@ -535,3 +535,19 @@ Dữ liệu Firestore (xem `src/pages/note/data/api.ts`), thuộc gia đình đa
 - Ô hiển thị như ô chọn thường; **chạm vào mở popup BÁNH XE HÌNH QUẠT**: lựa chọn xếp quanh hình tròn có tâm ở mép TRÁI popup, popup là khung nhìn nên chỉ lộ 1 phần (đuôi quạt bên trái, cho ngón cái tay phải).
   **Lựa chọn đang hiện trên quạt thì CHẠM để chọn** (bánh xe quay tới đó rồi đóng popup); **chưa hiện thì KÉO để xoay quạt** (chỉ xoay, không chọn; quán tính tối đa 3 lựa chọn, 2 đầu nặng tay) rồi chạm. Giá trị hiện tại là **cung quạt lồi ra khỏi mép quạt và nổi lên bằng bóng đổ** (`SelectedSector`), xoay cùng quạt; **Huỷ** / chạm nền mờ / Esc để bỏ. Chữ bắt đầu bằng emoji thì hiện icon 3D trong popup.
 - Lúc kéo chỉ đổi style trực tiếp (`paint`), không render lại React. Popup vẽ bằng `createPortal`, có `data-no-swipe`.
+
+### 20. Thông tin chưa lưu (màn hình sửa có nút lưu)
+- Mọi màn hình **phải bấm nút lưu mới lưu** phải dùng `useUnsavedChanges(dirty, save)` (`src/components/UnsavedGuard.tsx`):
+  `dirty` = đang có thay đổi chưa lưu (form Tạo / Sửa: `useChanged({ ...các giá trị form })` so với lúc mở; màn hình lưu xong ở lại và dọn form (nạp / rút / chuyển, Đọc hoá đơn): đã nhập số tiền),
+  `save` = bấm nút lưu (form: `() => submitForm(FORM_ID)` — iOS 15.1 chưa có `requestSubmit`).
+  Truyền `dirty && !saving` (và `!deleting`) để lúc đang lưu không hỏi.
+- **Nút lưu có chấm đỏ ở góc phải trên** khi có thông tin chưa lưu: `<Fab dirty={dirty}>` / `<SaveDeleteFabs dirty={dirty}>`.
+- **Rời màn hình khi còn thông tin chưa lưu** (nút ‹, link, vuốt từ mép iOS / quay lại của trình duyệt) thì `UnsavedGuard` (gắn 1 lần trong `App.tsx`, dùng `useBlocker`
+  nên app chạy bằng **data router** `createBrowserRouter` + `RouterProvider`, các route vẫn khai báo bằng `<Routes>`) hiện **hộp thoại "Có thông tin chưa lưu"**
+  với 2 nút bằng nhau **[Trở lại]** (bỏ thay đổi, rời đi) / **[Lưu]** (bấm nút lưu của màn hình); chạm nền mờ / Esc = ở lại. Đang có thông tin chưa lưu thì **tắt vuốt sang màn hình 2 bên**.
+- **Lưu / xoá xong mà chuyển trang thì dùng hàm `leave(to)` do hook trả về** (không dùng `navigate`), nếu không sẽ bị hỏi lại.
+- Đang áp dụng: form Tạo / Sửa (con, thẻ hoạt động, phát triển, nhóm quỹ, lệnh chuyển, địa điểm, ghi chú), Thông tin cá nhân, Tạo / Quản lý gia đình (tên),
+  Nạp / Rút / Chuyển quỹ, Nạp / Rút / Chuyển của 1 quỹ, Đọc hoá đơn, Cài đặt Quỹ (lãi suất), Thực thi bước 1 (lương), Xem ghi chú (thêm nội dung / nạp rút của thẻ),
+  khung nhập hoạt động ở Time line (thêm mới luôn tính là chưa lưu).
+  **Thêm màn hình sửa mới có nút lưu thì phải gắn hook này.**
+

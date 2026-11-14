@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { Navigate, useNavigate, useParams } from 'react-router-dom'
+import { Navigate, useParams } from 'react-router-dom'
 import { AppHeader, AppHeaderSkeleton } from '../../components/AppHeader'
 import { FIT_CLASS, PageShell } from '../../components/PageShell'
 import { Alert } from '../../components/ui/Alert'
@@ -23,6 +23,7 @@ import {
   type GrowthRecord,
 } from './data/growth'
 import type { Child } from './data/types'
+import { submitForm, useChanged, useUnsavedChanges } from '../../components/UnsavedGuard'
 
 // Tạo / sửa 1 thẻ phát triển (/baby/growth/new, /baby/growth/:id): ngày, chiều cao, cân nặng, vắc xin.
 // Thẻ mới thuộc CON ĐANG CHỌN; vắc xin để trống = hôm đó không tiêm.
@@ -52,7 +53,6 @@ export function GrowthFormPage() {
 
 function GrowthForm({ record, owner, vaccineNames }: { record?: GrowthRecord; owner: Child | null; vaccineNames: string[] }) {
   const { actor } = useBaby()
-  const navigate = useNavigate()
   const isNew = !record
 
   const [date, setDate] = useState(record?.date ?? todayText())
@@ -63,6 +63,9 @@ function GrowthForm({ record, owner, vaccineNames }: { record?: GrowthRecord; ow
   const [saving, setSaving] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  // Có thay đổi chưa lưu: chấm đỏ trên nút lưu, rời màn hình thì hỏi lại (UnsavedGuard)
+  const dirty = useChanged({ date, heightText, weightText, vaccine })
+  const leave = useUnsavedChanges(dirty && !(saving || deleting), () => submitForm(FORM_ID))
 
   // Chỉ cho gõ số và 1 dấu phẩy / chấm thập phân
   const onlyNumber = (v: string) => v.replace(/[^\d.,]/g, '').slice(0, 6)
@@ -93,7 +96,7 @@ function GrowthForm({ record, owner, vaccineNames }: { record?: GrowthRecord; ow
       }
       if (record) await updateGrowth(record.id, input)
       else await createGrowth(input, actor)
-      navigate('/baby/growth')
+      leave('/baby/growth')
     } catch (err) {
       console.error(err)
       setError('Lưu thất bại. Vui lòng thử lại.')
@@ -106,7 +109,7 @@ function GrowthForm({ record, owner, vaccineNames }: { record?: GrowthRecord; ow
     setDeleting(true)
     try {
       await deleteGrowth(record.id)
-      navigate('/baby/growth')
+      leave('/baby/growth')
     } catch (err) {
       console.error(err)
       setError('Xoá thất bại. Vui lòng thử lại.')
@@ -175,6 +178,7 @@ function GrowthForm({ record, owner, vaccineNames }: { record?: GrowthRecord; ow
         </form>
       </GlassPanel>
       <SaveDeleteFabs
+        dirty={dirty}
         formId={FORM_ID}
         canDelete={!isNew}
         confirming={confirmDelete}
