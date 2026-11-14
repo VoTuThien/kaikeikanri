@@ -21,6 +21,8 @@ import { CardListPage } from './pages/baby/CardListPage'
 import { ChildFormPage } from './pages/baby/ChildFormPage'
 import { ChildListPage } from './pages/baby/ChildListPage'
 import { BabyLayout } from './pages/baby/components'
+import { GrowthFormPage } from './pages/baby/GrowthFormPage'
+import { GrowthPage } from './pages/baby/GrowthPage'
 import { StatsPage } from './pages/baby/StatsPage'
 import { TimelinePage } from './pages/baby/TimelinePage'
 import { FundLayout } from './pages/fund/components'
@@ -130,6 +132,9 @@ function AppRoutes({ location }: { location?: string }) {
         <Route path="cards/:id" element={<CardFormPage />} />
         <Route path="timeline" element={<TimelinePage />} />
         <Route path="stats" element={<StatsPage />} />
+        <Route path="growth" element={<GrowthPage />} />
+        <Route path="growth/new" element={<GrowthFormPage />} />
+        <Route path="growth/:id" element={<GrowthFormPage />} />
       </Route>
       {/* App Ghi chú */}
       <Route path="/note" element={<NoteLayout />}>
