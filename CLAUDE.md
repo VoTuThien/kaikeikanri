@@ -278,11 +278,18 @@ Ghi lại hoạt động hằng ngày của bé theo time line. **Mỗi gia đì
   bên dưới là bảng số liệu (số lần, %, thời lượng) chiếm phần còn lại. Cách tính ở `data/stats.ts` (`dayStats`):
   đã hoàn thành = số phút đã ghi; **đang diễn ra = tính tới bây giờ** (ngày đã qua thì tới hết ngày, tự cập nhật mỗi phút); sắp bắt đầu = không tính.
   Mỗi lần hoạt động được tính trọn cho ngày nó bắt đầu.
+- [x] Phát triển (`/baby/growth`, thêm / sửa `/baby/growth/new|:id`, `GrowthPage` / `GrowthFormPage`, dữ liệu `data/growth.ts`): các **thẻ** ghi
+  **ngày thực hiện, chiều cao (cm), cân nặng (kg), vắc xin** — **riêng từng con**, chọn con bằng `ChildPicker` trên thanh tiêu đề (giống Time line), thẻ mới thuộc con đang chọn.
+  **Vắc xin để trống = hôm đó không tiêm**; chiều cao / cân nặng để trống = không đo; cần ít nhất 1 trong 3. Số đo gõ được dấu phẩy ("75,5"), cao 20–250 cm, nặng 0,5–200 kg.
+  Danh sách mới nhất trước: ngày, số đo, tuổi của con vào ngày đó, dòng vắc xin (💉 tên / "Không tiêm vắc xin"); chạm thẻ để sửa / xoá (`SaveDeleteFabs`).
+  Ô vắc xin gợi ý tên đã từng ghi (`datalist`). **FAB phễu (`filter`)**: chạm thì **chỉ xem các lần tiêm vắc xin** (nút có viền sáng, dòng phụ "Chỉ xem tiêm vắc xin"),
+  chạm lần nữa xem lại toàn bộ. Chưa có con thì hiện nút "Thêm con".
 - [ ] Cài đặt của app Chăm con
 
 Dữ liệu Firestore (xem `src/pages/baby/data/api.ts`), thuộc gia đình đang chọn:
 - `families/{familyId}/babyCards/{cardId}`: thẻ hoạt động (`name`, `icon`, `color`, `defaultMinutes`)
 - `families/{familyId}/children/{childId}`: con (`name`, `birthDate` "YYYY-MM-DD", `birthTime` "HH:MM" hoặc null, `gender` male / female, `avatar` emoji, `photo` data URL JPEG hoặc null, `nickname` chuỗi, "" = không có)
+- `families/{familyId}/growth/{id}`: thẻ phát triển (`childId`, `date` "YYYY-MM-DD", `height` cm hoặc null, `weight` kg hoặc null, `vaccine` chuỗi, "" = không tiêm, `createdByName`)
 - `families/{familyId}/babyEntries/{entryId}`: hoạt động (`childId` = của con nào, `cardId`, `start`, `minutes`, `end`, `createdByName`; chưa hoàn thành thì `minutes` / `end` = null) + lưu sẵn `name` / `icon` / `color` của thẻ
   để sửa / xoá thẻ không làm mất lịch sử
 
@@ -302,7 +309,10 @@ Code: `src/pages/note/` (`components.tsx`: `NoteLayout`, `MemberPicker`, `Editab
   dòng phụ dưới tiêu đề = **"m/n ghi chú đã hoàn thành"** (`doneSummary`) của người nhận đang chọn. FAB + mở bước 2 để tạo mới.
 - [x] Tạo ghi chú, bước 2 (`/note/sent/new?to=uid` tạo mới, `/note/sent/:id` sửa, `NoteFormPage`): nội dung bên trong 1 ghi chú.
   Dưới thanh tiêu đề là **[số thứ tự `NumberField`] [tên ghi chú]** (cùng kiểu hàng thẻ; tạo mới mặc định = số ghi chú của người nhận + 1, đứng cuối; sửa giữ số hiện tại; tên bắt buộc);
-  Dòng phụ dưới tiêu đề = "Gửi cho: …" (sửa thì thêm "· m/n thẻ đã xong"). Lưu xong quay về bước 1. Sửa thì thẻ cũ **giữ trạng thái đã xong** (`updateNote`), thẻ mới chưa xong.
+  Dòng phụ dưới tiêu đề = "Gửi cho: …" (sửa thì thêm "· m/n thẻ đã xong"). Lưu xong quay về bước 1 (danh sách của người nhận).
+  **Thanh tiêu đề có avatar người nhận (`MemberPicker`, giống bước 1), chạm để ĐỔI NGƯỜI NHẬN — cả khi sửa**: bấm FAB lưu thì ghi chú chuyển sang người mới
+  (`updateNote` có `oldIds`: ghi `toUid` / `toName` mới, chèn vào danh sách người mới — mặc định đứng cuối, đánh số lại danh sách người cũ; thẻ giữ trạng thái đã xong;
+  thông báo `note_{id}` chuyển cho người nhận mới, đổi thành tự ghi cho mình thì xoá thông báo). Tạo từ nội dung chưa xong (`?from=`) thì không đổi người nhận. Sửa thì thẻ cũ **giữ trạng thái đã xong** (`updateNote`), thẻ mới chưa xong.
   Danh sách thẻ `EditableList` (thẻ tách rời, cuộn trong vùng danh sách): mỗi thẻ 1 hàng **[≡ kéo lên / xuống] [số thứ tự `NumberField inline`, xem mục 14] [ô nhập nội dung trực tiếp]**;
   số thứ tự = mức độ ưu tiên (sửa số rồi rời ô thì thẻ chuyển tới vị trí đó); **trượt thẻ sang trái** hiện thùng rác (chạm 2 lần mới xoá, giống Tra cứu).
   FAB [+ thêm thẻ] [gửi / lưu]: thẻ mới thêm vào cuối, **số thứ tự = tổng số thẻ tính cả thẻ mới**. **Đang gõ thì gợi ý** ngay dưới thẻ từ các Thẻ ghi chú

@@ -92,21 +92,32 @@ export async function updateNote(
   cards: NoteCard[],
   ids: string[],
   position: number,
-  meta: { toUid: string; fromUid: string; fromName: string },
+  // Đổi người nhận: `toUid` / `toName` mới, `ids` = các ghi chú của người nhận MỚI, `oldIds` = các ghi chú của người nhận cũ (đánh số lại sau khi ghi chú rời đi)
+  meta: { toUid: string; toName: string; fromUid: string; fromName: string; oldIds?: string[] },
 ) {
   const batch = writeBatch(requireDb())
-  if (meta.toUid !== meta.fromUid) setNoteNotice(batch, { id, name, ...meta }, noteDone({ items }))
+  const moved = !!meta.oldIds
+  const notice = { id, name, toUid: meta.toUid, fromUid: meta.fromUid, fromName: meta.fromName }
+  if (meta.toUid !== meta.fromUid) setNoteNotice(batch, notice, noteDone({ items }))
+  // Đổi sang gửi cho chính mình: ghi chú tự ghi không có thông báo -> xoá thông báo cũ của người nhận trước
+  else if (moved) batch.delete(doc(notificationsCol(), noteNoticeId(id)))
   const order = insertAt(
     ids.filter((x) => x !== id),
     id,
     position,
   )
-  batch.update(doc(notesCol(), id), { name, items, position: order.indexOf(id) + 1 })
+  batch.update(doc(notesCol(), id), {
+    name,
+    items,
+    position: order.indexOf(id) + 1,
+    ...(moved ? { toUid: meta.toUid, toName: meta.toName } : {}),
+  })
   renumberNotes(
     batch,
     order.filter((x) => x !== id),
     order,
   )
+  if (meta.oldIds) renumberNotes(batch, meta.oldIds.filter((x) => x !== id))
   addNewCards(
     batch,
     items.map((i) => i.text),
