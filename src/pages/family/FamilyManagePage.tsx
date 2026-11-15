@@ -1,96 +1,130 @@
-import { useState, type FormEvent } from 'react'
-import { Navigate } from 'react-router-dom'
-import { AppHeader, AppHeaderSkeleton } from '../../components/AppHeader'
-import { Avatar } from '../../components/Avatar'
-import { PageShell, ScrollArea } from '../../components/PageShell'
-import { Alert } from '../../components/ui/Alert'
-import { Button } from '../../components/ui/Button'
-import { FAB_SPACE, Fab, FabGroup, FabSkeleton } from '../../components/ui/Fab'
-import { GLASS_CLASS, GlassPanel } from '../../components/ui/GlassPanel'
-import { Skeleton } from '../../components/ui/Skeleton'
-import { TextField, TextFieldSkeleton } from '../../components/ui/TextField'
-import { SIZE } from '../../components/ui/sizes'
-import { useAuth } from '../../contexts/AuthContext'
-import { useFamily, type MyFamily } from '../../contexts/FamilyContext'
-import { removeMember, renameFamily, type Member } from './data/api'
-import { useMembers } from './data/useMembers'
-import { submitForm, useUnsavedChanges } from '../../components/UnsavedGuard'
+import { useState, type FormEvent } from "react";
+import { Link, Navigate } from "react-router-dom";
+import { AppHeader, AppHeaderSkeleton } from "../../components/AppHeader";
+import { Avatar } from "../../components/Avatar";
+import { PageShell, ScrollArea } from "../../components/PageShell";
+import { Alert } from "../../components/ui/Alert";
+import { Button } from "../../components/ui/Button";
+import { FAB_SPACE, Fab, FabGroup, FabSkeleton } from "../../components/ui/Fab";
+import { GLASS_CLASS, GlassPanel } from "../../components/ui/GlassPanel";
+import { Skeleton } from "../../components/ui/Skeleton";
+import { TextField, TextFieldSkeleton } from "../../components/ui/TextField";
+import { SIZE } from "../../components/ui/sizes";
+import { useAuth } from "../../contexts/AuthContext";
+import { useFamily, type MyFamily } from "../../contexts/FamilyContext";
+import { removeMember, renameFamily, type Member } from "./data/api";
+import { useMembers } from "./data/useMembers";
+import { submitForm, useUnsavedChanges } from "../../components/UnsavedGuard";
 
-const FORM_ID = 'family-manage-form'
-const INFO_PANEL = 'space-y-3 !p-5'
+const FORM_ID = "family-manage-form";
+const INFO_PANEL = "space-y-3 !p-5";
 // Danh sách thành viên: chiếm phần còn lại của màn hình, chỉ danh sách được cuộn; chừa chỗ cuối cho nút nổi
-const LIST_CLASS = `${GLASS_CLASS} !p-0 ${FAB_SPACE}`
-const REMOVE_BUTTON = 'w-24 shrink-0'
+const LIST_CLASS = `${GLASS_CLASS} !p-0 ${FAB_SPACE}`;
+const REMOVE_BUTTON = "w-24 shrink-0";
 
 export function FamilyManagePage() {
-  const { current } = useFamily()
-  const members = useMembers(current?.familyId)
-  if (!current) return <Navigate to="/" replace />
-  if (!members) return <FamilyManagePageSkeleton />
-  return <FamilyManage key={current.familyId} family={current} members={members} />
+  const { current } = useFamily();
+  const members = useMembers(current?.familyId);
+  if (!current) return <Navigate to="/" replace />;
+  if (!members) return <FamilyManagePageSkeleton />;
+  return (
+    <FamilyManage key={current.familyId} family={current} members={members} />
+  );
 }
 
-function FamilyManage({ family, members }: { family: MyFamily; members: Member[] }) {
-  const { user } = useAuth()
-  const isOwner = family.role === 'owner'
-  const owner = members.find((m) => m.role === 'owner')
+function FamilyManage({
+  family,
+  members,
+}: {
+  family: MyFamily;
+  members: Member[];
+}) {
+  const { user } = useAuth();
+  const isOwner = family.role === "owner";
+  const owner = members.find((m) => m.role === "owner");
 
-  const [name, setName] = useState(family.name)
-  const [message, setMessage] = useState<{ type: 'error' | 'success'; text: string } | null>(null)
-  const [saving, setSaving] = useState(false)
+  const [name, setName] = useState(family.name);
+  const [message, setMessage] = useState<{
+    type: "error" | "success";
+    text: string;
+  } | null>(null);
+  const [saving, setSaving] = useState(false);
   // Xoá thành viên / rời gia đình: bấm lần 1 để hỏi lại, lần 2 mới thực hiện
-  const [confirmUid, setConfirmUid] = useState<string | null>(null)
-  const [removing, setRemoving] = useState<string | null>(null)
-  const [confirmLeave, setConfirmLeave] = useState(false)
-  const [leaving, setLeaving] = useState(false)
+  const [confirmUid, setConfirmUid] = useState<string | null>(null);
+  const [removing, setRemoving] = useState<string | null>(null);
+  const [confirmLeave, setConfirmLeave] = useState(false);
+  const [leaving, setLeaving] = useState(false);
   // Có thông tin chưa lưu: chấm đỏ trên nút lưu, rời màn hình thì hỏi lại (UnsavedGuard)
-  const dirty = isOwner && name.trim() !== family.name
-  const leavePage = useUnsavedChanges(dirty && !saving, () => submitForm(FORM_ID))
+  const dirty = isOwner && name.trim() !== family.name;
+  const leavePage = useUnsavedChanges(dirty && !saving, () =>
+    submitForm(FORM_ID),
+  );
 
   async function handleRename(e: FormEvent) {
-    e.preventDefault()
-    setMessage(null)
-    const trimmed = name.trim()
-    if (!trimmed) return setMessage({ type: 'error', text: 'Vui lòng nhập tên gia đình.' })
-    if (trimmed === family.name) return setMessage({ type: 'success', text: 'Tên gia đình không thay đổi.' })
-    setSaving(true)
+    e.preventDefault();
+    setMessage(null);
+    const trimmed = name.trim();
+    if (!trimmed)
+      return setMessage({ type: "error", text: "Vui lòng nhập tên gia đình." });
+    if (trimmed === family.name)
+      return setMessage({
+        type: "success",
+        text: "Tên gia đình không thay đổi.",
+      });
+    setSaving(true);
     try {
-      await renameFamily(family, trimmed, members.map((m) => m.uid))
-      setMessage({ type: 'success', text: 'Đã đổi tên gia đình.' })
+      await renameFamily(
+        family,
+        trimmed,
+        members.map((m) => m.uid),
+      );
+      setMessage({ type: "success", text: "Đã đổi tên gia đình." });
     } catch (err) {
-      console.error(err)
-      setMessage({ type: 'error', text: 'Đổi tên thất bại. Vui lòng thử lại.' })
+      console.error(err);
+      setMessage({
+        type: "error",
+        text: "Đổi tên thất bại. Vui lòng thử lại.",
+      });
     } finally {
-      setSaving(false)
+      setSaving(false);
     }
   }
 
   async function remove(member: Member) {
-    if (confirmUid !== member.uid) return setConfirmUid(member.uid)
-    setMessage(null)
-    setRemoving(member.uid)
+    if (confirmUid !== member.uid) return setConfirmUid(member.uid);
+    setMessage(null);
+    setRemoving(member.uid);
     try {
-      await removeMember(family.familyId, member.uid)
-      setMessage({ type: 'success', text: `Đã xoá ${member.name} khỏi gia đình.` })
+      await removeMember(family.familyId, member.uid);
+      setMessage({
+        type: "success",
+        text: `Đã xoá ${member.name} khỏi gia đình.`,
+      });
     } catch (err) {
-      console.error(err)
-      setMessage({ type: 'error', text: 'Xoá thành viên thất bại. Vui lòng thử lại.' })
+      console.error(err);
+      setMessage({
+        type: "error",
+        text: "Xoá thành viên thất bại. Vui lòng thử lại.",
+      });
     } finally {
-      setRemoving(null)
-      setConfirmUid(null)
+      setRemoving(null);
+      setConfirmUid(null);
     }
   }
 
   async function leave() {
-    if (!user) return
-    setLeaving(true)
+    if (!user) return;
+    setLeaving(true);
     try {
-      await removeMember(family.familyId, user.uid)
-      leavePage('/')
+      await removeMember(family.familyId, user.uid);
+      leavePage("/");
     } catch (err) {
-      console.error(err)
-      setMessage({ type: 'error', text: 'Rời gia đình thất bại. Vui lòng thử lại.' })
-      setLeaving(false)
+      console.error(err);
+      setMessage({
+        type: "error",
+        text: "Rời gia đình thất bại. Vui lòng thử lại.",
+      });
+      setLeaving(false);
     }
   }
 
@@ -100,80 +134,152 @@ function FamilyManage({ family, members }: { family: MyFamily; members: Member[]
 
       <GlassPanel className={INFO_PANEL}>
         {isOwner ? (
-          <form id={FORM_ID} onSubmit={handleRename} className="space-y-3" noValidate>
-            <TextField id="family-name" label="Tên gia đình" value={name} onChange={(e) => setName(e.target.value)} maxLength={40} />
-            <p className={`${SIZE.label} truncate text-xs leading-5 text-white/60`}>
-              Mã gia đình: <span className="font-bold tracking-widest text-white">{family.code}</span>
+          <form
+            id={FORM_ID}
+            onSubmit={handleRename}
+            className="space-y-3"
+            noValidate
+          >
+            <TextField
+              id="family-name"
+              label="Tên gia đình"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              maxLength={40}
+            />
+            <p
+              className={`${SIZE.label} truncate text-xs leading-5 text-white/60`}
+            >
+              Mã gia đình:{" "}
+              <span className="font-bold tracking-widest text-white">
+                {family.code}
+              </span>
             </p>
           </form>
         ) : (
           <div className="space-y-1">
-            <p className={`${SIZE.label} text-sm leading-5 text-white/70`}>Gia đình</p>
-            <p className={`${SIZE.title} truncate text-2xl leading-8 font-bold`}>{family.name}</p>
-            <p className={`${SIZE.label} truncate text-xs leading-5 text-white/60`}>Chủ gia đình: {owner?.name ?? '...'}</p>
+            <p className={`${SIZE.label} text-sm leading-5 text-white/70`}>
+              Gia đình
+            </p>
+            <p
+              className={`${SIZE.title} truncate text-2xl leading-8 font-bold`}
+            >
+              {family.name}
+            </p>
+            <p
+              className={`${SIZE.label} truncate text-xs leading-5 text-white/60`}
+            >
+              Chủ gia đình: {owner?.name ?? "..."}
+            </p>
           </div>
         )}
         {message && <Alert type={message.type}>{message.text}</Alert>}
-        {confirmLeave && <Alert type="error">Bấm nút rời gia đình lần nữa để rời. Bạn sẽ không xem được dữ liệu của gia đình này nữa.</Alert>}
+        {confirmLeave && (
+          <Alert type="error">
+            Bấm nút rời gia đình lần nữa để rời. Bạn sẽ không xem được dữ liệu
+            của gia đình này nữa.
+          </Alert>
+        )}
       </GlassPanel>
 
-      <h2 className={`${SIZE.sectionTitle} px-1 text-sm leading-6 font-semibold text-white/70`}>Thành viên ({members.length})</h2>
+      <h2
+        className={`${SIZE.sectionTitle} px-1 text-sm leading-6 font-semibold text-white/70`}
+      >
+        Thành viên ({members.length})
+      </h2>
       <ScrollArea className={LIST_CLASS}>
         <div className="divide-y divide-white/10">
           {members.map((m) => {
-            const isMe = m.uid === user?.uid
+            const isMe = m.uid === user?.uid;
             return (
-              <div key={m.uid} className={`${SIZE.row} flex items-center gap-3 px-4`}>
-                <Avatar uid={m.uid} name={m.name} me={isMe} />
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm leading-5 font-semibold">
-                    {m.name}
-                    {isMe && <span className="font-normal text-white/60"> (bạn)</span>}
+              <div
+                key={m.uid}
+                className={`${SIZE.row} flex items-center gap-3 px-4`}
+              >
+                {/* Chạm vào thành viên: xem thông tin cá nhân của người đó (chỉ xem); chạm chính mình thì mở màn hình sửa thông tin của mình */}
+                <Link
+                  to={isMe ? "/profile" : `/profile/${m.uid}`}
+                  aria-label={`Xem thông tin của ${m.name}`}
+                  className="flex min-w-0 flex-1 items-center gap-3 self-stretch transition active:opacity-70"
+                >
+                  <Avatar uid={m.uid} name={m.name} me={isMe} />
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm leading-5 font-semibold">
+                      {m.name}
+                      {isMe && (
+                        <span className="font-normal text-white/60">
+                          {" "}
+                          (bạn)
+                        </span>
+                      )}
+                    </span>
+                    <span className="block truncate text-xs leading-5 text-white/60">
+                      {m.role === "owner"
+                        ? "Chủ gia đình"
+                        : m.email || "Thành viên"}
+                    </span>
                   </span>
-                  <span className="block truncate text-xs leading-5 text-white/60">
-                    {m.role === 'owner' ? 'Chủ gia đình' : m.email || 'Thành viên'}
+                  <span
+                    className="shrink-0 text-xl leading-none text-white/40"
+                    aria-hidden="true"
+                  >
+                    ›
                   </span>
-                </span>
+                </Link>
                 {/* Chủ gia đình xoá được các thành viên khác */}
-                {isOwner && m.role !== 'owner' && (
+                {isOwner && m.role !== "owner" && (
                   <div className={REMOVE_BUTTON}>
                     <Button
-                      variant={confirmUid === m.uid ? 'danger' : 'secondary'}
+                      variant={confirmUid === m.uid ? "danger" : "secondary"}
                       className="!h-10 !px-1"
                       loading={removing === m.uid}
                       disabled={!!removing}
                       onClick={() => remove(m)}
                     >
-                      {confirmUid === m.uid ? 'Xoá luôn' : 'Xoá'}
+                      {confirmUid === m.uid ? "Xoá luôn" : "Xoá"}
                     </Button>
                   </div>
                 )}
               </div>
-            )
+            );
           })}
         </div>
       </ScrollArea>
 
       {isOwner ? (
         <FabGroup>
-          <Fab type="submit" form={FORM_ID} icon="save" label="Lưu tên gia đình" loading={saving} dirty={dirty} />
+          <Fab
+            type="submit"
+            form={FORM_ID}
+            icon="save"
+            label="Lưu tên gia đình"
+            loading={saving}
+            dirty={dirty}
+          />
         </FabGroup>
       ) : (
         // Thành viên rời gia đình: bấm lần 1 hỏi lại, lần 2 mới rời
         <FabGroup>
-          {confirmLeave && <Fab icon="cancel" label="Huỷ" variant="secondary" onClick={() => setConfirmLeave(false)} />}
+          {confirmLeave && (
+            <Fab
+              icon="cancel"
+              label="Huỷ"
+              variant="secondary"
+              onClick={() => setConfirmLeave(false)}
+            />
+          )}
           <Fab
             icon="logout"
-            label={confirmLeave ? 'Rời gia đình (xác nhận)' : 'Rời gia đình'}
+            label={confirmLeave ? "Rời gia đình (xác nhận)" : "Rời gia đình"}
             variant="danger"
             loading={leaving}
             onClick={() => (confirmLeave ? leave() : setConfirmLeave(true))}
-            className={confirmLeave ? 'ring-4 ring-rose-300/60' : ''}
+            className={confirmLeave ? "ring-4 ring-rose-300/60" : ""}
           />
         </FabGroup>
       )}
     </PageShell>
-  )
+  );
 }
 
 export function FamilyManagePageSkeleton() {
@@ -200,5 +306,5 @@ export function FamilyManagePageSkeleton() {
       </ScrollArea>
       <FabSkeleton />
     </PageShell>
-  )
+  );
 }

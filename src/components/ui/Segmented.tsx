@@ -11,10 +11,12 @@ export function Segmented<T extends string | number>({
   options,
   value,
   onChange,
+  disabled,
 }: {
   options: Option<T>[]
   value: T | null
   onChange: (v: T) => void
+  disabled?: boolean // chỉ xem: không chạm đổi được
 }) {
   return (
     <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }}>
@@ -22,8 +24,9 @@ export function Segmented<T extends string | number>({
         <button
           key={o.value}
           type="button"
+          disabled={disabled}
           onClick={() => onChange(o.value)}
-          className={`${SIZE.chip} truncate rounded-xl px-2 text-sm font-semibold transition active:scale-95 ${
+          className={`${SIZE.chip} truncate rounded-xl px-2 text-sm font-semibold transition enabled:active:scale-95 disabled:cursor-default ${
             o.value === value
               ? 'bg-gradient-to-r from-fuchsia-500 to-indigo-500 shadow-lg shadow-fuchsia-500/30'
               : 'border border-white/20 bg-white/10 text-white/80 hover:bg-white/20'

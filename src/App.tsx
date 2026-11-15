@@ -103,6 +103,8 @@ function AppRoutes({ location }: { location?: string }) {
       <Route path="/family/manage" element={<Protected page={<FamilyManagePage />} skeleton={<FamilyManagePageSkeleton />} />} />
       {/* Thông tin cá nhân (nút cây bút cạnh lời chào ở màn hình chính) */}
       <Route path="/profile" element={<Protected page={<ProfilePage />} skeleton={<ProfilePageSkeleton />} />} />
+      {/* Thông tin của 1 thành viên trong gia đình (chỉ xem), mở từ Quản lý gia đình */}
+      <Route path="/profile/:uid" element={<Protected page={<ProfilePage />} skeleton={<ProfilePageSkeleton readOnly />} />} />
       {/* App Quỹ: mỗi trang tự hiện skeleton khi đang đăng nhập / tải dữ liệu */}
       <Route path="/fund" element={<FundLayout />}>
         <Route index element={<FundHomePage />} />

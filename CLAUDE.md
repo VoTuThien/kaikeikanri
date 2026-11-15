@@ -77,6 +77,8 @@ Chỉ thành viên trong cùng gia đình mới xem / sửa được; Security R
   chủ gia đình **đổi tên** (cập nhật cả `familyCodes` và `users/{uid}/families` của mọi thành viên) và **xoá thành viên**;
   thành viên **rời gia đình**. Xoá / rời đều phải bấm 2 lần để xác nhận, và xoá luôn `presence` của người đó.
   **Chủ gia đình không rời được gia đình mình tạo** (Rules cũng chặn).
+  **Chạm 1 thành viên** trong danh sách (mọi người, kể cả không phải chủ gia đình) → mở **`/profile/:uid`: màn hình Thông tin cá nhân ở chế độ CHỈ XEM**
+  (tiêu đề "Thông tin thành viên", ô nhập khoá `readOnly`, `Segmented disabled`, không chọn ảnh, không có FAB lưu; ‹ quay lại Quản lý gia đình). Chạm chính mình thì mở `/profile` (sửa được).
 - Code: `src/contexts/FamilyContext.tsx` (danh sách gia đình, gia đình đang chọn, yêu cầu realtime), `src/pages/family/`,
   `src/lib/family.ts` (`familyCol(name)` = collection của gia đình đang chọn). Layout của mỗi app con dùng `useAppScope()`:
   chưa chọn gia đình thì về màn hình chính; Provider của app con tạo lại khi đổi gia đình.
