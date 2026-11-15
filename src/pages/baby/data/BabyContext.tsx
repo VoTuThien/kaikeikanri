@@ -71,6 +71,14 @@ function toEntry(id: string, d: DocumentData): BabyEntry {
     end: toDate(d.end) ?? (minutes === null ? null : addMinutes(start, minutes)),
     createdByName: d.createdByName ?? '',
     childId: d.childId ?? null,
+    meal: d.meal
+      ? {
+          foods: Array.isArray(d.meal.foods) ? (d.meal.foods as string[]) : [],
+          amount: d.meal.amount ?? '',
+          texture: d.meal.texture ?? '',
+          rating: d.meal.rating ?? null,
+        }
+      : null,
   }
 }
 

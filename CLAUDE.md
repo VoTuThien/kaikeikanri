@@ -288,6 +288,16 @@ Ghi lại hoạt động hằng ngày của bé theo time line. **Mỗi gia đì
   Danh sách mới nhất trước: ngày, số đo, tuổi lúc đó, dòng vắc xin (💉 tên / "💉 n mũi: A, B" / "Không tiêm vắc xin"); dòng phụ đếm số lần ghi + tổng số mũi; chạm thẻ để sửa / xoá (`SaveDeleteFabs`).
   Ô vắc xin gợi ý tên đã từng ghi (`datalist`). **FAB phễu (`filter`)**: chạm thì **chỉ xem các lần tiêm vắc xin** (nút có viền sáng, dòng phụ "Chỉ xem tiêm vắc xin"),
   chạm lần nữa xem lại toàn bộ. Chưa có con thì hiện nút "Thêm con".
+- [x] **Ăn dặm — Thực phẩm** (`/baby/foods`, thêm / sửa `/baby/foods/new|:id`, `FoodsPage` / `FoodFormPage`, dữ liệu `data/foods.ts`): danh sách thực phẩm **đã thử của từng con**
+  (chọn con bằng `ChildPicker`): tên, nhóm (`FOOD_GROUPS`), **dễ dị ứng** (tự đánh dấu theo tên có trứng / tôm cua / đậu phộng / sữa / cá… — `looksAllergen`, bỏ được),
+  ngày thử lần đầu, **kết quả: Đang thử / Ăn được / Có phản ứng** (+ ghi chú phản ứng; thẻ viền đỏ). **Quy tắc thử món mới 3 ngày** (`TRIAL_DAYS`, `trialInfo`):
+  món đang thử hiện "ngày n/3"; còn món trong 3 ngày theo dõi thì khung nhắc trên đầu danh sách "chưa nên cho thử món mới tới hết dd/mm", quá 3 ngày thì nhắc ghi kết quả.
+  Xếp: đang thử → có phản ứng → ăn được. Tên trùng (không dấu, không hoa thường `foodKey`) thì báo lỗi.
+- [x] **Ăn dặm — chi tiết bữa ăn trên Time line**: thẻ ăn dặm (`isMealCard`: icon 🥣 hoặc tên có "ăn dặm") thì khung nhập có thêm `MealFields` (`MealFields.tsx`):
+  **chạm chọn các món** từ danh sách Thực phẩm của con (món có phản ứng viền đỏ, chọn thì cảnh báo đỏ), **gõ món mới + "Thêm"**, **lượng ăn**, **độ thô** (`MEAL_TEXTURES`),
+  **con ăn thế nào** (Ăn hết / Ăn được / Ăn ít / Từ chối, chạm lại để bỏ). Thêm món mới khi đang theo dõi món khác thì nhắc quy tắc 3 ngày.
+  Lưu vào `meal` của hoạt động (để trống hết = null; kéo / tách thẻ không đụng tới `meal`). Lưu xong, **món mới tự thêm vào danh sách Thực phẩm** (đang thử, thử lần đầu = ngày của bữa ăn, `recordMealFoods`).
+  Khung nhập của thẻ ăn dặm cao hơn nên tự cuộn (`max-h-[62vh]`).
 - [ ] Cài đặt của app Chăm con
 
 Dữ liệu Firestore (xem `src/pages/baby/data/api.ts`), thuộc gia đình đang chọn:
@@ -295,7 +305,8 @@ Dữ liệu Firestore (xem `src/pages/baby/data/api.ts`), thuộc gia đình đa
 - `families/{familyId}/children/{childId}`: con (`name`, `birthDate` "YYYY-MM-DD", `birthTime` "HH:MM" hoặc null, `gender` male / female, `avatar` emoji, `photo` data URL JPEG hoặc null, `nickname` chuỗi, "" = không có)
 - `families/{familyId}/growth/{id}`: thẻ phát triển (`childId`, `date` "YYYY-MM-DD", `height` cm hoặc null, `weight` kg hoặc null, `vaccines` mảng tên vắc xin, [] = không tiêm, `createdByName`;
   dữ liệu cũ có 1 chuỗi `vaccine` thì đọc thành mảng 1 phần tử, sửa lại thì chuyển sang `vaccines`)
-- `families/{familyId}/babyEntries/{entryId}`: hoạt động (`childId` = của con nào, `cardId`, `start`, `minutes`, `end`, `createdByName`; chưa hoàn thành thì `minutes` / `end` = null) + lưu sẵn `name` / `icon` / `color` của thẻ
+- `families/{familyId}/babyFoods/{id}`: thực phẩm đã thử (`childId`, `name`, `group`, `allergen`, `firstTried` "YYYY-MM-DD" hoặc null, `status` trying / ok / reaction, `reaction`, `createdByName`)
+- `families/{familyId}/babyEntries/{entryId}`: hoạt động (`childId` = của con nào, `meal` = chi tiết bữa ăn dặm `{ foods: string[], amount, texture, rating }` hoặc null, `cardId`, `start`, `minutes`, `end`, `createdByName`; chưa hoàn thành thì `minutes` / `end` = null) + lưu sẵn `name` / `icon` / `color` của thẻ
   để sửa / xoá thẻ không làm mất lịch sử
 
 ### App Ghi chú (`/note`)

@@ -67,6 +67,8 @@ service cloud.firestore {
       match /children/{id} { allow read, write: if isMember(fid); }
       // App Chăm con, màn hình Phát triển: chiều cao / cân nặng / vắc xin theo ngày của từng con
       match /growth/{id} { allow read, write: if isMember(fid); }
+      // App Chăm con, ăn dặm: danh sách thực phẩm đã thử của từng con (đang thử / ăn được / có phản ứng)
+      match /babyFoods/{id} { allow read, write: if isMember(fid); }
       // App Ghi chú: ghi chú gửi cho thành viên và thẻ ghi chú đã từng nhập (gợi ý)
       match /notes/{id} { allow read, write: if isMember(fid); }
       match /noteCards/{id} { allow read, write: if isMember(fid); }

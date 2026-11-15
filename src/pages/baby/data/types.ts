@@ -56,7 +56,25 @@ export interface BabyEntry {
   end: Date | null // = start + minutes
   createdByName: string
   childId: string | null // hoạt động của con nào; dữ liệu cũ (trước khi có màn hình Con) = null, tính là của con đầu tiên
+  meal: BabyMeal | null // chi tiết bữa ăn dặm (chỉ thẻ ăn dặm); null = không ghi
 }
+
+// Chi tiết 1 bữa ăn dặm (thẻ 🥣 trên Time line)
+export type MealRating = 'all' | 'ok' | 'little' | 'refused'
+export interface BabyMeal {
+  foods: string[] // các món / nguyên liệu trong bữa (tên, khớp danh sách Thực phẩm của con)
+  amount: string // lượng ăn, vd "5 thìa", "1/2 chén", "80 ml"
+  texture: string // độ thô: "" = không ghi
+  rating: MealRating | null // con ăn thế nào; null = không ghi
+}
+
+export const MEAL_RATINGS: { value: MealRating; label: string }[] = [
+  { value: 'all', label: 'Ăn hết' },
+  { value: 'ok', label: 'Ăn được' },
+  { value: 'little', label: 'Ăn ít' },
+  { value: 'refused', label: 'Từ chối' },
+]
+export const MEAL_TEXTURES = ['Xay nhuyễn', 'Rây mịn', 'Lợn cợn', 'Cắt miếng', 'Cầm tay ăn']
 
 // ---- Con (mỗi gia đình nhiều con; time line / thống kê đi theo từng con) ----
 export type Gender = 'male' | 'female'
@@ -109,6 +127,7 @@ export interface BabyEntryInput {
   card: Pick<BabyCard, 'id' | 'name' | 'icon' | 'color'>
   start: Date
   minutes: number | null // null = chưa hoàn thành
+  meal?: BabyMeal | null // undefined = giữ nguyên chi tiết bữa ăn đang có (vd kéo thẻ chỉ đổi giờ)
 }
 
 // Hoạt động chưa hoàn thành: bắt đầu ở tương lai là "sắp bắt đầu", còn lại là "đang diễn ra"

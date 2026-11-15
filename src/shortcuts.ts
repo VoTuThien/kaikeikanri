@@ -33,6 +33,7 @@ export const SHORTCUTS: ShortcutEntry[] = [
   { id: 'baby-children', appId: 'baby', name: 'Con', icon: '👶', path: '/baby/children' },
   { id: 'baby-cards', appId: 'baby', name: 'Thẻ hoạt động', icon: '🏷️', path: '/baby/cards' },
   { id: 'baby-growth', appId: 'baby', name: 'Phát triển', icon: '📏', path: '/baby/growth' },
+  { id: 'baby-foods', appId: 'baby', name: 'Thực phẩm', icon: '🥕', path: '/baby/foods' },
   // App Ghi chú
   { id: 'note-inbox', appId: 'note', name: 'Xem ghi chú', icon: '📬', path: '/note/inbox' },
   { id: 'note-new', appId: 'note', name: 'Tạo ghi chú', icon: '✍️', path: '/note/sent' },

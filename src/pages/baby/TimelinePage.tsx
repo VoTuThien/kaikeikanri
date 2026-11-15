@@ -28,6 +28,9 @@ import { useHistory } from './data/history'
 import { useBaby, useDayEntries } from './data/BabyContext'
 import { TimelineView, TimelineViewSkeleton } from './TimelineView'
 import { submitForm, useChanged, useUnsavedChanges } from '../../components/UnsavedGuard'
+import { EMPTY_MEAL, MealFields, mealIsEmpty } from './MealFields'
+import { isMealCard, recordMealFoods, useChildFoods } from './data/foods'
+import { todayText } from './data/growth'
 import {
   addMinutes,
   formatDuration,
@@ -41,6 +44,7 @@ import {
   toTimeInput,
   type BabyCard,
   type BabyEntry,
+  type BabyMeal,
   type Child,
 } from './data/types'
 
@@ -396,9 +400,13 @@ function EntrySheet({ sheet, day, entries, onClose }: { sheet: Sheet; day: Date;
   const [saving, setSaving] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [deleting, setDeleting] = useState(false)
-  // Chưa lưu: hoạt động mới đang nhập (chưa thêm vào time line), hoặc đã sửa giờ / số phút của hoạt động cũ.
+  // Thẻ ăn dặm (🥣): khung nhập có thêm chi tiết bữa ăn (món, lượng, độ thô, con ăn thế nào)
+  const mealCard = isMealCard(look)
+  const [meal, setMeal] = useState<BabyMeal>(() => (!isNew && sheet.entry.meal) || EMPTY_MEAL)
+  const foods = useChildFoods() ?? []
+  // Chưa lưu: hoạt động mới đang nhập (chưa thêm vào time line), hoặc đã sửa giờ / số phút / bữa ăn của hoạt động cũ.
   // Chấm đỏ trên nút lưu, rời màn hình thì hỏi lại (UnsavedGuard)
-  const changed = useChanged({ startText, completed, minutesText, endText })
+  const changed = useChanged({ startText, completed, minutesText, endText, meal })
   const dirty = isNew || changed
   useUnsavedChanges(dirty && !saving && !deleting, () => submitForm(FORM_ID))
 
@@ -462,7 +470,14 @@ function EntrySheet({ sheet, day, entries, onClose }: { sheet: Sheet; day: Date;
     try {
       const card = isNew ? sheet.card : { id: sheet.entry.cardId, name: sheet.entry.name, icon: sheet.entry.icon, color: sheet.entry.color }
       // Hoạt động thuộc con đang chọn; sửa hoạt động cũ chưa gắn con thì gắn luôn vào con đang chọn
-      const input = { childId: isNew ? (child?.id ?? null) : (sheet.entry.childId ?? child?.id ?? null), card, start, minutes: saveMinutes }
+      const input = {
+        childId: isNew ? (child?.id ?? null) : (sheet.entry.childId ?? child?.id ?? null),
+        card,
+        start,
+        minutes: saveMinutes,
+        // Bữa ăn dặm: để trống hết thì lưu null
+        ...(mealCard ? { meal: mealIsEmpty(meal) ? null : { ...meal, amount: meal.amount.trim() } } : {}),
+      }
       // Chèn lọt hẳn vào 1 hoạt động: phần sau của hoạt động đó thành 1 hoạt động mới (cùng thẻ, cùng con)
       const split = (link as { split?: { of: BabyEntry; start: Date; minutes: number } } | null)?.split
       const extra = split
@@ -477,6 +492,10 @@ function EntrySheet({ sheet, day, entries, onClose }: { sheet: Sheet; day: Date;
         : []
       if (isNew) await createEntry(input, actor, link?.linked, timelineNotice(child, actor, `Thêm ${card.name} lúc ${formatTime(start)}`), extra)
       else await updateEntry(sheet.entry.id, input, actor, link?.linked, timelineNotice(child, actor, `Sửa ${card.name} lúc ${formatTime(start)}`))
+      // Món mới trong bữa ăn dặm: thêm vào danh sách Thực phẩm của con (đang thử, thử lần đầu = ngày của bữa ăn)
+      if (mealCard && input.childId && meal.foods.length > 0) {
+        recordMealFoods(input.childId, meal.foods, todayText(start), foods, actor).catch((err) => console.error('Ghi thực phẩm thất bại', err))
+      }
       onClose()
     } catch (err) {
       console.error(err)
@@ -500,7 +519,8 @@ function EntrySheet({ sheet, day, entries, onClose }: { sheet: Sheet; day: Date;
 
   return (
     <>
-      <GlassPanel className="space-y-3 !p-4">
+      {/* Thẻ ăn dặm có thêm chi tiết bữa ăn nên khung nhập cao hơn: chỉ khung nhập cuộn, time line phía trên vẫn còn chỗ */}
+      <GlassPanel className={`space-y-3 !p-4 ${mealCard ? 'max-h-[62vh] overflow-y-auto overscroll-contain' : ''}`}>
         <form id={FORM_ID} onSubmit={handleSubmit} className="space-y-3" noValidate>
           <div className="flex h-10 items-center gap-3">
             <CardIcon icon={look.icon} color={look.color} box="h-10 w-10" img="h-7 w-7" />
@@ -531,6 +551,8 @@ function EntrySheet({ sheet, day, entries, onClose }: { sheet: Sheet; day: Date;
             />
             <TimeField id="end" label="Kết thúc" disabled={!completed} value={completed ? endText : ''} onChange={changeEnd} />
           </div>
+
+          {mealCard && <MealFields meal={meal} onChange={setMeal} foods={foods} date={todayText(start ?? baseDay)} />}
 
           {error && <Alert type="error">{error}</Alert>}
           {confirmDelete && <Alert type="error">Bấm thùng rác lần nữa để xoá hoạt động này</Alert>}

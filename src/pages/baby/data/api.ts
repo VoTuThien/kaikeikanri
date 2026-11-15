@@ -47,8 +47,17 @@ const timing = (start: Date, minutes: number | null) => ({
   end: minutes === null ? null : Timestamp.fromDate(addMinutes(start, minutes)), // kết thúc = bắt đầu + thời gian hoạt động
 })
 
-function entryData({ childId, card, start, minutes }: BabyEntryInput) {
-  return { childId, cardId: card.id, name: card.name, icon: card.icon, color: card.color, ...timing(start, minutes) }
+function entryData({ childId, card, start, minutes, meal }: BabyEntryInput) {
+  return {
+    childId,
+    cardId: card.id,
+    name: card.name,
+    icon: card.icon,
+    color: card.color,
+    ...timing(start, minutes),
+    // Chi tiết bữa ăn dặm: chỉ ghi khi khung nhập gửi lên (kéo thẻ / tách thẻ không đụng tới)
+    ...(meal !== undefined ? { meal } : {}),
+  }
 }
 
 const minutesTo = (from: Date, to: Date) => Math.round((to.getTime() - from.getTime()) / 60000)

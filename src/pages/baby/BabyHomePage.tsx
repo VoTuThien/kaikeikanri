@@ -15,6 +15,7 @@ const FEATURES: Feature[] = [
   { icon: '🏷️', label: 'Thẻ hoạt động', hint: 'Ăn, ngủ, chơi...', to: '/baby/cards' },
   { icon: '👶', label: 'Con', hint: 'Thông tin các con', to: '/baby/children' },
   { icon: '📏', label: 'Phát triển', hint: 'Cao, nặng, vắc xin', to: '/baby/growth' },
+  { icon: '🥕', label: 'Thực phẩm', hint: 'Ăn dặm, dị ứng', to: '/baby/foods' },
   { icon: '⚙️', label: 'Cài đặt', hint: 'Tuỳ chỉnh app Chăm con' },
 ]
 
