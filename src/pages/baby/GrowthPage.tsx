@@ -11,8 +11,8 @@ import { Skeleton } from '../../components/ui/Skeleton'
 import { SIZE } from '../../components/ui/sizes'
 import { ChildPicker, ChildPickerSkeleton } from './components'
 import { useBaby } from './data/BabyContext'
-import { dateOf, formatMeasure, useChildGrowth, type GrowthRecord } from './data/growth'
-import { childAge, type Child } from './data/types'
+import { ageAtDate, dateOf, formatMeasure, useChildGrowth, type GrowthRecord } from './data/growth'
+import type { Child } from './data/types'
 
 // Màn hình Phát triển (/baby/growth): các thẻ chiều cao / cân nặng / vắc xin theo ngày của CON ĐANG CHỌN (chọn con trên thanh tiêu đề, giống Time line).
 // FAB phễu: chạm để chỉ xem các lần tiêm vắc xin, chạm lần nữa để xem lại toàn bộ.
@@ -21,12 +21,14 @@ const LIST_CLASS = `${LIST_CARDS_SCROLL} ${LIST_CARDS_GAP} ${FAB_SPACE}`
 const ROW = `${SIZE.listItem} flex items-center gap-3 px-4 transition active:scale-[0.98]`
 const DATE_BOX = 'flex w-14 shrink-0 flex-col items-center border-r border-white/15 pr-3'
 
-// Tuổi của con vào ngày ghi (vd "8 tháng 12 ngày"); ngày ghi trước ngày sinh thì bỏ trống
+// Tuổi của con vào ngày đo / tiêm, tính theo tháng (vd "8 tháng 12 ngày tuổi")
 function ageAt(child: Child | null, date: string) {
-  if (!child?.birthDate) return ''
-  const at = dateOf(date)
-  return at < dateOf(child.birthDate) ? '' : childAge(child.birthDate, at)
+  if (!child?.birthDate) return 'Chưa nhập ngày sinh của con'
+  return ageAtDate(child.birthDate, date)
 }
+
+// 1 ngày tiêm được nhiều mũi: "💉 2 mũi: 6 trong 1, Rota"
+const vaccineText = (list: string[]) => (list.length > 1 ? `${list.length} mũi: ${list.join(', ')}` : list[0])
 
 function measures(r: GrowthRecord) {
   const parts = [r.height !== null && `Cao ${formatMeasure(r.height)} cm`, r.weight !== null && `Nặng ${formatMeasure(r.weight)} kg`].filter(Boolean)
@@ -46,11 +48,12 @@ function GrowthRow({ record, child }: { record: GrowthRecord; child: Child | nul
       </span>
       <span className="min-w-0 flex-1">
         <span className="block truncate text-sm leading-5 font-semibold">{measures(record)}</span>
-        <span className="block h-4 truncate text-xs leading-4 text-white/60">{age}</span>
-        {record.vaccine ? (
+        {/* Tuổi của con vào ngày thực hiện */}
+        <span className="block h-4 truncate text-xs leading-4 text-white/75">{age}</span>
+        {record.vaccines.length > 0 ? (
           <span className="flex h-5 items-center gap-1.5 text-xs leading-5 font-semibold text-fuchsia-200">
             <Icon3D emoji="💉" className="h-4 w-4" />
-            <span className="truncate">{record.vaccine}</span>
+            <span className="truncate">{vaccineText(record.vaccines)}</span>
           </span>
         ) : (
           <span className="block h-5 truncate text-xs leading-5 text-white/40">Không tiêm vắc xin</span>
@@ -67,13 +70,15 @@ export function GrowthPage() {
   const [onlyVaccine, setOnlyVaccine] = useState(false)
   if (loading || !records) return <GrowthPageSkeleton />
 
-  const vaccines = records.filter((r) => r.vaccine)
+  const vaccines = records.filter((r) => r.vaccines.length > 0)
+  // Tổng số mũi (1 ngày có thể tiêm nhiều mũi)
+  const shots = vaccines.reduce((sum, r) => sum + r.vaccines.length, 0)
   const shown = onlyVaccine ? vaccines : records
   const subtitle = !child
     ? 'Chưa có con nào'
     : onlyVaccine
-      ? `Chỉ xem tiêm vắc xin · ${vaccines.length} lần`
-      : `${records.length} lần ghi · ${vaccines.length} lần tiêm vắc xin`
+      ? `Chỉ xem tiêm vắc xin · ${vaccines.length} lần · ${shots} mũi`
+      : `${records.length} lần ghi · ${shots} mũi vắc xin`
 
   return (
     <PageShell>

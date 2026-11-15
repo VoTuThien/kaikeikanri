@@ -1,18 +1,19 @@
-import { addDoc, deleteDoc, doc, onSnapshot, orderBy, query, serverTimestamp, updateDoc, type DocumentData, type Timestamp } from 'firebase/firestore'
+import { addDoc, deleteDoc, deleteField, doc, onSnapshot, orderBy, query, serverTimestamp, updateDoc, type DocumentData, type Timestamp } from 'firebase/firestore'
 import { familyCol } from '../../../lib/family'
 import { commit, type Actor } from '../../../lib/firestore'
 import { familyKey, useLiveQuery } from '../../../lib/liveQuery'
 import { useBaby } from './BabyContext'
 
 // Màn hình Phát triển của app Chăm con: mỗi thẻ = 1 lần ghi chiều cao / cân nặng / vắc xin của 1 con.
-//   families/{familyId}/growth/{id}  { childId, date "YYYY-MM-DD", height (cm) | null, weight (kg) | null, vaccine ("" = không tiêm), createdAt, createdBy, createdByName }
+//   families/{familyId}/growth/{id}  { childId, date "YYYY-MM-DD", height (cm) | null, weight (kg) | null, vaccines: string[] ([] = không tiêm), createdAt, createdBy, createdByName }
+//   (dữ liệu cũ có 1 chuỗi `vaccine` thay cho mảng `vaccines`: đọc vẫn được, sửa lại thì chuyển sang `vaccines`)
 
 export interface GrowthInput {
   childId: string
   date: string // "YYYY-MM-DD"
   height: number | null // cm, null = không đo
   weight: number | null // kg, null = không cân
-  vaccine: string // tên vắc xin đã tiêm; "" = hôm đó không tiêm
+  vaccines: string[] // các vắc xin đã tiêm trong ngày (1 ngày tiêm được nhiều mũi); [] = hôm đó không tiêm
 }
 
 export interface GrowthRecord extends GrowthInput {
@@ -32,7 +33,7 @@ function toRecord(id: string, d: DocumentData): GrowthRecord {
     date: d.date ?? '',
     height: typeof d.height === 'number' ? d.height : null,
     weight: typeof d.weight === 'number' ? d.weight : null,
-    vaccine: d.vaccine ?? '',
+    vaccines: Array.isArray(d.vaccines) ? (d.vaccines as string[]).filter(Boolean) : d.vaccine ? [d.vaccine as string] : [],
     createdAt: d.createdAt ? (d.createdAt as Timestamp).toDate() : null,
     createdByName: d.createdByName ?? '',
   }
@@ -67,7 +68,8 @@ export async function createGrowth(input: GrowthInput, by: Actor) {
 }
 
 export async function updateGrowth(id: string, input: GrowthInput) {
-  await commit(updateDoc(doc(growthCol(), id), { ...input }))
+  // Bỏ trường `vaccine` (1 chuỗi) của dữ liệu cũ, giờ dùng mảng `vaccines`
+  await commit(updateDoc(doc(growthCol(), id), { ...input, vaccine: deleteField() }))
 }
 
 export async function deleteGrowth(id: string) {
@@ -97,6 +99,35 @@ export const WEIGHT_RANGE = { min: 0.5, max: 200 } // kg
 export function dateOf(value: string) {
   const [y, m, d] = value.split('-').map(Number)
   return new Date(y, (m || 1) - 1, d || 1)
+}
+
+// Tuổi của con vào ngày thực hiện, tính theo THÁNG: "15 ngày tuổi", "8 tháng 12 ngày tuổi", "2 tuổi 3 tháng (27 tháng tuổi)".
+// "" = chưa có ngày sinh hoặc ngày thực hiện trước ngày sinh.
+export function ageAtDate(birthDate: string, date: string): string {
+  if (!birthDate || !date) return ''
+  const birth = dateOf(birthDate)
+  const at = dateOf(date)
+  if (at < birth) return ''
+  let months = (at.getFullYear() - birth.getFullYear()) * 12 + (at.getMonth() - birth.getMonth())
+  if (at.getDate() < birth.getDate()) months--
+  const anchor = new Date(birth.getFullYear(), birth.getMonth() + months, birth.getDate())
+  const days = Math.max(0, Math.round((at.getTime() - anchor.getTime()) / 86400000))
+  if (months <= 0) return `${Math.round((at.getTime() - birth.getTime()) / 86400000)} ngày tuổi`
+  if (months < 24) return `${months} tháng${days ? ` ${days} ngày` : ''} tuổi`
+  return `${Math.floor(months / 12)} tuổi${months % 12 ? ` ${months % 12} tháng` : ''} (${months} tháng tuổi)`
+}
+
+// Gọn danh sách vắc xin nhập vào: bỏ ô trống, khoảng trắng thừa, tên trùng (không phân biệt hoa thường)
+export function cleanVaccines(list: string[]): string[] {
+  const seen = new Set<string>()
+  return list
+    .map((v) => v.trim().replace(/\s+/g, ' '))
+    .filter((v) => {
+      const k = v.toLowerCase()
+      if (!v || seen.has(k)) return false
+      seen.add(k)
+      return true
+    })
 }
 
 const pad = (n: number) => String(n).padStart(2, '0')
