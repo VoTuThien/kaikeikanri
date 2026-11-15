@@ -15,6 +15,7 @@ import { SidePage, SidePageSkeleton } from './pages/SidePage'
 import { SideSwipe } from './components/SideSwipe'
 import { RefreshIndicator } from './components/RefreshIndicator'
 import { UnsavedGuard } from './components/UnsavedGuard'
+import { StarField } from './components/StarField'
 import { NotificationBubble } from './components/NotificationBubble'
 import { BabyHomePage } from './pages/baby/BabyHomePage'
 import { CardFormPage } from './pages/baby/CardFormPage'
@@ -177,6 +178,8 @@ const renderRoutes = (location?: string) => <AppRoutes location={location} />
 function Shell() {
   return (
     <>
+      {/* Bầu trời sao dưới nền (đặt TRƯỚC các màn hình để nằm dưới chúng): sao lấp lánh, thỉnh thoảng có sao băng */}
+      <StarField />
       {/* Vuốt ngang giữa màn hình chính và 2 màn hình 2 bên */}
       <SideSwipe render={renderRoutes} />
       {/* Vòng xoay nhỏ góc trái dưới khi trang đang hiện dữ liệu nhớ tạm và cập nhật lại từ server */}

@@ -398,6 +398,10 @@ Dữ liệu Firestore (xem `src/pages/note/data/api.ts`), thuộc gia đình đa
 
 ### 5. Phong cách: gradient + glass, KHÔNG bo góc, bố cục ô kiểu Live Tile (Windows Phone)
 - Nền dùng **màu gradient** (`body` trong `index.css`).
+- **Bầu trời sao dưới nền** (`src/components/StarField.tsx`, CSS `.sky-*` trong `index.css`, gắn 1 lần trong `Shell` của `App.tsx`, đặt TRƯỚC các màn hình nên nằm dưới chúng):
+  ~36 điểm sao mờ **thỉnh thoảng sáng lên rồi tắt** (mỗi sao 1 nhịp riêng) + 3 **sao băng** chu kỳ dài (13 / 19 / 29 giây, chỉ xẹt qua ~1 giây) chéo xuống bên trái.
+  Chỉ dùng CSS animation (opacity / transform), vị trí sao cố định (số ngẫu nhiên có hạt giống); bật "Giảm chuyển động" thì sao đứng yên, không có sao băng.
+  Lớp này `position: fixed`, `pointer-events: none`, có `data-round` (sao tròn). Màn hình không được có nền đặc che mất bầu trời sao.
 - Panel / card theo kiểu **glassmorphism**: nền bán trong suốt, `backdrop-blur`, viền mảnh sáng nhẹ, **luôn có shadow** để nổi bật so với nền.
 - **KHÔNG BO GÓC Ở BẤT KỲ ĐÂU** (nút, ô nhập, panel, thẻ, popup…): `index.css` có quy tắc chung ép `border-radius: 0 !important` cho mọi phần tử.
   **Chỉ vùng có `data-round` giữ hình tròn**: **avatar người dùng / con** (`Avatar`, `ChildAvatar`, ô chọn avatar, popup chọn người / con), **nút nổi FAB**, **bong bóng thông báo (chuông)**

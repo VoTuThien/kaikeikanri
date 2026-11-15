@@ -82,3 +82,84 @@ body {
 @utility animate-notify-item {
   animation: notify-item-in 0.36s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
+
+/* ---- Bầu trời sao dưới nền app (src/components/StarField.tsx) ---- */
+.sky-field {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+/* Điểm sao: phần lớn thời gian mờ, thỉnh thoảng sáng lên rồi tắt */
+.sky-star {
+  position: absolute;
+  border-radius: 9999px;
+  background: #fff;
+  opacity: 0.12;
+  animation-name: sky-twinkle;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+}
+.sky-star-big {
+  box-shadow: 0 0 6px 2px rgba(216, 180, 254, 0.7);
+}
+@keyframes sky-twinkle {
+  0%,
+  62%,
+  100% {
+    opacity: 0.12;
+    transform: scale(1);
+  }
+  78% {
+    opacity: 1;
+    transform: scale(1.8);
+  }
+}
+/* Sao băng: khung xoay chéo (đi xuống bên trái), vệt sáng chạy trong khung; chỉ hiện ~6% đầu chu kỳ */
+.sky-meteor-track {
+  position: absolute;
+  width: 0;
+  height: 0;
+  transform: rotate(-32deg);
+}
+.sky-meteor {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 2px;
+  border-radius: 9999px;
+  background: linear-gradient(90deg, #fff 0%, rgba(233, 213, 255, 0.75) 25%, rgba(255, 255, 255, 0) 100%);
+  box-shadow: 0 0 8px 1px rgba(233, 213, 255, 0.55);
+  opacity: 0;
+  animation-name: sky-meteor;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  animation-fill-mode: both;
+}
+@keyframes sky-meteor {
+  0% {
+    opacity: 0;
+    transform: translateX(0);
+  }
+  1% {
+    opacity: 1;
+  }
+  6% {
+    opacity: 0;
+    transform: translateX(-420px);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(-420px);
+  }
+}
+/* Người dùng bật "Giảm chuyển động": sao đứng yên, không có sao băng */
+@media (prefers-reduced-motion: reduce) {
+  .sky-star {
+    animation: none;
+    opacity: 0.35;
+  }
+  .sky-meteor {
+    display: none;
+  }
+}
