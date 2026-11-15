@@ -1,8 +1,10 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { AppHeader, AppHeaderSkeleton } from '../../components/AppHeader'
 import { PageShell, ScrollArea } from '../../components/PageShell'
 import { Alert } from '../../components/ui/Alert'
+import { Button } from '../../components/ui/Button'
 import { Fab, FabGroup, FabSkeleton } from '../../components/ui/Fab'
 import { GlassPanel } from '../../components/ui/GlassPanel'
 import { Icon3D } from '../../components/ui/Icon3D'
@@ -14,7 +16,7 @@ import { useFamily } from '../../contexts/FamilyContext'
 import type { Member } from '../family/data/api'
 import { useMembers } from '../family/data/useMembers'
 import { EditableList, EditableListSkeleton, LIST_CLASS, MemberPicker, MemberPickerSkeleton, recipientLabel, type EditRow } from './components'
-import { createNote, moveItemsToNewNote, updateNote } from './data/api'
+import { createNote, mergeIntoNote, moveItemsToNewNote, updateNote } from './data/api'
 import { useNote, useNoteDoc, useNotesTo } from './data/NoteContext'
 import { foldKey, MAX_TEXT, noteTitle, sameKey, type Note, type NoteItem } from './data/types'
 import { useChanged, useUnsavedChanges } from '../../components/UnsavedGuard'
@@ -22,6 +24,7 @@ import { useChanged, useUnsavedChanges } from '../../components/UnsavedGuard'
 // Tạo ghi chú (bước 2): nội dung bên trong 1 ghi chú — tạo mới (/note/sent/new?to=uid) hoặc sửa (/note/sent/:id).
 // Trên cùng: [số thứ tự] [tên ghi chú] (số = ưu tiên giữa các ghi chú của người nhận; tạo mới mặc định đứng cuối).
 // Thanh tiêu đề có avatar người nhận (MemberPicker, chạm để đổi người nhận — cả khi sửa: lưu thì ghi chú chuyển sang người mới, đứng cuối danh sách của họ);
+// Sửa: FAB [upload] gộp các nội dung CHƯA XONG của các ghi chú khác (cùng người nhận) vào cuối ghi chú này (popup chọn nhiều, [Đóng] / [Chuyển]).
 // ngay dưới thanh tiêu đề là "Gửi cho: …"; danh sách các thẻ nội dung tách rời (kéo ≡ / sửa số để đổi thứ tự, trượt trái để xoá, đang gõ thì gợi ý từ Thẻ ghi chú).
 // Lưu xong quay về danh sách ghi chú; thẻ có nội dung mới được lưu vào Thẻ ghi chú để gợi ý lần sau. Sửa thì thẻ cũ giữ trạng thái đã xong.
 
@@ -44,6 +47,9 @@ export function NoteFormPage() {
   const [params] = useSearchParams()
   const fromId = id ? undefined : (params.get('from') ?? undefined)
   const source = useNoteDoc(fromId)
+  // Gộp nội dung xong thì vẽ lại form từ dữ liệu mới (đổi key) và báo kết quả
+  const [ver, setVer] = useState(0)
+  const [flash, setFlash] = useState('')
   if (loading || !members || (id && note === undefined) || (fromId && source === undefined)) return <NoteFormPageSkeleton />
   if (id && !note) {
     return (
@@ -61,10 +67,34 @@ export function NoteFormPage() {
       </PageShell>
     )
   }
-  return <NoteForm key={id ?? `new-${fromId ?? ''}`} members={members} note={note ?? null} source={source ?? null} />
+  return (
+    <NoteForm
+      key={`${id ?? `new-${fromId ?? ''}`}-${ver}`}
+      members={members}
+      note={note ?? null}
+      source={source ?? null}
+      flash={flash}
+      onReload={(message) => {
+        setFlash(message)
+        setVer((v) => v + 1)
+      }}
+    />
+  )
 }
 
-function NoteForm({ members, note, source }: { members: Member[]; note: Note | null; source: Note | null }) {
+function NoteForm({
+  members,
+  note,
+  source,
+  flash,
+  onReload,
+}: {
+  members: Member[]
+  note: Note | null
+  source: Note | null
+  flash: string // thông báo sau khi gộp nội dung (form vừa vẽ lại)
+  onReload: (message: string) => void
+}) {
   const { actor, cards } = useNote()
   const [params] = useSearchParams()
   const navigate = useNavigate()
@@ -132,6 +162,44 @@ function NoteForm({ members, note, source }: { members: Member[]; note: Note | n
   }
 
   // Tạo ghi chú mới từ nội dung chưa xong: chỉ khi có cả thẻ đã xong và chưa xong (nếu không, ghi chú cũ sẽ trống hoặc không có gì để chuyển)
+  // ---- Gộp nội dung chưa xong của các ghi chú khác (cùng người nhận) vào ghi chú này ----
+  const [mergeOpen, setMergeOpen] = useState(false)
+  const [merging, setMerging] = useState(false)
+  const [notice, setNotice] = useState(flash)
+  // Đã gộp xong, chờ dữ liệu mới của ghi chú về (transaction không cập nhật tạm ở máy) rồi vẽ lại form
+  const waiting = useRef<{ items: NoteItem[]; message: string } | null>(null)
+  const mergeCandidates = (oldSiblings ?? []).filter((n) => n.id !== note?.id && n.items.some((i) => !i.done))
+  useEffect(() => {
+    if (note && waiting.current && note.items !== waiting.current.items) onReload(waiting.current.message)
+  }, [note, onReload])
+
+  function openMerge() {
+    setNotice('')
+    if (dirty || changedTo) return setError('Bạn hãy lưu thay đổi của ghi chú này trước khi gộp nội dung từ ghi chú khác.')
+    setError('')
+    setMergeOpen(true)
+  }
+
+  async function merge(ids: string[]) {
+    if (!note || !oldSiblings) return
+    setMerging(true)
+    try {
+      const moved = await mergeIntoNote(
+        note.id,
+        ids,
+        oldSiblings.map((n) => n.id),
+      )
+      waiting.current = { items: note.items, message: `Đã chuyển ${moved.length} nội dung chưa xong từ ${ids.length} ghi chú vào ghi chú này.` }
+      setMergeOpen(false)
+    } catch (err) {
+      console.error(err)
+      setError(err instanceof Error && err.message.startsWith('Các ghi chú') ? err.message : 'Gộp nội dung thất bại. Vui lòng thử lại.')
+      setMergeOpen(false)
+    } finally {
+      setMerging(false)
+    }
+  }
+
   const canSplit = !!note && note.items.some((i) => i.done) && note.items.some((i) => !i.done)
   function split() {
     if (!note) return
@@ -231,6 +299,7 @@ function NoteForm({ members, note, source }: { members: Member[]; note: Note | n
         </div>
       </GlassPanel>
       {error && <Alert type="error">{error}</Alert>}
+      {notice && !error && <Alert type="success">{notice}</Alert>}
       <ScrollArea className={LIST_CLASS}>
         <EditableList
           rows={rows}
@@ -245,11 +314,85 @@ function NoteForm({ members, note, source }: { members: Member[]; note: Note | n
         />
       </ScrollArea>
       <FabGroup>
+        {note && !source && <Fab icon="upload" label="Gộp nội dung chưa xong từ ghi chú khác vào ghi chú này" variant="secondary" onClick={openMerge} />}
         {canSplit && <Fab icon="copy" label="Tạo ghi chú mới từ nội dung chưa hoàn thành" variant="secondary" onClick={split} />}
         <Fab icon="add" label="Thêm thẻ" variant="secondary" onClick={add} />
         <Fab icon={isNew ? 'send' : 'save'} label={isNew ? 'Gửi ghi chú' : 'Lưu ghi chú'} loading={saving} onClick={save} dirty={dirty} />
       </FabGroup>
+      {mergeOpen && <MergePopup notes={mergeCandidates} merging={merging} onClose={() => setMergeOpen(false)} onMerge={merge} />}
     </PageShell>
+  )
+}
+
+// Popup chọn NHIỀU ghi chú (cùng người nhận, còn nội dung chưa xong) để chuyển nội dung chưa xong của chúng vào ghi chú đang sửa
+function MergePopup({ notes, merging, onClose, onMerge }: { notes: Note[]; merging: boolean; onClose: () => void; onMerge: (ids: string[]) => void }) {
+  const [picked, setPicked] = useState<string[]>([])
+  const toggle = (id: string) => setPicked((list) => (list.includes(id) ? list.filter((x) => x !== id) : [...list, id]))
+  const pendingCount = notes.filter((n) => picked.includes(n.id)).reduce((sum, n) => sum + n.items.filter((i) => !i.done).length, 0)
+
+  return createPortal(
+    // Vẽ ra document.body: không nằm trong GlassPanel (backdrop-blur làm position: fixed bị lệch)
+    <div data-no-swipe className="fixed inset-0 z-50 flex items-start justify-center bg-black/55 px-4 pt-20 backdrop-blur-sm" onClick={() => !merging && onClose()}>
+      <div
+        role="dialog"
+        aria-label="Gộp nội dung chưa xong từ ghi chú khác"
+        className="w-full max-w-sm space-y-3 border border-white/20 bg-indigo-950/85 p-4 shadow-2xl shadow-black/50 backdrop-blur-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="space-y-0.5 text-center">
+          <h2 className="text-base leading-6 font-semibold">Gộp nội dung chưa xong</h2>
+          <p className="text-xs leading-4 text-white/65">Chọn các ghi chú để chuyển nội dung chưa hoàn thành vào ghi chú này</p>
+        </div>
+        {notes.length === 0 ? (
+          <p className="py-6 text-center text-sm leading-5 text-white/70">Không có ghi chú nào khác của người nhận này còn nội dung chưa hoàn thành.</p>
+        ) : (
+          <div className="max-h-[55vh] space-y-2 overflow-y-auto overscroll-contain">
+            {notes.map((n) => {
+              const pending = n.items.filter((i) => !i.done)
+              const on = picked.includes(n.id)
+              return (
+                <button
+                  key={n.id}
+                  type="button"
+                  aria-pressed={on}
+                  onClick={() => toggle(n.id)}
+                  className={`flex w-full items-center gap-3 border px-3 py-2 text-left transition active:scale-[0.98] ${
+                    on ? 'border-fuchsia-200/70 bg-fuchsia-400/25' : 'border-white/15 bg-white/5'
+                  }`}
+                >
+                  <span className={`flex h-6 w-6 shrink-0 items-center justify-center border-2 ${on ? 'border-fuchsia-200 bg-fuchsia-400' : 'border-white/50'}`}>
+                    {on && (
+                      <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="#ffffff" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <path d="M5 12.5l4.5 4.5L19 7" />
+                      </svg>
+                    )}
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm leading-5 font-semibold">
+                      {n.position ? `${n.position}. ` : ''}
+                      {noteTitle(n)}
+                    </span>
+                    <span className="block truncate text-xs leading-4 text-white/65">
+                      {pending.length} chưa xong: {pending.map((i) => i.text).join(', ')}
+                    </span>
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+        )}
+        {/* 2 nút bằng nhau, cùng hàng */}
+        <div className="grid grid-cols-2 gap-3">
+          <Button variant="secondary" onClick={onClose} disabled={merging}>
+            Đóng
+          </Button>
+          <Button variant="primary" onClick={() => onMerge(picked)} disabled={picked.length === 0} loading={merging}>
+            {picked.length > 0 ? `Chuyển (${pendingCount})` : 'Chuyển'}
+          </Button>
+        </div>
+      </div>
+    </div>,
+    document.body,
   )
 }
 

@@ -190,6 +190,72 @@ function addNewCards(batch: WriteBatch, texts: string[], cards: NoteCard[], by: 
   })
 }
 
+/**
+ * Gộp các nội dung CHƯA XONG của các ghi chú `sourceIds` vào CUỐI ghi chú `targetId` (1 transaction, màn hình Sửa ghi chú):
+ * thẻ được CHUYỂN sang (giữ id, các lần nạp / rút); thẻ trùng nội dung với thẻ đã có thì gộp vào thẻ đó (cộng các lần nạp / rút, thành chưa xong).
+ * Ghi chú nguồn chỉ còn các thẻ đã xong (thông báo thành "Hoàn thành"); hết sạch nội dung thì xoá luôn ghi chú + thông báo của nó.
+ * `ids` = các ghi chú của người nhận theo thứ tự hiện tại (đánh số lại khi có ghi chú nguồn bị xoá). Trả về id các thẻ của ghi chú đích đã nhận nội dung.
+ */
+export async function mergeIntoNote(targetId: string, sourceIds: string[], ids: string[]): Promise<string[]> {
+  const targetRef = doc(notesCol(), targetId)
+  let moved: string[] = []
+  await commit(
+    runTransaction(requireDb(), async (tx) => {
+      // Firestore: đọc hết rồi mới ghi
+      const target = await tx.get(targetRef)
+      if (!target.exists()) throw new Error('Ghi chú này không còn.')
+      const sources = await Promise.all(sourceIds.map((id) => tx.get(doc(notesCol(), id))))
+      const notices = await Promise.all([targetId, ...sourceIds].map((id) => tx.get(doc(notificationsCol(), noteNoticeId(id)))))
+      const noticeOf = new Map(notices.map((n, i) => [[targetId, ...sourceIds][i], n]))
+
+      const items = [...((target.data().items ?? []) as NoteItem[])]
+      const byKey = new Map(items.map((it, i) => [sameKey(it.text), i]))
+      const removed = new Set<string>()
+      moved = []
+      for (const snap of sources) {
+        if (!snap.exists() || snap.id === targetId) continue
+        const list = (snap.data().items ?? []) as NoteItem[]
+        const pending = list.filter((it) => !it.done)
+        if (pending.length === 0) continue
+        for (const it of pending) {
+          const k = sameKey(it.text)
+          const at = byKey.get(k)
+          if (at !== undefined) {
+            const ex = items[at]
+            items[at] = { ...ex, done: false, doneByName: '', money: [...(ex.money ?? []), ...(it.money ?? [])] }
+            moved.push(ex.id)
+          } else {
+            byKey.set(k, items.length)
+            items.push(it)
+            moved.push(it.id)
+          }
+        }
+        const rest = list.filter((it) => it.done)
+        const notice = noticeOf.get(snap.id)
+        if (rest.length > 0) {
+          tx.update(snap.ref, { items: rest })
+          if (notice?.exists()) tx.update(notice.ref, { done: true })
+        } else {
+          tx.delete(snap.ref)
+          if (notice?.exists()) tx.delete(notice.ref)
+          removed.add(snap.id)
+        }
+      }
+      if (moved.length === 0) throw new Error('Các ghi chú đã chọn không còn nội dung chưa xong.')
+      tx.update(targetRef, { items })
+      const targetNotice = noticeOf.get(targetId)
+      if (targetNotice?.exists()) tx.update(targetNotice.ref, { done: false })
+      // Ghi chú nguồn bị xoá: đánh số lại các ghi chú còn lại của người nhận (liên tục 1..n)
+      if (removed.size > 0) {
+        ids
+          .filter((id) => !removed.has(id))
+          .forEach((id, i) => tx.update(doc(notesCol(), id), { position: i + 1 }))
+      }
+    }),
+  )
+  return moved
+}
+
 // Đánh dấu 1 thẻ trong ghi chú là đã làm xong / chưa xong (đọc lại ghi chú trong transaction để không ghi đè thẻ khác)
 export async function setItemDone(noteId: string, itemId: string, done: boolean, by: Actor) {
   const ref = doc(notesCol(), noteId)

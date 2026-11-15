@@ -322,6 +322,11 @@ Code: `src/pages/note/` (`components.tsx`: `NoteLayout`, `MemberPicker`, `Editab
   **FAB [nhân bản] "Tạo ghi chú mới từ nội dung chưa hoàn thành"** (chỉ hiện khi ghi chú có cả thẻ đã xong và chưa xong; đang có thay đổi chưa lưu thì báo lưu trước):
   mở `/note/sent/new?from=id`, danh sách điền sẵn các thẻ chưa xong; lưu bằng `moveItemsToNewNote` (1 transaction): các thẻ còn trong form được **chuyển** sang ghi chú mới
   (giữ lịch sử nạp / rút), biến mất khỏi ghi chú cũ; thẻ người dùng gỡ khỏi form thì ở lại ghi chú cũ; ghi chú cũ còn toàn thẻ đã xong nên thông báo thành "Hoàn thành".
+  **FAB [upload] "Gộp nội dung chưa xong từ ghi chú khác"** (chỉ khi SỬA; đang có thay đổi chưa lưu / đã đổi người nhận thì báo lưu trước): popup `MergePopup` liệt kê
+  các ghi chú khác **của cùng người nhận còn nội dung chưa xong** (tên, "n chưa xong: …"), **chọn được nhiều**, 2 nút bằng nhau **[Đóng] [Chuyển (số nội dung)]**.
+  Chuyển = `mergeIntoNote` (1 transaction): thẻ chưa xong của các ghi chú được chọn **chuyển sang cuối ghi chú đang sửa** (giữ id + các lần nạp / rút;
+  trùng nội dung với thẻ đã có thì gộp vào thẻ đó và thành chưa xong); ghi chú nguồn chỉ còn thẻ đã xong (thông báo "Hoàn thành"), **hết sạch nội dung thì bị xoá**
+  (xoá cả thông báo, đánh số lại danh sách); thông báo của ghi chú đang sửa thành "Chưa xong". Xong thì form vẽ lại từ dữ liệu mới và báo "Đã chuyển n nội dung…".
 - [x] Thẻ ghi chú (`/note/cards`): quản lý thẻ đã từng nhập, **giao diện giống Tạo ghi chú** (`EditableList`); sửa nội dung trực tiếp, **rời ô là lưu**;
   thêm / kéo thả / sửa số / xoá đều đánh số lại cả danh sách. **Không lưu thẻ trùng nội dung** (`sameKey`: bỏ khoảng trắng thừa, không phân biệt hoa thường).
   **Thứ tự ở đây = thứ tự ưu tiên trong danh sách gợi ý** ở Tạo ghi chú.
