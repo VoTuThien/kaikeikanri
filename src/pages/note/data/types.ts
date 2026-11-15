@@ -7,6 +7,25 @@ export interface NoteItem {
   money: NoteMoney[] // các lần nạp / rút quỹ cho riêng thẻ này (vd "Mua cà chua" rút 30.000 ₫)
 }
 
+// Id thẻ: PHẢI DUY NHẤT trong 1 ghi chú (dùng làm key khi vẽ danh sách, khi xoá / đánh dấu xong / nạp rút theo id).
+// Thẻ mới luôn dùng id ngẫu nhiên. Ghi chú tạo trước đây đánh id theo thứ tự ("i1", "i2"…) nên gộp nội dung từ nhiều ghi chú có thể bị TRÙNG id.
+export const newItemId = () => `i${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`
+
+// Sửa id trùng trong 1 ghi chú (dữ liệu cũ): thẻ sau mang id đã gặp thì đổi thành "<id>_<vị trí>".
+// Đổi theo vị trí nên đọc ở đâu cũng ra cùng 1 kết quả (giao diện và các transaction khớp nhau); ghi lại là dữ liệu được sửa luôn.
+export function uniqueItemIds<T extends { id: string }>(items: T[]): T[] {
+  const seen = new Set<string>()
+  return items.map((it, i) => {
+    let id = it.id || `i${i + 1}`
+    if (seen.has(id)) {
+      id = `${id}_${i}`
+      while (seen.has(id)) id += 'x'
+    }
+    seen.add(id)
+    return id === it.id ? it : { ...it, id }
+  })
+}
+
 // 1 lần nạp / rút quỹ gắn với 1 thẻ nội dung; giao dịch thật nằm ở app Quỹ (txId)
 export interface NoteMoney {
   type: 'deposit' | 'withdraw'

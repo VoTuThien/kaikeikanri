@@ -5,7 +5,7 @@ import { familyKey, useLiveQuery } from '../../../lib/liveQuery'
 import { useFundList } from '../../fund/data/FundContext'
 import type { Fund } from '../../fund/data/types'
 import { noteCardsCol, noteSettingsDoc, notesCol } from './api'
-import { DEFAULT_NOTE_SETTINGS, type Note, type NoteCard, type NoteItem, type NoteMoney, type NoteSettings } from './types'
+import { DEFAULT_NOTE_SETTINGS, type Note, type NoteCard, type NoteItem, type NoteMoney, type NoteSettings, uniqueItemIds } from './types'
 
 interface NoteData {
   actor: Actor
@@ -35,13 +35,13 @@ function sortCards(list: NoteCard[]): NoteCard[] {
 }
 
 function toNote(id: string, d: DocumentData): Note {
-  const items = ((d.items ?? []) as Partial<NoteItem>[]).map((i, n) => ({
+  const items = uniqueItemIds(((d.items ?? []) as Partial<NoteItem>[]).map((i, n) => ({
     id: i.id ?? `i${n + 1}`,
     text: i.text ?? '',
     done: !!i.done,
     doneByName: i.doneByName ?? '',
     money: ((i.money ?? []) as (Omit<NoteMoney, 'at'> & { at?: unknown })[]).map((m) => ({ ...m, at: toDate(m.at) ?? new Date(0) })),
-  }))
+  })))
   return {
     id,
     name: d.name ?? '',

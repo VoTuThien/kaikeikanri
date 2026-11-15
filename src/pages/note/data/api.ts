@@ -4,7 +4,7 @@ import { commit, requireDb, type Actor } from '../../../lib/firestore'
 import { formatMoney } from '../../../lib/format'
 import { noteNoticeId, notificationsCol, setNoteNotice } from '../../../lib/notifications'
 import { fundsCol, txCol } from '../../fund/data/api'
-import { noteDone, sameKey, type NoteCard, type NoteItem, type NoteSettings } from './types'
+import { newItemId, noteDone, sameKey, uniqueItemIds, type NoteCard, type NoteItem, type NoteSettings } from './types'
 
 // Cấu trúc dữ liệu trên Firestore (chỉ thành viên gia đình xem / sửa được):
 //   families/{familyId}/notes/{noteId}      ghi chú gửi đến 1 thành viên (toUid), các thẻ nằm trong mảng items theo thứ tự ưu tiên
@@ -61,7 +61,7 @@ export async function createNote(
   const batch = writeBatch(requireDb())
   const ref = doc(notesCol())
   const order = insertAt(ids, ref.id, position)
-  const items: NoteItem[] = texts.map((text, i) => ({ id: `i${i + 1}`, text, done: false, doneByName: '', money: [] }))
+  const items: NoteItem[] = texts.map((text) => ({ id: newItemId(), text, done: false, doneByName: '', money: [] }))
   renumberNotes(batch, ids, order)
   batch.set(ref, {
     name,
@@ -149,7 +149,7 @@ export async function moveItemsToNewNote(
       if (!snap.exists()) throw new Error('Ghi chú cũ không còn.')
       const notice = await tx.get(doc(notificationsCol(), noteNoticeId(sourceId)))
       const data = snap.data()
-      const old = (data.items ?? []) as NoteItem[]
+      const old = uniqueItemIds((data.items ?? []) as NoteItem[])
       const byId = new Map(old.map((i) => [i.id, i]))
       const items: NoteItem[] = rows.flatMap((r) => {
         const prev = byId.get(r.key)
@@ -208,13 +208,14 @@ export async function mergeIntoNote(targetId: string, sourceIds: string[], ids: 
       const notices = await Promise.all([targetId, ...sourceIds].map((id) => tx.get(doc(notificationsCol(), noteNoticeId(id)))))
       const noticeOf = new Map(notices.map((n, i) => [[targetId, ...sourceIds][i], n]))
 
-      const items = [...((target.data().items ?? []) as NoteItem[])]
+      const items = uniqueItemIds((target.data().items ?? []) as NoteItem[])
+      const usedIds = new Set(items.map((it) => it.id))
       const byKey = new Map(items.map((it, i) => [sameKey(it.text), i]))
       const removed = new Set<string>()
       moved = []
       for (const snap of sources) {
         if (!snap.exists() || snap.id === targetId) continue
-        const list = (snap.data().items ?? []) as NoteItem[]
+        const list = uniqueItemIds((snap.data().items ?? []) as NoteItem[])
         const pending = list.filter((it) => !it.done)
         if (pending.length === 0) continue
         for (const it of pending) {
@@ -225,9 +226,12 @@ export async function mergeIntoNote(targetId: string, sourceIds: string[], ids: 
             items[at] = { ...ex, done: false, doneByName: '', money: [...(ex.money ?? []), ...(it.money ?? [])] }
             moved.push(ex.id)
           } else {
+            // Id của thẻ chuyển sang trùng với thẻ đã có (ghi chú cũ đánh id "i1", "i2"…) thì cấp id mới
+            const moving = usedIds.has(it.id) ? { ...it, id: newItemId() } : it
+            usedIds.add(moving.id)
             byKey.set(k, items.length)
-            items.push(it)
-            moved.push(it.id)
+            items.push(moving)
+            moved.push(moving.id)
           }
         }
         const rest = list.filter((it) => it.done)
@@ -264,7 +268,7 @@ export async function setItemDone(noteId: string, itemId: string, done: boolean,
       const snap = await tx.get(ref)
       if (!snap.exists()) return
       const notice = await tx.get(doc(notificationsCol(), noteNoticeId(noteId)))
-      const items = ((snap.data().items ?? []) as NoteItem[]).map((i) =>
+      const items = uniqueItemIds((snap.data().items ?? []) as NoteItem[]).map((i) =>
         i.id === itemId ? { ...i, done, doneByName: done ? by.name : '' } : i,
       )
       tx.update(ref, { items })
@@ -282,13 +286,13 @@ export async function setItemDone(noteId: string, itemId: string, done: boolean,
  */
 export async function addNoteItem(noteId: string, text: string, by: Actor, cards: NoteCard[]): Promise<string> {
   const ref = doc(notesCol(), noteId)
-  const id = `i${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`
+  const id = newItemId()
   await commit(
     runTransaction(requireDb(), async (tx) => {
       const snap = await tx.get(ref)
       if (!snap.exists()) throw new Error('Ghi chú không còn.')
       const notice = await tx.get(doc(notificationsCol(), noteNoticeId(noteId)))
-      const old = (snap.data().items ?? []) as NoteItem[]
+      const old = uniqueItemIds((snap.data().items ?? []) as NoteItem[])
       if (old.some((i) => sameKey(i.text) === sameKey(text))) throw new Error('Mục này đã có trong ghi chú.')
       const items: NoteItem[] = [...old, { id, text, done: false, doneByName: '', money: [] }]
       tx.update(ref, { items })
@@ -335,7 +339,7 @@ export async function addItemMoney(
     }
     const now = Timestamp.now()
     const entry = { type, amount, fundId, fundName: fund.name ?? '', txId: txRef.id, byName: by.name, at: now }
-    const items = ((noteSnap.data().items ?? []) as NoteItem[]).map((i) => (i.id === itemId ? { ...i, money: [...(i.money ?? []), entry] } : i))
+    const items = uniqueItemIds((noteSnap.data().items ?? []) as NoteItem[]).map((i) => (i.id === itemId ? { ...i, money: [...(i.money ?? []), entry] } : i))
     tx.set(txRef, {
       fundId,
       type,

@@ -353,6 +353,9 @@ Code: `src/pages/note/` (`components.tsx`: `NoteLayout`, `MemberPicker`, `Editab
 Dữ liệu Firestore (xem `src/pages/note/data/api.ts`), thuộc gia đình đang chọn:
 - `families/{familyId}/notes/{noteId}`: ghi chú (`name`, `position` = số thứ tự trong các ghi chú của người nhận, `toUid`, `toName`, `fromUid`, `fromName`, `createdAt`, `items` = mảng thẻ theo thứ tự ưu tiên `{ id, text, done, doneByName, money }`;
   `money` = các lần nạp / rút của riêng thẻ `{ type, amount, fundId, fundName, txId, byName, at }`)
+  **`id` của thẻ phải DUY NHẤT trong ghi chú** (là key khi vẽ danh sách, khi xoá / đánh dấu xong / nạp rút): thẻ mới dùng `newItemId()` (ngẫu nhiên);
+  ghi chú cũ đánh id "i1", "i2"… nên gộp nội dung có thể trùng → mọi chỗ đọc thẻ (`toNote` và các transaction trong `data/api.ts`) đều qua `uniqueItemIds`
+  (đổi id trùng thành "<id>_<vị trí>", ghi lại là sửa luôn dữ liệu); `mergeIntoNote` cấp id mới cho thẻ chuyển sang nếu trùng id thẻ đã có.
 - `families/{familyId}/noteCards/{cardId}`: thẻ ghi chú đã từng nhập (`text`, `position` 1..n = thứ tự ưu tiên gợi ý), không trùng nội dung
 - `users/{uid}/settings/note`: `{ defaultFundId }`, RIÊNG từng tài khoản
 
