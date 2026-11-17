@@ -7,7 +7,7 @@ import { Icon3D } from '../../components/ui/Icon3D'
 import { Skeleton } from '../../components/ui/Skeleton'
 import { BLOCK_3D, GLOSS_3D } from '../../components/ui/style3d'
 import { useFamily } from '../../contexts/FamilyContext'
-import { useNotices, type Notice } from '../../lib/notifications'
+import { ALL_MEMBERS, useNotices, type Notice } from '../../lib/notifications'
 import { monthLabel } from '../fund/data/orders'
 import { useSalaryReminders } from '../fund/data/salary'
 import { approveJoinRequest, rejectJoinRequest, type JoinRequest } from './data/api'
@@ -128,8 +128,9 @@ export function NotificationList({ onNavigate, animated = false }: { onNavigate?
 // 1 thông báo lưu lại: chạm để mở ghi chú / time line tương ứng; trạng thái ở bên phải
 function NoticeRow({ notice: n, enter, onNavigate }: { notice: Notice; enter: { className: string; style?: CSSProperties }; onNavigate?: () => void }) {
   const note = n.kind === 'note'
-  const to = note ? `/note/inbox/${n.noteId}` : n.childId ? `/baby/timeline?child=${n.childId}` : '/baby/timeline'
-  const title = note ? `${n.fromName} gửi ghi chú "${n.noteName}"` : `Time line của ${n.childName || 'bé'}`
+  const shared = note && n.toUid === ALL_MEMBERS
+  const to = note ? `/note/inbox/${n.noteId}${shared ? '?tab=all' : ''}` : n.childId ? `/baby/timeline?child=${n.childId}` : '/baby/timeline'
+  const title = note ? `${n.fromName} ${shared ? 'tạo ghi chú chung' : 'gửi ghi chú'} "${n.noteName}"` : `Time line của ${n.childName || 'bé'}`
   const sub = note ? when(n.updatedAt) : `${n.byName}: ${n.detail} · ${when(n.updatedAt)}`
   // Trạng thái: ghi chú Chưa xong -> Hoàn thành; time line Mới -> Đã xem
   const status = note ? (n.done ? 'Hoàn thành' : 'Chưa xong') : n.seen ? 'Đã xem' : 'Mới'

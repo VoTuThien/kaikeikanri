@@ -15,7 +15,7 @@ import { SIZE } from '../../components/ui/sizes'
 import { useFamily } from '../../contexts/FamilyContext'
 import type { Member } from '../family/data/api'
 import { useMembers } from '../family/data/useMembers'
-import { EditableList, EditableListSkeleton, LIST_CLASS, MemberPicker, MemberPickerSkeleton, recipientLabel, type EditRow } from './components'
+import { ALL_MEMBER, EditableList, EditableListSkeleton, LIST_CLASS, MemberPicker, MemberPickerSkeleton, recipientLabel, type EditRow } from './components'
 import { createNote, mergeIntoNote, moveItemsToNewNote, updateNote } from './data/api'
 import { useNote, useNoteDoc, useNotesTo } from './data/NoteContext'
 import { foldKey, MAX_TEXT, noteTitle, sameKey, type Note, type NoteItem } from './data/types'
@@ -100,11 +100,13 @@ function NoteForm({
   const navigate = useNavigate()
   const isNew = !note
   // Người nhận lúc mở: sửa thì theo ghi chú; tạo mới thì theo người đang chọn ở danh sách (?to=), không có thì chính mình
-  const initialTo = note?.toUid ?? members.find((m) => m.uid === (source?.toUid ?? params.get('to')))?.uid ?? actor.uid
+  // Mặc định là "Cả gia đình" (ghi chú chung)
+  const allMembers = [ALL_MEMBER, ...members]
+  const initialTo = note?.toUid ?? allMembers.find((m) => m.uid === (source?.toUid ?? params.get('to')))?.uid ?? ALL_MEMBER.uid
   // Người nhận đang chọn: đổi bằng avatar trên thanh tiêu đề (MemberPicker), bấm lưu mới ghi lại.
   // Tạo từ nội dung chưa xong (?from=) thì giữ người nhận của ghi chú cũ, không đổi được.
   const [toUid, setToUid] = useState(initialTo)
-  const to = members.find((m) => m.uid === toUid) ?? (note ? undefined : members.find((m) => m.uid === actor.uid))
+  const to = allMembers.find((m) => m.uid === toUid) ?? (note ? undefined : ALL_MEMBER)
   const toLabel = note && !to ? note.toName : recipientLabel(to, actor.uid)
   const back = `/note/sent?to=${note?.toUid ?? toUid}`
   // Ghi chú đang sửa được chuyển sang người nhận khác
@@ -244,7 +246,7 @@ function NoteForm({
       } else if (source) {
         await moveItemsToNewNote(source.id, title, kept, actor, cards, ids, pos)
       } else {
-        const target = to ?? { uid: actor.uid, name: actor.name, email: '' }
+        const target = to ?? ALL_MEMBER
         await createNote(
           { uid: target.uid, name: target.name || target.email },
           title,

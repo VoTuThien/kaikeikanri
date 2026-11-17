@@ -11,8 +11,9 @@ import { Skeleton } from '../../components/ui/Skeleton'
 import { SIZE } from '../../components/ui/sizes'
 import { ChildPicker, ChildPickerSkeleton } from './components'
 import { useBaby } from './data/BabyContext'
-import { ageAtDate, dateOf, formatMeasure, useChildGrowth, type GrowthRecord } from './data/growth'
+import { ageAtDate, dateOf, formatMeasure, shotLabel, useChildGrowth, type GrowthRecord, type VaccineShot } from './data/growth'
 import type { Child } from './data/types'
+import { formatMoney } from '../../lib/format'
 
 // Màn hình Phát triển (/baby/growth): các thẻ chiều cao / cân nặng / vắc xin theo ngày của CON ĐANG CHỌN (chọn con trên thanh tiêu đề, giống Time line).
 // FAB phễu: chạm để chỉ xem các lần tiêm vắc xin, chạm lần nữa để xem lại toàn bộ.
@@ -27,8 +28,8 @@ function ageAt(child: Child | null, date: string) {
   return ageAtDate(child.birthDate, date)
 }
 
-// 1 ngày tiêm được nhiều mũi: "💉 2 mũi: 6 trong 1, Rota"
-const vaccineText = (list: string[]) => (list.length > 1 ? `${list.length} mũi: ${list.join(', ')}` : list[0])
+// "💉 Lao (BCG) · mũi 1"; 1 ngày tiêm nhiều mũi: "💉 2 mũi: Lao (BCG) · mũi 1, Viêm gan B (Heberbiovac HB) · mũi 1"
+const vaccineText = (list: VaccineShot[]) => (list.length > 1 ? `${list.length} mũi: ${list.map(shotLabel).join(', ')}` : shotLabel(list[0]))
 
 function measures(r: GrowthRecord) {
   const parts = [r.height !== null && `Cao ${formatMeasure(r.height)} cm`, r.weight !== null && `Nặng ${formatMeasure(r.weight)} kg`].filter(Boolean)
@@ -73,11 +74,13 @@ export function GrowthPage() {
   const vaccines = records.filter((r) => r.vaccines.length > 0)
   // Tổng số mũi (1 ngày có thể tiêm nhiều mũi)
   const shots = vaccines.reduce((sum, r) => sum + r.vaccines.length, 0)
+  // Tổng chi phí tiêm vắc xin
+  const cost = vaccines.reduce((sum, r) => sum + r.vaccines.reduce((x, v) => x + v.price, 0), 0)
   const shown = onlyVaccine ? vaccines : records
   const subtitle = !child
     ? 'Chưa có con nào'
     : onlyVaccine
-      ? `Chỉ xem tiêm vắc xin · ${vaccines.length} lần · ${shots} mũi`
+      ? `Chỉ xem tiêm vắc xin · ${shots} mũi${cost ? ` · ${formatMoney(cost)}` : ''}`
       : `${records.length} lần ghi · ${shots} mũi vắc xin`
 
   return (

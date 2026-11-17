@@ -16,6 +16,8 @@ import type { Member } from '../family/data/api'
 import { deleteNote, reorderNotes } from './data/api'
 import { NoteProvider } from './data/NoteContext'
 import { MAX_TEXT, noteDone, noteText, noteTitle, type Note } from './data/types'
+import { ALL_MEMBERS, ALL_MEMBERS_NAME } from '../../lib/notifications'
+import { BLOCK_3D } from '../../components/ui/style3d'
 
 // Bọc tất cả trang của app Ghi chú: kiểm tra đăng nhập / gia đình và tải dữ liệu dùng chung một lần
 export function NoteLayout() {
@@ -38,8 +40,25 @@ export const noteTime = (d: Date | null) =>
 // Chỉ hiện avatar tròn của người đang chọn; chạm -> popup lưới avatar các thành viên trong gia đình.
 const PICKER = `${SIZE.control} w-12`
 
-export function MemberPicker({ members, value, me, onChange }: { members: Member[]; value: string; me: string; onChange: (uid: string) => void }) {
+// Người nhận giả "Cả gia đình" (ghi chú chung): đứng đầu popup chọn người nhận
+export const ALL_MEMBER: Member = { uid: ALL_MEMBERS, name: ALL_MEMBERS_NAME, email: '', role: 'member', joinedAt: null }
+
+// Avatar người nhận: "Cả gia đình" là khối tròn icon nhóm người, còn lại là avatar của thành viên
+export function RecipientAvatar({ member, size }: { member: Member | undefined; size: string }) {
+  if (member?.uid === ALL_MEMBERS) {
+    return (
+      <span data-round className={`${size} relative flex shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-fuchsia-500 to-indigo-500 ${BLOCK_3D}`}>
+        <Icon3D emoji="👥" className="h-3/5 w-3/5" />
+      </span>
+    )
+  }
+  return <Avatar uid={member?.uid ?? ''} name={member?.name || member?.email || ''} size={size} />
+}
+
+export function MemberPicker({ members: list, value, me, onChange }: { members: Member[]; value: string; me: string; onChange: (uid: string) => void }) {
   const [open, setOpen] = useState(false)
+  // Lựa chọn đầu tiên luôn là "Cả gia đình"
+  const members = [ALL_MEMBER, ...list]
   const current = members.find((m) => m.uid === value)
   const label = (m: Member) => (m.uid === me ? 'Bạn' : m.name || m.email)
 
@@ -52,7 +71,7 @@ export function MemberPicker({ members, value, me, onChange }: { members: Member
         data-round
         className={`${PICKER} flex shrink-0 items-center justify-center rounded-full transition active:scale-95`}
       >
-        <Avatar uid={value} name={current?.name || current?.email || ''} size="h-12 w-12 text-base" />
+        <RecipientAvatar member={current ?? { ...ALL_MEMBER, uid: value, name: '' }} size="h-12 w-12 text-base" />
       </button>
       {open &&
         // Vẽ ra document.body: không nằm trong GlassPanel (backdrop-blur làm position: fixed bị lệch)
@@ -81,7 +100,7 @@ export function MemberPicker({ members, value, me, onChange }: { members: Member
                     className="flex flex-col items-center gap-1 transition active:scale-95"
                   >
                     <span data-round className={`flex rounded-full p-0.5 ${m.uid === value ? 'bg-white' : ''}`}>
-                      <Avatar uid={m.uid} name={m.name || m.email} size="h-14 w-14 text-lg" />
+                      <RecipientAvatar member={m} size="h-14 w-14 text-lg" />
                     </span>
                     <span className="line-clamp-2 h-8 w-full text-center text-xs leading-4 break-words">{label(m)}</span>
                   </button>
@@ -488,7 +507,13 @@ export function SentNoteListSkeleton({ rows = 6 }: { rows?: number }) {
 function NoteRow({ note, me, to, sent }: { note: Note; me: string; to: string; sent?: boolean }) {
   const done = note.items.filter((i) => i.done).length
   const finished = noteDone(note)
-  const who = sent ? `Gửi cho ${note.toName}` : note.fromUid === me ? 'Bạn tự ghi' : `Từ ${note.fromName}`
+  const who = sent
+    ? `Gửi cho ${note.toName}`
+    : note.toUid === ALL_MEMBERS
+      ? `Chung cả nhà · ${note.fromUid === me ? 'bạn tạo' : note.fromName}`
+      : note.fromUid === me
+        ? 'Bạn tự ghi'
+        : `Từ ${note.fromName}`
   return (
     <Link to={to} className="flex h-full min-w-0 flex-1 items-center gap-2 pr-4">
       <span className="min-w-0 flex-1">
@@ -538,4 +563,5 @@ export function NoteListSkeleton({ rows = 6 }: { rows?: number }) {
 }
 
 // Tên người nhận hiển thị ("Bạn (chính mình)" nếu gửi cho mình)
-export const recipientLabel = (m: Member | undefined, me: string) => (!m || m.uid === me ? 'Bạn (chính mình)' : m.name || m.email)
+export const recipientLabel = (m: Member | undefined, me: string) =>
+  m?.uid === ALL_MEMBERS ? `${ALL_MEMBERS_NAME} (ai cũng xem, sửa được)` : !m || m.uid === me ? 'Bạn (chính mình)' : m.name || m.email

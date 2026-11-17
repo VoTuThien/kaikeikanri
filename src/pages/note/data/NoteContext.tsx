@@ -6,12 +6,14 @@ import { useFundList } from '../../fund/data/FundContext'
 import type { Fund } from '../../fund/data/types'
 import { noteCardsCol, noteSettingsDoc, notesCol } from './api'
 import { DEFAULT_NOTE_SETTINGS, type Note, type NoteCard, type NoteItem, type NoteMoney, type NoteSettings, uniqueItemIds } from './types'
+import { ALL_MEMBERS } from '../../../lib/notifications'
 
 interface NoteData {
   actor: Actor
   cards: NoteCard[] // thẻ ghi chú đã từng nhập, xếp theo số thứ tự (= thứ tự ưu tiên gợi ý)
   inbox: Note[] // ghi chú gửi đến mình, theo số thứ tự
-  sent: Note[] // ghi chú mình gửi cho THÀNH VIÊN KHÁC (không tính tự ghi cho mình), mới nhất trước — chỉ xem
+  sent: Note[] // ghi chú mình gửi cho THÀNH VIÊN KHÁC (không tính tự ghi cho mình, không tính ghi chú chung), mới nhất trước — chỉ xem
+  shared: Note[] // ghi chú CHUNG của cả gia đình (ai cũng xem / sửa / đánh dấu xong được), theo số thứ tự
   funds: Fund[] // nhóm quỹ của gia đình (nạp / rút ở màn hình Xem ghi chú)
   settings: NoteSettings
   loading: boolean
@@ -79,7 +81,7 @@ export function useNotesFrom(uid: string | undefined): Note[] | null {
       on(
         snap.docs
           .map((d) => toNote(d.id, d.data(OPTS)))
-          .filter((n) => n.toUid !== uid)
+          .filter((n) => n.toUid !== uid && n.toUid !== ALL_MEMBERS)
           .sort((a, b) => (b.createdAt?.getTime() ?? 0) - (a.createdAt?.getTime() ?? 0)),
         snap.metadata.fromCache,
       ),
@@ -108,6 +110,7 @@ export function NoteProvider({ actor, children }: { actor: Actor | null; childre
   )
   const inbox = useNotesTo(uid)
   const sent = useNotesFrom(uid)
+  const shared = useNotesTo(uid ? ALL_MEMBERS : undefined)
   const funds = useFundList(uid)
   const settings = useLiveQuery<NoteSettings>(uid ? `user:${uid}:noteSettings` : null, (on) =>
     onSnapshot(noteSettingsDoc(uid!), (snap) => on({ ...DEFAULT_NOTE_SETTINGS, ...snap.data() }, snap.metadata.fromCache)),
@@ -118,9 +121,10 @@ export function NoteProvider({ actor, children }: { actor: Actor | null; childre
     cards: cards ?? [],
     inbox: inbox ?? [],
     sent: sent ?? [],
+    shared: shared ?? [],
     funds: funds ?? [],
     settings: settings ?? DEFAULT_NOTE_SETTINGS,
-    loading: !uid || !cards || !inbox || !sent || !funds || !settings,
+    loading: !uid || !cards || !inbox || !sent || !shared || !funds || !settings,
   }
   return <NoteContext.Provider value={value}>{children}</NoteContext.Provider>
 }

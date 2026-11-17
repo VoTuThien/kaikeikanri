@@ -282,11 +282,14 @@ Ghi lại hoạt động hằng ngày của bé theo time line. **Mỗi gia đì
   Mỗi lần hoạt động được tính trọn cho ngày nó bắt đầu.
 - [x] Phát triển (`/baby/growth`, thêm / sửa `/baby/growth/new|:id`, `GrowthPage` / `GrowthFormPage`, dữ liệu `data/growth.ts`): các **thẻ** ghi
   **ngày thực hiện, chiều cao (cm), cân nặng (kg), vắc xin** — **riêng từng con**, chọn con bằng `ChildPicker` trên thanh tiêu đề (giống Time line), thẻ mới thuộc con đang chọn.
-  **1 ngày tiêm được NHIỀU vắc xin**: mỗi mũi 1 ô (nút X để bỏ ô, nút "+ Thêm vắc xin"), lưu mảng `vaccines` (`cleanVaccines`: bỏ ô trống / tên trùng);
-  **không nhập vắc xin nào = hôm đó không tiêm**; chiều cao / cân nặng để trống = không đo; cần ít nhất 1 trong 3. Số đo gõ được dấu phẩy ("75,5"), cao 20–250 cm, nặng 0,5–200 kg.
+  **Ô check "Có tiêm vắc xin"** (không check = hôm đó không tiêm); check thì hiện các khung nhập mũi tiêm (`VaccineFields.tsx`), mỗi mũi gồm
+  **Phòng bệnh** (vd Lao, Viêm gan B, 6 in 1), **Vaccine** (tên, vd BCG, Hexaxim), **Mũi** (mũi thứ mấy, vd 6 in 1 có 3 mũi), **Nơi tiêm**, **Giá** (`MoneyField`);
+  **1 ngày tiêm được NHIỀU mũi** (nút X góc khung để bỏ, "+ Thêm vắc xin"); lưu mảng `vaccines` = `VaccineShot[]` (`cleanShots`: bỏ khung không có phòng bệnh lẫn tên).
+  Rời ô Phòng bệnh thì **tự điền mũi thứ mấy** (`nextDose`: đếm mũi cùng bệnh của con trước ngày đó + 1) và tên vaccine / nơi tiêm / giá theo **lần tiêm gần nhất cùng bệnh** (`lastShot`; ô đã có thì giữ).
+  Các ô gợi ý những gì cả gia đình đã từng nhập (`datalist`). Thẻ ở danh sách hiện "💉 Lao (BCG) · mũi 1" / "💉 2 mũi: …"; lọc vắc xin thì dòng phụ có tổng số mũi + tổng chi phí; chiều cao / cân nặng để trống = không đo; cần ít nhất 1 trong 3. Số đo gõ được dấu phẩy ("75,5"), cao 20–250 cm, nặng 0,5–200 kg.
   **Tuổi của con vào ngày thực hiện tính theo THÁNG** (`ageAtDate`: "5 ngày tuổi", "8 tháng 12 ngày tuổi", "2 tuổi 3 tháng (27 tháng tuổi)"), hiện trên thẻ và dưới tên con trong form (đổi ngày là tính lại).
   Danh sách mới nhất trước: ngày, số đo, tuổi lúc đó, dòng vắc xin (💉 tên / "💉 n mũi: A, B" / "Không tiêm vắc xin"); dòng phụ đếm số lần ghi + tổng số mũi; chạm thẻ để sửa / xoá (`SaveDeleteFabs`).
-  Ô vắc xin gợi ý tên đã từng ghi (`datalist`). **FAB phễu (`filter`)**: chạm thì **chỉ xem các lần tiêm vắc xin** (nút có viền sáng, dòng phụ "Chỉ xem tiêm vắc xin"),
+  **FAB phễu (`filter`)**: chạm thì **chỉ xem các lần tiêm vắc xin** (nút có viền sáng, dòng phụ "Chỉ xem tiêm vắc xin"),
   chạm lần nữa xem lại toàn bộ. Chưa có con thì hiện nút "Thêm con".
 - [x] **Ăn dặm — Thực phẩm** (`/baby/foods`, thêm / sửa `/baby/foods/new|:id`, `FoodsPage` / `FoodFormPage`, dữ liệu `data/foods.ts`): danh sách thực phẩm **đã thử của từng con**
   (chọn con bằng `ChildPicker`): tên, nhóm (`FOOD_GROUPS`), **dễ dị ứng** (tự đánh dấu theo tên có trứng / tôm cua / đậu phộng / sữa / cá… — `looksAllergen`, bỏ được),
@@ -303,14 +306,14 @@ Ghi lại hoạt động hằng ngày của bé theo time line. **Mỗi gia đì
 Dữ liệu Firestore (xem `src/pages/baby/data/api.ts`), thuộc gia đình đang chọn:
 - `families/{familyId}/babyCards/{cardId}`: thẻ hoạt động (`name`, `icon`, `color`, `defaultMinutes`)
 - `families/{familyId}/children/{childId}`: con (`name`, `birthDate` "YYYY-MM-DD", `birthTime` "HH:MM" hoặc null, `gender` male / female, `avatar` emoji, `photo` data URL JPEG hoặc null, `nickname` chuỗi, "" = không có)
-- `families/{familyId}/growth/{id}`: thẻ phát triển (`childId`, `date` "YYYY-MM-DD", `height` cm hoặc null, `weight` kg hoặc null, `vaccines` mảng tên vắc xin, [] = không tiêm, `createdByName`;
-  dữ liệu cũ có 1 chuỗi `vaccine` thì đọc thành mảng 1 phần tử, sửa lại thì chuyển sang `vaccines`)
+- `families/{familyId}/growth/{id}`: thẻ phát triển (`childId`, `date` "YYYY-MM-DD", `height` cm hoặc null, `weight` kg hoặc null, `vaccines` = các mũi tiêm `{ disease, name, dose (số hoặc null), price (VND), place }`, [] = không tiêm, `createdByName`;
+  dữ liệu cũ (`vaccines` là mảng tên, hoặc 1 chuỗi `vaccine`) đọc thành mũi chỉ có tên vaccine, sửa lại thì lưu dạng mới)
 - `families/{familyId}/babyFoods/{id}`: thực phẩm đã thử (`childId`, `name`, `group`, `allergen`, `firstTried` "YYYY-MM-DD" hoặc null, `status` trying / ok / reaction, `reaction`, `createdByName`)
 - `families/{familyId}/babyEntries/{entryId}`: hoạt động (`childId` = của con nào, `meal` = chi tiết bữa ăn dặm `{ foods: string[], amount, texture, rating }` hoặc null, `cardId`, `start`, `minutes`, `end`, `createdByName`; chưa hoàn thành thì `minutes` / `end` = null) + lưu sẵn `name` / `icon` / `color` của thẻ
   để sửa / xoá thẻ không làm mất lịch sử
 
 ### App Ghi chú (`/note`)
-Gửi ghi chú cho 1 thành viên trong gia đình hoặc cho chính mình. **Dữ liệu 2 bậc: ghi chú → các thẻ nội dung**,
+Gửi ghi chú cho 1 thành viên trong gia đình, cho chính mình, hoặc **cho CẢ GIA ĐÌNH (ghi chú chung)**. **Dữ liệu 2 bậc: ghi chú → các thẻ nội dung**,
 vd ghi chú "Đi chợ" gồm "Mua cà chua", "Mua cá"; ghi chú "Việc vặt" gồm "Mua pin", "Đi lấy đồ".
 Ghi chú có **tên** và **số thứ tự** (ưu tiên giữa các ghi chú của cùng 1 người nhận, liên tục 1..n); **mọi thẻ đã xong = ghi chú hoàn thành** (`noteDone`).
 Code: `src/pages/note/` (`components.tsx`: `NoteLayout`, `MemberPicker`, `EditableList`, `TrashButton`, `doneSummary`; dữ liệu ở `data/`).
@@ -320,8 +323,12 @@ Code: `src/pages/note/` (`components.tsx`: `NoteLayout`, `MemberPicker`, `Editab
   thẻ đang kéo thả phóng to nhẹ (`LIST_CARD_DRAGGING`), thẻ trượt dùng `radius={LIST_CARD_RADIUS}` (quy ước mục 16).
 - **Cả Tạo ghi chú và Xem ghi chú đều 2 bước: danh sách ghi chú → chạm 1 ghi chú mới hiện các thẻ nội dung bên trong.**
   Danh sách ghi chú dùng chung `NoteList` (`components.tsx`): kéo ≡ / sửa số để đổi thứ tự (`reorderNotes`), trượt trái để xoá (`deleteNote`).
+- **Ghi chú CHUNG của cả gia đình**: `toUid` = **`ALL_MEMBERS`** (`'__all'`, `toName` "Cả gia đình", hằng số trong `src/lib/notifications.ts`):
+  **mọi thành viên cùng xem, sửa, đánh dấu xong, nạp / rút, thêm nội dung, xoá được**. Trong `MemberPicker` là **lựa chọn đầu tiên "Cả gia đình"** (`ALL_MEMBER`,
+  avatar tròn icon nhóm người `RecipientAvatar`). Thông báo `note_{id}` có `toUid` = `ALL_MEMBERS` thì **mọi người trừ người tạo** đều thấy ("… tạo ghi chú chung …", mở tab Cả nhà).
+  Danh sách / thẻ hiện "Chung cả nhà · người tạo". Số thứ tự đánh riêng trong các ghi chú chung.
 - [x] Tạo ghi chú, bước 1 (`/note/sent?to=uid`, `NoteSentPage`): danh sách ghi chú **gửi cho người nhận đang chọn**; chọn người nhận bằng `MemberPicker`
-  **trên thanh tiêu đề** (giống chọn con ở Time line: avatar tròn, chạm mở popup), **mặc định là bản thân**, lưu trên URL `?to=`;
+  **trên thanh tiêu đề** (giống chọn con ở Time line: avatar tròn, chạm mở popup), **mặc định là "Cả gia đình"** (vừa mở là ghi chú chung; chọn 1 thành viên để gửi riêng), lưu trên URL `?to=`;
   dòng phụ dưới tiêu đề = **"m/n ghi chú đã hoàn thành"** (`doneSummary`) của người nhận đang chọn. FAB + mở bước 2 để tạo mới.
 - [x] Tạo ghi chú, bước 2 (`/note/sent/new?to=uid` tạo mới, `/note/sent/:id` sửa, `NoteFormPage`): nội dung bên trong 1 ghi chú.
   Dưới thanh tiêu đề là **[số thứ tự `NumberField`] [tên ghi chú]** (cùng kiểu hàng thẻ; tạo mới mặc định = số ghi chú của người nhận + 1, đứng cuối; sửa giữ số hiện tại; tên bắt buộc);
@@ -359,8 +366,9 @@ Code: `src/pages/note/` (`components.tsx`: `NoteLayout`, `MemberPicker`, `Editab
   **Người nhận thêm được nội dung mới** ngay ở đây (vd phát sinh khoản nạp / rút chưa có trong ghi chú): FAB [+] (có thẻ đang mở nạp / rút thì
   FAB là [+] [lưu]) → thẻ nhập mới ở cuối danh sách, FAB thành [huỷ] [lưu]; lưu bằng `addNoteItem` (transaction: thêm cuối `items`, trùng nội dung thì báo lỗi,
   cập nhật thông báo "Hoàn thành" → "Chưa xong", nội dung mới lưu vào Thẻ ghi chú) rồi **mở luôn ô nạp / rút của thẻ vừa thêm**.
-  **Bước 1 có 2 tab** (`Segmented` dưới tiêu đề, lưu trên URL `?tab=sent`): **"Gửi cho mình"** (như trên) và **"Mình đã gửi"** = ghi chú mình gửi cho
-  **thành viên khác** (`sent` trong `NoteContext`, `useNotesFrom`: `fromUid` = mình, bỏ ghi chú tự ghi; mới nhất trước), danh sách `SentNoteList`
+  **Bước 1 có 3 tab** (`Segmented` dưới tiêu đề, lưu trên URL `?tab=all|sent`): **"Gửi cho mình"** (như trên), **"Cả nhà"** = ghi chú chung (`shared` trong `NoteContext`,
+  thao tác giống "Gửi cho mình": kéo / xoá / mở ra đánh dấu xong, nạp / rút; FAB + tạo ghi chú chung) và **"Mình đã gửi"** = ghi chú mình gửi cho
+  **thành viên khác** (`sent` trong `NoteContext`, `useNotesFrom`: `fromUid` = mình, bỏ ghi chú tự ghi và ghi chú chung; mới nhất trước), danh sách `SentNoteList`
   **chỉ xem** (avatar người nhận, "Gửi cho …", số thẻ đã xong; không kéo / không xoá — sửa / xoá ở Tạo ghi chú). Chạm mở `/note/inbox/:id?tab=sent`:
   màn hình chi tiết ở chế độ **`readOnly`**: thấy thẻ nào đã xong (ai đánh dấu) và các lần nạp / rút quỹ (chạm nội dung để xem danh sách),
   nhưng **không đánh dấu xong / nạp / rút được** (ô vuông khoá, không có FAB). Ghi chú gửi đến mình vẫn xử lý như cũ.

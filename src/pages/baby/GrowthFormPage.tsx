@@ -3,44 +3,50 @@ import { Navigate, useParams } from 'react-router-dom'
 import { AppHeader, AppHeaderSkeleton } from '../../components/AppHeader'
 import { FIT_CLASS, PageShell } from '../../components/PageShell'
 import { Alert } from '../../components/ui/Alert'
-import { Button } from '../../components/ui/Button'
-import { FabSkeleton, LineIcon, SaveDeleteFabs } from '../../components/ui/Fab'
+import { CheckBox } from '../../components/ui/CheckBox'
+import { FabSkeleton, SaveDeleteFabs } from '../../components/ui/Fab'
 import { GlassPanel } from '../../components/ui/GlassPanel'
 import { Skeleton } from '../../components/ui/Skeleton'
-import { FieldLabel, TextField, TextFieldSkeleton } from '../../components/ui/TextField'
+import { TextField, TextFieldSkeleton } from '../../components/ui/TextField'
 import { SIZE } from '../../components/ui/sizes'
 import { ChildAvatar } from './components'
 import { useBaby } from './data/BabyContext'
 import {
   ageAtDate,
-  cleanVaccines,
+  cleanShots,
   createGrowth,
   deleteGrowth,
   HEIGHT_RANGE,
+  lastShot,
   measureText,
+  nextDose,
   parseMeasure,
   todayText,
   updateGrowth,
   useAllGrowth,
   WEIGHT_RANGE,
   type GrowthRecord,
+  type VaccineShot,
 } from './data/growth'
+import { newShotRow, VaccineFields, type ShotRow } from './VaccineFields'
 import type { Child } from './data/types'
 import { submitForm, useChanged, useUnsavedChanges } from '../../components/UnsavedGuard'
 
-// Tạo / sửa 1 thẻ phát triển (/baby/growth/new, /baby/growth/:id): ngày, chiều cao, cân nặng, các vắc xin.
-// Thẻ mới thuộc CON ĐANG CHỌN. 1 ngày tiêm được NHIỀU vắc xin: mỗi mũi 1 ô, nút "+ Thêm vắc xin", ô thừa có nút X để bỏ;
-// không nhập vắc xin nào = hôm đó không tiêm. Dưới tên con hiện tuổi của con vào ngày thực hiện (theo tháng).
+// Tạo / sửa 1 thẻ phát triển (/baby/growth/new, /baby/growth/:id): ngày, chiều cao, cân nặng, các mũi vắc xin.
+// Thẻ mới thuộc CON ĐANG CHỌN. Ô check "Có tiêm vắc xin": check thì hiện các khung nhập mũi tiêm (VaccineFields: phòng bệnh, vaccine,
+// mũi, nơi tiêm, giá; 1 ngày tiêm được NHIỀU mũi); không check = hôm đó không tiêm. Dưới tên con hiện tuổi của con vào ngày thực hiện (theo tháng).
 
 const FORM_ID = 'growth-form'
 const FORM_CLASS = 'space-y-3'
 const CHILD_ROW = `${SIZE.listItem} flex items-center gap-3 border border-white/15 bg-white/5 px-3`
 const HINT = `${SIZE.hint} text-xs leading-5 text-white/60`
-// Hàng ô vắc xin: [ô nhập] [nút X], nút X cùng cao với ô nhập
-const VACCINE_ROW = 'grid grid-cols-[1fr_3rem] gap-2'
 
-let seq = 0
-const newRow = (text = '') => ({ key: `v${++seq}`, text })
+// Mũi tiêm đã lưu -> khung nhập
+const toRow = (v: VaccineShot) => newShotRow({ disease: v.disease, name: v.name, doseText: v.dose ? String(v.dose) : '', price: v.price, place: v.place })
+// Khung nhập -> mũi tiêm (bỏ khung trống)
+const toShots = (rows: ShotRow[]) =>
+  cleanShots(rows.map((r) => ({ disease: r.disease, name: r.name, dose: Number(r.doseText) || null, price: r.price, place: r.place })))
+const uniq = (list: string[]) => [...new Set(list.map((v) => v.trim()).filter(Boolean))]
 
 export function GrowthFormPage() {
   const { id } = useParams()
@@ -55,28 +61,60 @@ export function GrowthFormPage() {
   const owner = record ? (children.find((c) => c.id === record.childId) ?? null) : child
   if (isNew && !owner) return <Navigate to="/baby/growth" replace />
 
-  // Tên vắc xin đã từng ghi của cả gia đình: gợi ý khi gõ
-  const vaccineNames = [...new Set(all.flatMap((r) => r.vaccines))]
-  return <GrowthForm key={id ?? 'new'} record={record} owner={owner} vaccineNames={vaccineNames} />
+  // Gợi ý khi gõ: những gì cả gia đình đã từng nhập
+  const shots = all.flatMap((r) => r.vaccines)
+  const suggest = { diseases: uniq(shots.map((v) => v.disease)), names: uniq(shots.map((v) => v.name)), places: uniq(shots.map((v) => v.place)) }
+  // Các thẻ của con này: tính mũi thứ mấy, điền sẵn theo lần tiêm trước
+  const childRecords = all.filter((r) => r.childId === (record?.childId ?? owner?.id))
+  return <GrowthForm key={id ?? 'new'} record={record} owner={owner} suggest={suggest} childRecords={childRecords} />
 }
 
-function GrowthForm({ record, owner, vaccineNames }: { record?: GrowthRecord; owner: Child | null; vaccineNames: string[] }) {
+function GrowthForm({
+  record,
+  owner,
+  suggest,
+  childRecords,
+}: {
+  record?: GrowthRecord
+  owner: Child | null
+  suggest: { diseases: string[]; names: string[]; places: string[] }
+  childRecords: GrowthRecord[]
+}) {
   const { actor } = useBaby()
   const isNew = !record
 
   const [date, setDate] = useState(record?.date ?? todayText())
   const [heightText, setHeightText] = useState(measureText(record?.height ?? null))
   const [weightText, setWeightText] = useState(measureText(record?.weight ?? null))
-  // Các ô vắc xin (mỗi mũi 1 ô); luôn có ít nhất 1 ô
-  const [vaccines, setVaccines] = useState(() => (record?.vaccines.length ? record.vaccines.map((v) => newRow(v)) : [newRow()]))
+  // Có tiêm vắc xin không; các khung nhập mũi tiêm (luôn có ít nhất 1 khung)
+  const [hasVaccine, setHasVaccine] = useState(!!record?.vaccines.length)
+  const [rows, setRows] = useState<ShotRow[]>(() => (record?.vaccines.length ? record.vaccines.map(toRow) : [newShotRow()]))
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [deleting, setDeleting] = useState(false)
   // Có thay đổi chưa lưu: chấm đỏ trên nút lưu, rời màn hình thì hỏi lại (UnsavedGuard)
-  const dirty = useChanged({ date, heightText, weightText, vaccines: cleanVaccines(vaccines.map((v) => v.text)) })
+  const dirty = useChanged({ date, heightText, weightText, vaccines: hasVaccine ? toShots(rows) : [] })
   const age = owner ? ageAtDate(owner.birthDate, date) : ''
   const leave = useUnsavedChanges(dirty && !(saving || deleting), () => submitForm(FORM_ID))
+
+  // Rời ô "Phòng bệnh": điền sẵn mũi thứ mấy + tên vaccine / nơi tiêm / giá theo lần tiêm gần nhất cùng bệnh (ô nào đã có thì giữ)
+  function fillFromHistory(key: string) {
+    setRows((list) =>
+      list.map((r) => {
+        if (r.key !== key || !r.disease.trim()) return r
+        const last = lastShot(childRecords, r.disease, record?.id)
+        const dose = nextDose(childRecords, r.disease, date, record?.id)
+        return {
+          ...r,
+          doseText: r.doseText || (dose ? String(dose) : ''),
+          name: r.name || last?.name || '',
+          place: r.place || last?.place || '',
+          price: r.price || last?.price || 0,
+        }
+      }),
+    )
+  }
 
   // Chỉ cho gõ số và 1 dấu phẩy / chấm thập phân
   const onlyNumber = (v: string) => v.replace(/[^\d.,]/g, '').slice(0, 6)
@@ -91,8 +129,9 @@ function GrowthForm({ record, owner, vaccineNames }: { record?: GrowthRecord; ow
       return setError(`Chiều cao phải từ ${HEIGHT_RANGE.min} đến ${HEIGHT_RANGE.max} cm.`)
     if (weight !== null && (Number.isNaN(weight) || weight < WEIGHT_RANGE.min || weight > WEIGHT_RANGE.max))
       return setError(`Cân nặng phải từ 0,5 đến ${WEIGHT_RANGE.max} kg.`)
-    const names = cleanVaccines(vaccines.map((v) => v.text))
-    if (height === null && weight === null && names.length === 0) return setError('Nhập ít nhất chiều cao, cân nặng hoặc 1 vắc xin.')
+    const vaccines = hasVaccine ? toShots(rows) : []
+    if (hasVaccine && vaccines.length === 0) return setError('Nhập phòng bệnh hoặc tên vaccine của mũi tiêm (hoặc bỏ check "Có tiêm vắc xin").')
+    if (height === null && weight === null && vaccines.length === 0) return setError('Nhập ít nhất chiều cao, cân nặng hoặc 1 mũi vắc xin.')
     const childId = record?.childId ?? owner?.id
     if (!childId) return setError('Chưa chọn con.')
 
@@ -103,7 +142,7 @@ function GrowthForm({ record, owner, vaccineNames }: { record?: GrowthRecord; ow
         date,
         height: height === null ? null : Math.round(height * 10) / 10,
         weight: weight === null ? null : Math.round(weight * 100) / 100,
-        vaccines: names,
+        vaccines,
       }
       if (record) await updateGrowth(record.id, input)
       else await createGrowth(input, actor)
@@ -171,43 +210,15 @@ function GrowthForm({ record, owner, vaccineNames }: { record?: GrowthRecord; ow
             />
           </div>
 
-          {/* Các vắc xin tiêm trong ngày: mỗi mũi 1 ô */}
-          <div className="space-y-2">
-            <FieldLabel>Vắc xin</FieldLabel>
-            {vaccines.map((v, i) => (
-              <div key={v.key} className={VACCINE_ROW}>
-                <TextField
-                  id={`vaccine-${v.key}`}
-                  label={`Vắc xin ${i + 1}`}
-                  hideLabel
-                  placeholder={i === 0 ? 'Bỏ trống nếu hôm đó không tiêm' : `Vắc xin thứ ${i + 1}`}
-                  list="vaccine-names"
-                  autoComplete="off"
-                  maxLength={60}
-                  value={v.text}
-                  onChange={(e) => setVaccines((list) => list.map((x) => (x.key === v.key ? { ...x, text: e.target.value } : x)))}
-                />
-                <Button
-                  type="button"
-                  variant="secondary"
-                  aria-label={`Bỏ vắc xin ${i + 1}`}
-                  className="!px-0"
-                  onClick={() => setVaccines((list) => (list.length > 1 ? list.filter((x) => x.key !== v.key) : [newRow()]))}
-                >
-                  <LineIcon icon="cancel" className="h-5 w-5" />
-                </Button>
-              </div>
-            ))}
-            <Button type="button" variant="secondary" onClick={() => setVaccines((list) => [...list, newRow()])}>
-              + Thêm vắc xin
-            </Button>
-          </div>
-          <datalist id="vaccine-names">
-            {vaccineNames.map((n) => (
-              <option key={n} value={n} />
-            ))}
-          </datalist>
-          <p className={HINT}>Bỏ trống ô nào thì hôm đó không đo / không tiêm. 1 ngày tiêm nhiều mũi thì bấm "Thêm vắc xin".</p>
+          {/* Có tiêm vắc xin: check thì hiện các khung nhập mũi tiêm */}
+          <CheckBox
+            checked={hasVaccine}
+            onChange={setHasVaccine}
+            label="Có tiêm vắc xin"
+            hint={hasVaccine ? 'Phòng bệnh, vaccine, mũi, nơi tiêm, giá' : 'Không check = hôm đó không tiêm'}
+          />
+          {hasVaccine && <VaccineFields rows={rows} onChange={setRows} onDiseaseDone={fillFromHistory} suggest={suggest} />}
+          <p className={HINT}>Bỏ trống chiều cao / cân nặng nếu hôm đó không đo. 1 ngày tiêm nhiều mũi thì bấm "Thêm vắc xin".</p>
 
           {confirmDelete && <Alert type="error">Bấm thùng rác lần nữa để xoá thẻ này.</Alert>}
           {error && <Alert type="error">{error}</Alert>}
@@ -242,11 +253,7 @@ export function GrowthFormPageSkeleton({ isNew }: { isNew: boolean }) {
             <TextFieldSkeleton />
             <TextFieldSkeleton />
           </div>
-          <div className="space-y-2">
-            <Skeleton className={`${SIZE.label} w-16 rounded-md`} />
-            <TextFieldSkeleton />
-            <Skeleton className={`${SIZE.control} w-full`} />
-          </div>
+          <Skeleton className={`${SIZE.control} w-full`} />
           <Skeleton className={`${SIZE.hint} w-full rounded-md`} />
         </div>
       </GlassPanel>

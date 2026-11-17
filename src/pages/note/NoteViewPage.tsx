@@ -19,6 +19,7 @@ import { addItemMoney, addNoteItem, setItemDone } from './data/api'
 import { useNote } from './data/NoteContext'
 import { itemMemo, MAX_TEXT, moneyTotal, noteDone, noteTitle, type Note, type NoteItem, type NoteMoney } from './data/types'
 import { submitForm, useUnsavedChanges } from '../../components/UnsavedGuard'
+import { ALL_MEMBERS } from '../../lib/notifications'
 
 // Xem ghi chú (bước 2): các thẻ nội dung của 1 ghi chú gửi đến mình, theo thứ tự ưu tiên.
 // Ghi chú MÌNH GỬI CHO NGƯỜI KHÁC (tab "Mình đã gửi") thì CHỈ XEM (`readOnly`): thấy thẻ nào đã xong và các lần nạp / rút quỹ,
@@ -39,24 +40,27 @@ const ADD_FORM_ID = 'note-add-item-form'
 const CHECK = 'flex h-full w-14 shrink-0 items-center justify-center'
 const SKELETON_ROWS = 5
 
+// Quay lại đúng tab của danh sách
+const backOf = (tab: string | null) => (tab === 'sent' || tab === 'all' ? `/note/inbox?tab=${tab}` : '/note/inbox')
+
 export function NoteViewPage() {
-  const { loading, inbox, sent } = useNote()
+  const { loading, inbox, sent, shared } = useNote()
   const { id } = useParams()
   const [params] = useSearchParams()
   if (loading) return <NoteViewPageSkeleton />
-  // Ghi chú gửi đến mình: xem + cập nhật như cũ; ghi chú mình gửi cho người khác: chỉ xem
-  const received = inbox.find((n) => n.id === id)
+  // Ghi chú gửi đến mình / ghi chú chung của cả gia đình: xem + cập nhật; ghi chú mình gửi cho người khác: chỉ xem
+  const received = inbox.find((n) => n.id === id) ?? shared.find((n) => n.id === id)
   const note = received ?? sent.find((n) => n.id === id)
   if (!note) {
     return (
       <PageShell>
-        <AppHeader title="Ghi chú" backTo={params.get('tab') === 'sent' ? '/note/inbox?tab=sent' : '/note/inbox'} />
+        <AppHeader title="Ghi chú" backTo={backOf(params.get('tab'))} />
         <GlassPanel className="space-y-3 text-center">
           <div className="flex h-12 justify-center">
             <Icon3D emoji="📬" className="h-12 w-12" />
           </div>
           <p className="text-sm leading-5 text-white/70">Ghi chú này không còn (đã bị xoá hoặc không liên quan tới bạn).</p>
-          <Link to={params.get('tab') === 'sent' ? '/note/inbox?tab=sent' : '/note/inbox'} className="inline-block text-sm font-semibold text-fuchsia-200 underline">
+          <Link to={backOf(params.get('tab'))} className="inline-block text-sm font-semibold text-fuchsia-200 underline">
             Về danh sách ghi chú
           </Link>
         </GlassPanel>
@@ -115,7 +119,7 @@ function NoteView({ note, readOnly }: { note: Note; readOnly: boolean }) {
 
   const subtitle = (
     <>
-      {readOnly ? `Gửi cho ${note.toName}` : note.fromUid === actor.uid ? 'Bạn tự ghi' : `Từ ${note.fromName}`} · {noteTime(note.createdAt)} ·{' '}
+      {readOnly ? `Gửi cho ${note.toName}` : note.toUid === ALL_MEMBERS ? `Chung cả nhà · ${note.fromUid === actor.uid ? 'bạn tạo' : note.fromName}` : note.fromUid === actor.uid ? 'Bạn tự ghi' : `Từ ${note.fromName}`} · {noteTime(note.createdAt)} ·{' '}
       {/* Mọi thẻ đã xong = ghi chú hoàn thành */}
       {noteDone(note) ? (
         <span className="font-semibold text-emerald-300">Đã hoàn thành</span>
@@ -129,7 +133,7 @@ function NoteView({ note, readOnly }: { note: Note; readOnly: boolean }) {
 
   return (
     <PageShell>
-      <AppHeader title={noteTitle(note)} subtitle={subtitle} backTo={readOnly ? '/note/inbox?tab=sent' : '/note/inbox'} />
+      <AppHeader title={noteTitle(note)} subtitle={subtitle} backTo={readOnly ? '/note/inbox?tab=sent' : note.toUid === ALL_MEMBERS ? '/note/inbox?tab=all' : '/note/inbox'} />
       {error && <Alert type="error">{error}</Alert>}
       <ScrollArea className={LIST_CLASS}>
         <div className={LIST_CARDS_GAP}>

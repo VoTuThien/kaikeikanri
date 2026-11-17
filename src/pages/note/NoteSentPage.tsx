@@ -9,10 +9,11 @@ import { Icon3D } from '../../components/ui/Icon3D'
 import { useFamily } from '../../contexts/FamilyContext'
 import type { Member } from '../family/data/api'
 import { useMembers } from '../family/data/useMembers'
-import { doneSummary, LIST_CLASS, MemberPicker, MemberPickerSkeleton, NoteList, NoteListSkeleton, recipientLabel } from './components'
+import { ALL_MEMBER, doneSummary, LIST_CLASS, MemberPicker, MemberPickerSkeleton, NoteList, NoteListSkeleton, recipientLabel } from './components'
 import { useNote, useNotesTo } from './data/NoteContext'
 
-// Tạo ghi chú (bước 1): danh sách các ghi chú gửi cho 1 thành viên (chọn bằng avatar trên thanh tiêu đề, mặc định là chính mình).
+// Tạo ghi chú (bước 1): danh sách các ghi chú gửi cho 1 thành viên hoặc CẢ GIA ĐÌNH (chọn bằng avatar trên thanh tiêu đề, mặc định là "Cả gia đình":
+// ghi chú chung, ai cũng xem / sửa / đánh dấu xong được).
 // Chạm 1 ghi chú để mở / sửa các thẻ nội dung bên trong (/note/sent/:id); nút dấu cộng để tạo ghi chú mới (/note/sent/new).
 // Người nhận đang chọn nằm trên URL (?to=uid) để quay lại từ màn hình nội dung vẫn đúng người.
 
@@ -27,9 +28,9 @@ function Sent({ members }: { members: Member[] }) {
   const { actor } = useNote()
   const [params, setParams] = useSearchParams()
   const [error, setError] = useState('')
-  // Người nhận không còn trong gia đình thì về chính mình
-  const to = members.find((m) => m.uid === params.get('to')) ?? members.find((m) => m.uid === actor.uid)
-  const toUid = to?.uid ?? actor.uid
+  // Mặc định (chưa chọn / người nhận không còn trong gia đình) là "Cả gia đình"
+  const to = [ALL_MEMBER, ...members].find((m) => m.uid === params.get('to')) ?? ALL_MEMBER
+  const toUid = to.uid
   const notes = useNotesTo(toUid)
 
   return (

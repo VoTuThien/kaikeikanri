@@ -15,6 +15,10 @@ import { useLiveQuery } from './liveQuery'
 
 export const notificationsCol = (familyId = requireFamily()) => collection(requireDb(), 'families', familyId, 'notifications')
 export const noteNoticeId = (noteId: string) => `note_${noteId}`
+
+// Ghi chú CHUNG của cả gia đình: toUid = ALL_MEMBERS. Mọi thành viên cùng xem / sửa / đánh dấu xong được.
+export const ALL_MEMBERS = '__all'
+export const ALL_MEMBERS_NAME = 'Cả gia đình'
 export const babyNoticeId = (childId: string | null) => `baby_${childId ?? 'none'}`
 
 interface NoticeBase {
@@ -46,8 +50,8 @@ const toDate = (v: unknown) => (v ? (v as Timestamp).toDate() : null)
 
 function toNotice(id: string, d: Raw, uid: string): Notice | null {
   if (d.kind === 'note') {
-    // Ghi chú: chỉ người nhận thấy
-    if (d.toUid !== uid) return null
+    // Ghi chú: chỉ người nhận thấy; ghi chú chung của cả gia đình thì mọi người (trừ người tạo) đều thấy
+    if (d.toUid !== uid && !(d.toUid === ALL_MEMBERS && d.fromUid !== uid)) return null
     const done = !!d.done
     return {
       id,
