@@ -13,4 +13,6 @@ export const APPS: AppEntry[] = [
   { id: 'status', name: 'Trạng thái', icon: '🗺️', gradient: 'from-emerald-400 to-teal-600', path: '/status' },
   { id: 'baby', name: 'Chăm con', icon: '👶', gradient: 'from-pink-300 to-rose-500', path: '/baby' },
   { id: 'note', name: 'Ghi chú', icon: '🗒️', gradient: 'from-sky-400 to-indigo-600', path: '/note' },
+  // Giải trí: menu các trò chơi (game Vườn mây...). Game chạy toàn màn hình ngang ở /giai-tri/vuon-may
+  { id: 'giaitri', name: 'Giải trí', icon: '🎮', gradient: 'from-violet-400 to-fuchsia-600', path: '/giai-tri' },
 ]

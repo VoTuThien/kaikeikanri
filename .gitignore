@@ -9,3 +9,6 @@ dev-dist
 
 # Tesseract.js (chép từ node_modules khi dev / build, xem scripts/copy-tesseract.mjs)
 public/tesseract
+
+# Blender tự sao lưu
+*.blend1

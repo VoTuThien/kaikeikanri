@@ -23,6 +23,12 @@ export default defineConfig({
         // rồi lưu lại trong máy (CacheFirst) để lần sau đọc được cả khi mất mạng
         globIgnores: ['tesseract/**'],
         runtimeCaching: [
+          // Mô hình 3D (.glb, vd các tầng mây của app Vườn mây): tải lần đầu mở màn hình rồi lưu lại trong máy
+          {
+            urlPattern: ({ url }) => url.pathname.startsWith('/models/'),
+            handler: 'CacheFirst',
+            options: { cacheName: 'models', expiration: { maxEntries: 10 } },
+          },
           {
             urlPattern: ({ url }) => url.pathname.startsWith('/tesseract/'),
             handler: 'CacheFirst',

@@ -5,6 +5,7 @@ import { useFamily } from '../contexts/FamilyContext'
 import { useNotices } from '../lib/notifications'
 import { useSalaryReminders } from '../pages/fund/data/salary'
 import { NotificationList } from '../pages/family/NotificationList'
+import { isGamePath } from '../pages/garden/game/constants'
 import { LineIcon } from './ui/Fab'
 
 // Bong bóng thông báo (giống bong bóng chat), nổi trên MỌI màn hình sau khi đăng nhập:
@@ -96,7 +97,9 @@ export function NotificationBubble() {
   // Thông báo lưu lại còn cần xử lý (ghi chú chưa xong / time line chưa xem); đã xong / đã xem thì không tính
   const notices = useNotices()
   const count = requests.length + pending.length + notices.active
-  if (!user) return null
+  // Đang trong game (toàn màn hình ngang) thì ẩn bong bóng cho khỏi che
+  const { pathname } = useLocation()
+  if (!user || isGamePath(pathname)) return null
   return <Bubble key={user.uid} uid={user.uid} count={count} />
 }
 

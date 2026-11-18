@@ -38,6 +38,8 @@ export const SHORTCUTS: ShortcutEntry[] = [
   { id: 'note-inbox', appId: 'note', name: 'Xem ghi chú', icon: '📬', path: '/note/inbox' },
   { id: 'note-new', appId: 'note', name: 'Tạo ghi chú', icon: '✍️', path: '/note/sent' },
   { id: 'note-cards', appId: 'note', name: 'Thẻ ghi chú', icon: '🏷️', path: '/note/cards' },
+  // App Giải trí
+  { id: 'giaitri-vuonmay', appId: 'giaitri', name: 'Vườn mây', icon: '🪴', path: '/giai-tri/vuon-may' },
 ]
 
 export const shortcutById = new Map(SHORTCUTS.map((s) => [s.id, s]))
