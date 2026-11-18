@@ -2,6 +2,9 @@ import { doc, runTransaction, serverTimestamp, setDoc, type DocumentData } from 
 import { familyCol } from '../../../lib/family'
 import { requireDb, type Actor } from '../../../lib/firestore'
 import { cropById, EMPTY_PLOT, levelOf, MAX_PLOTS, plotPrice, plotState, START_COINS, START_PLOTS, type Plot } from './crops'
+import { potKindById, slotKey, type OwnedPot } from './pots'
+import { SLOTS } from '../game/slots'
+import { TIER_COUNT, TIER_UNLOCK_LEVEL } from '../game/constants'
 
 // Vườn của mỗi thành viên: families/{familyId}/gardens/{uid}
 // Cả gia đình xem được (sau này ghé vườn nhau), mỗi người chỉ sửa vườn của mình (firestore.rules).
@@ -14,6 +17,25 @@ export interface Garden {
   plots: Plot[] // luôn đủ MAX_PLOTS phần tử, ô từ `unlocked` trở đi là ô còn khoá
   barn: Record<string, number> // kho: id cây -> số nông sản
   harvested: number // tổng số nông sản đã thu hoạch
+  pots: OwnedPot[] // mọi chậu người chơi có (đang đặt + trong kho)
+  placed: Record<string, string> // chỗ đặt `${tầng}-${chỗ}` -> id chậu; tầng 1 (tầng 0 trong code): chỗ i ↔ ô đất plots[i]
+}
+
+// Chậu ban đầu: đủ bộ Đất nung (6 chậu cấp 1), đặt ở các chỗ đầu của tầng 1 theo dáng mặc định của chỗ.
+// Vườn cũ chưa có chậu: mỗi ô đất đã mở được 1 chậu (đúng dáng mặc định của chỗ), cộng thêm cho đủ bộ.
+function startPots(unlocked: number) {
+  const pots: OwnedPot[] = []
+  const placed: Record<string, string> = {}
+  const take = (kind: string) => {
+    const free = pots.find((p) => p.kind === kind && !Object.values(placed).includes(p.id))
+    if (free) return free
+    const p = { id: `p${pots.length + 1}`, kind, level: 1 }
+    pots.push(p)
+    return p
+  }
+  for (let i = 1; i <= 6; i++) take(`dat_nung_${i}`)
+  SLOTS[0].slice(0, unlocked).forEach((s, i) => { placed[slotKey(0, i)] = take(`dat_nung_${s.shape}`).id })
+  return { pots, placed }
 }
 
 export const gardensCol = () => familyCol('gardens')
@@ -30,6 +52,9 @@ export function toGarden(d: DocumentData): Garden {
     plots: plots.slice(0, MAX_PLOTS),
     barn: { ...(d.barn ?? {}) },
     harvested: d.harvested ?? 0,
+    ...(Array.isArray(d.pots)
+      ? { pots: (d.pots as OwnedPot[]).map((p) => ({ id: p.id, kind: p.kind, level: p.level ?? 1 })), placed: { ...(d.placed ?? {}) } }
+      : startPots(Math.min(MAX_PLOTS, d.unlocked ?? START_PLOTS))),
   }
 }
 
@@ -43,6 +68,7 @@ export function createGarden(actor: Actor) {
     plots: Array.from({ length: MAX_PLOTS }, () => ({ ...EMPTY_PLOT })),
     barn: {},
     harvested: 0,
+    ...startPots(START_PLOTS),
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   })
@@ -158,6 +184,48 @@ export function buyPlot(actor: Actor) {
     if (g.coins < price) throw new Error(`Cần ${price} xu để mở ô đất`)
     g.coins -= price
     g.unlocked += 1
+  })
+}
+
+// ---- Chậu: đặt / dời / cất vào kho (GĐ3) ----
+function checkSlot(g: Garden, tier: number, slot: number) {
+  if (tier < 0 || tier >= TIER_COUNT || slot < 0 || slot >= SLOTS[tier].length) throw new Error('Chỗ đặt không hợp lệ')
+  if (levelOf(g.xp) < TIER_UNLOCK_LEVEL[tier]) throw new Error(`Tầng ${tier + 1} mở khoá ở cấp ${TIER_UNLOCK_LEVEL[tier]}`)
+}
+export const placedIds = (g: Garden) => new Set(Object.values(g.placed))
+
+// Đặt 1 chậu trong kho vào chỗ trống
+export function placePot(actor: Actor, tier: number, slot: number, potId: string) {
+  return mutate(actor, (g) => {
+    checkSlot(g, tier, slot)
+    if (g.placed[slotKey(tier, slot)]) throw new Error('Chỗ này đã có chậu')
+    const pot = g.pots.find((p) => p.id === potId)
+    if (!pot || !potKindById.has(pot.kind)) throw new Error('Không tìm thấy chậu')
+    if (placedIds(g).has(potId)) throw new Error('Chậu này đang được đặt ở chỗ khác')
+    g.placed[slotKey(tier, slot)] = potId
+    if (tier === 0) g.plots[slot] = { ...EMPTY_PLOT }
+  })
+}
+
+// Dời chậu sang chỗ trống khác CÙNG TẦNG (tầng 1: cây trong chậu đi theo chậu)
+export function movePot(actor: Actor, tier: number, from: number, to: number) {
+  return mutate(actor, (g) => {
+    checkSlot(g, tier, to)
+    const id = g.placed[slotKey(tier, from)]
+    if (!id) throw new Error('Không có chậu để dời')
+    if (g.placed[slotKey(tier, to)]) throw new Error('Chỗ này đã có chậu')
+    delete g.placed[slotKey(tier, from)]
+    g.placed[slotKey(tier, to)] = id
+    if (tier === 0) { g.plots[to] = g.plots[from]; g.plots[from] = { ...EMPTY_PLOT } }
+  })
+}
+
+// Cất chậu vào kho: cây đang trồng trong chậu bị MẤT
+export function storePot(actor: Actor, tier: number, slot: number) {
+  return mutate(actor, (g) => {
+    if (!g.placed[slotKey(tier, slot)]) throw new Error('Không có chậu để cất')
+    delete g.placed[slotKey(tier, slot)]
+    if (tier === 0) g.plots[slot] = { ...EMPTY_PLOT }
   })
 }
 

@@ -612,8 +612,8 @@ Game nông trại **tự thiết kế** (cùng thể loại game trồng trọt,
   đuôi sâu xuyên chậu bát, chậu chanh chạm vành chậu đậu phộng → đã dời các chậu `ChauDat_T3_1` (≈ (0,13; -1,4) tầng 3), `ChauDat_T2_6` (≈ (0,56; 1,8)),
   `ChauDat_T2_5` (≈ (-0,72; 1,72)), `ChauDat_T2_4` (≈ (-1,09; 0,67)) và dời mạng nhện / con sâu. Ảnh toàn cảnh: `vuon-toan-canh.png`.
 - **Các giai đoạn làm game** (theo thứ tự): **GĐ1 [x]** app Giải trí + màn hình game ngang + màn hình tải + xem từng tầng (xem dưới);
-  GĐ2 [ ] xuất chậu / cây / côn trùng ra app (giảm đỉnh), dữ liệu chậu theo vị trí cố định, hiện chậu + cây đúng giai đoạn trên tầng;
-  GĐ3 [ ] đặt / dời / cất chậu (danh sách cuộn ngang, xem trước, bảng hiệu ứng); GĐ4 [ ] trồng / chăm / thu hoạch trên cảnh 3D, Kho + Cẩm nang thành popup, côn trùng xuất hiện + bắt;
+  **GĐ2 [x]** xuất chậu / cây / côn trùng ra app (giảm đỉnh), vị trí chậu cố định, hiện chậu + cây đúng giai đoạn trên tầng 1 (xem "GĐ2 đã làm" dưới);
+  **GĐ3 [x]** đặt / dời / cất chậu (danh sách cuộn ngang, xem trước, bảng hiệu ứng; xem "GĐ3 đã làm" dưới); GĐ4 [ ] trồng / chăm / thu hoạch trên cảnh 3D, Kho + Cẩm nang thành popup, côn trùng xuất hiện + bắt;
   GĐ5 [ ] hiệu ứng bộ chậu (hạng, cấp), nâng cấp chậu bằng côn trùng + xu; GĐ6 [ ] máy chế tạo (công thức, thời gian, sản phẩm, hoạt cảnh);
   GĐ7 [ ] gacha nhận chậu + hạt giống (chờ mô tả); GĐ8 [ ] thêm 14 cây mới vào `CROPS`.
 - [x] **Cơ chế hiển thị game — GĐ1 ĐÃ LÀM** (phần đặt chậu bên dưới chưa làm):
@@ -674,6 +674,34 @@ Game nông trại **tự thiết kế** (cùng thể loại game trồng trọt,
   - **Màn hình tải** khi vào game: thanh tiến độ % (theo dung lượng mô hình 3D đã tải), con nhím linh vật chạy, mẹo chơi đổi lần lượt;
     **lần mở sau (mô hình đã lưu trong máy) vẫn hiện màn hình tải một chút** cho đồng bộ.
   - **Ẩn bong bóng thông báo** khi đang ở trong game.
+- [x] **GĐ2 ĐÃ LÀM — chậu + cây trên tầng mây**:
+  - File xuất (nén **meshopt**, `GLTFLoader.setMeshoptDecoder`): `public/models/chau-dat-nung.glb` (~0,5MB, 6 dáng `ChauDat_1…6` đặt ở gốc toạ độ, có `_Than` / `_Dat` / `_DiemCay` + lớp `_Lv2…Lv6`, Lv3–4 giảm đỉnh ×0,6, Lv5–6 ×0,35),
+    `public/models/cay-trong.glb` (~1MB, 8 cây đang có trong `CROPS`: `Cay_Cai` / `CaRot` / `Dau` / `Ngo` / `CaChua` / `HuongDuong` / `DuaHau` / `BiNgo`, gốc ở toạ độ 0, GIỮ hệ số phóng của khung gốc;
+    giai đoạn giảm đỉnh còn ≤ 400 / 1.500 / 3.000 / 4.500), `public/models/con-trung.glb` (~0,25MB, `Sau` / `DomDom` / `BoRua` / `Nhen`, **chưa tải trong game**, để dành GĐ4).
+    Xuất lại: tạm đặt gốc chậu / cây về 0 (cây bỏ cha), thêm Decimate tên `XuatGiam`, xuất `use_selection` + `export_apply` + `export_extras` + meshopt, rồi trả lại vị trí / xoá modifier.
+  - **Rau cải** (`Cay_Cai`, ×1,6) dựng thêm cho đủ 8 cây của `CROPS`. **Dâu tây đã dựng lại giai đoạn 2–3 gọn hơn** (vòng đỡ trên 4 cọc sát giữa) để vừa MỌI dáng chậu.
+  - Đã kiểm tra 8 cây × 6 dáng chậu (xuyên thành): chỉ bí ngô / dưa hấu phải thu nhỏ ở vài dáng → `PLANT_FIT` trong `game/slots.ts` (bí ngô: ống cao 0,9, bầu 0,85; dưa hấu: ống cao 0,8, vuông 0,9, bầu 0,75, có đĩa 0,9).
+  - **Chỗ đặt chậu cố định** `SLOTS` (`game/slots.ts`, toạ độ Blender đổi sang three `(x, z, -y)` = giữa đáy chậu): tầng 1: 12, tầng 2: 6, tầng 3: 5, tầng 4: 4 (đúng số đã chốt), mặt mây phẳng quanh chỗ đặt,
+    cách máy / chậu khác (tầng 3 chật nhất vì máy mèo: chỗ thứ 5 ở (4,6; 3,5) Blender, cách chậu kế bên 1,2). Mỗi chỗ có `shape` = dáng chậu đất nung mặc định.
+  - **Tầng 1: chỗ thứ i ↔ ô đất `plots[i]`**: ô đã mở (`i < unlocked`) hiện chậu (cấp 1, tắt lớp `_Lv*`), cây gắn ở `ChauDat_n_DiemCay`, **chỉ bật lớp `_GD{plotState().stage}`**
+    (`syncPlants` trong `TierScene.tsx`, tính lại mỗi giây bằng `useNow`, chỉ dựng lại khi đổi cây / giai đoạn; vật liệu cây được thêm vào danh sách làm mờ của tầng). Tầng 2–4 chưa hiện chậu (chờ GĐ3 đặt chậu).
+- [x] **GĐ3 ĐÃ LÀM — đặt / dời / cất chậu**:
+  - Dữ liệu bộ chậu `src/pages/garden/data/pots.ts`: `POT_SETS` (bộ: tên, hạng, các chậu, hiệu ứng chính + mốc `{ count, lv1, lv6 }`, thưởng đủ bộ), `POT_KINDS` (chậu: tên, `shape` = dáng trong `chau-dat-nung.glb`),
+    `setsOnTier` (số chậu khác nhau, cấp trung bình của các chậu được tính — mỗi loại lấy chậu cấp cao nhất —, mốc đã đạt, mức hiệu ứng), `valueAt` (tăng đều lv1 → lv6), `RANK_STYLE`.
+    **Thêm bộ chậu mới: thêm vào `POT_SETS` + `POT_KINDS` + ảnh `public/game/chau/<kind>_<cấp>.webp`.** Hiệu ứng mới thêm vào `EFFECTS`.
+  - Vườn có thêm `pots` = mọi chậu đang có `{ id, kind, level }` và `placed` = map `"<tầng 0-3>-<chỗ>"` → id chậu (`slotKey`). **Chưa có gacha nên mỗi người được sẵn bộ Đất nung 6 chậu cấp 1**
+    (`startPots`): vườn mới đặt sẵn 6 chậu ở 6 chỗ đầu tầng 1; vườn cũ chưa có `pots` thì mỗi ô đất đã mở được 1 chậu đúng dáng mặc định của chỗ (thêm chậu nếu > 6 ô), lưu lại ở lần ghi kế tiếp.
+  - Ghi: `placePot` / `movePot` / `storePot` (`data/api.ts`, transaction): chỉ ở tầng đã mở khoá; **dời chỉ trong cùng tầng** (tầng 1: cây đi theo chậu, `plots[from]` → `plots[to]`);
+    cất / đặt ở tầng 1 thì ô đất đó thành đất trống (**cất chậu có cây = mất cây**). `unlocked` (số ô đất) giờ chỉ còn dùng ở trang 2D cũ; GĐ4 trồng cây theo chậu đã đặt.
+  - Ảnh chậu cho danh sách: `public/game/chau/dat_nung_<dáng>_<cấp>.webp` (192px, nền trong, 36 ảnh ~190KB), render trong Blender (camera trực giao tạm, nghiêng 22°, 2 đèn mặt trời tạm, chỉ bật `_Lv<cấp>`).
+  - Cảnh 3D (`TierScene.tsx`, `syncSlots`): mỗi chỗ đặt là 1 `Group` gắn vào tầng (nhấp nhô theo mây) gồm vòng nét đứt vàng + quầng sáng (nhấp nháy, xoay chậm), khối chạm dẹt, chậu (vật liệu riêng, vào danh sách làm mờ của tầng),
+    cây (tầng 1) và chậu xem trước (mờ 55%). **Chạm**: tia từ camera vào hình chậu / cây thật (bỏ lớp đang ẩn) hoặc khối dẹt của chỗ trống. Chạm vòng → chế độ đặt; nhấn giữ chậu 0,5 giây → menu;
+    chạm chỗ khác khi đang đặt = huỷ. Đang đặt: camera lại gần (≤ 0,62 khoảng vừa khung) và giữ chỗ đặt ở 1/3 trái, hơi cao (`Cam.focus`); xong / huỷ thì trả lại khoảng cách cũ.
+  - Giao diện (`GamePage.tsx`, `PotUi.tsx`, `potInfo.ts`): danh sách chậu trong kho ở đáy (`LIST_H` 132px, ô 104px: ảnh, hạng màu + chữ, cấp, tên, "Đất nung n/6", viền sáng + dòng "Hạt rẻ −2% → −3%" nếu giúp đạt mốc mới);
+    bảng hiệu ứng `InfoPanel` (w-60, góc phải trên, thu gọn còn 1 dòng, cuộn dọc); nút [X huỷ] [✓ đặt] tròn ở trái trên danh sách; ẩn nút thoát + ▲ ▼ khi đang đặt / dời.
+    Menu chậu (`PotMenu`): [Đóng] [Dời chỗ] [Cất vào kho]; chậu có cây: lần đầu hiện "Cất chậu? Cây đang trồng sẽ mất", nút thành "Cất luôn". Dời chỗ: dải trên cùng "Chạm vào vòng trống…" + [Huỷ].
+    Báo kết quả / lỗi bằng dòng nhắc ngắn (2,4 giây).
+  - **Cuộn trong game dùng `DragScroll`** (`game/DragScroll.tsx`, trục `x` / `y`, toạ độ qua `toLocal`, quán tính + kéo lại ở 2 đầu, kéo > 8px thì chặn click của mục bên dưới), không dùng cuộn gốc.
 - [ ] Ghé vườn người thân (tưới giúp / hái trộm) + thông báo trong bong bóng — làm sau (dữ liệu vườn đã cho cả gia đình đọc).
 
 Dữ liệu Firestore, thuộc gia đình đang chọn:
