@@ -1,5 +1,5 @@
 // Nội dung bảng thông tin hiệu ứng khi đặt chậu (xem CLAUDE.md "Đặt chậu" mục 5) + dòng thay đổi trên từng ô của danh sách chậu.
-import { EFFECTS, effectText, potKindById, potSetById, setsOnTier, slotKey, type OwnedPot, type PotSet } from '../data/pots'
+import { EFFECTS, effectText, potKindById, potSetById, setsOnTier, slotKey, tierBlock, type OwnedPot, type PotSet } from '../data/pots'
 
 export interface InfoLine { text: string; state: 'done' | 'next' | 'off' }
 export interface Info { head: string | null; lines: InfoLine[]; summary: string }
@@ -31,7 +31,7 @@ function setLines(set: PotSet, count: number, level: number): InfoLine[] {
   }
   const b = set.bonus.lv1 + ((set.bonus.lv6 - set.bonus.lv1) * (Math.max(1, Math.min(6, level)) - 1)) / 5
   lines.push({
-    text: `${count >= size ? '✓ ' : ''}Đủ bộ ${size}/${size}: ${effectText(set.bonus.effect, b)} · tối đa ${EFFECTS[set.bonus.effect].fmt(set.bonus.lv6)}`,
+    text: `${count >= size ? '✓ ' : ''}Đủ bộ ${size}/${size}: ${effectText(set.bonus.effect, b)} · tối đa ${EFFECTS[set.bonus.effect].fmt(set.bonus.lv6)}${set.perk ? ` + ${set.perk}` : ''}`,
     state: count >= size ? 'done' : 'off',
   })
   return lines
@@ -61,16 +61,18 @@ export function tierInfo(onTier: OwnedPot[], sel: OwnedPot | null): Info {
         ? { text: `✓ ${s.set.name} ${s.count}/${size}: ${effectText(s.set.effect, s.value)}`, state: 'done' }
         : { text: `${s.set.name} ${s.count}/${size}: chưa đạt mốc (cần ${s.set.milestones[0].count} chậu khác nhau)`, state: 'off' },
     )
-    if (s.bonus != null) lines.push({ text: `✓ ${s.set.name} đủ bộ: ${effectText(s.set.bonus.effect, s.bonus)}`, state: 'done' })
+    if (s.bonus != null) lines.push({ text: `✓ ${s.set.name} đủ bộ: ${effectText(s.set.bonus.effect, s.bonus)}${s.set.perk ? ` + ${s.set.perk}` : ''}`, state: 'done' })
   }
   const first = sets.find((s) => s.value != null)
   return { head: 'Hiệu ứng hiện tại của tầng', lines, summary: first ? effectText(first.set.effect, first.value!) : 'Chưa đạt mốc' }
 }
 
 // Ô trong danh sách chậu: tiến độ bộ trên tầng + (nếu đặt chậu này giúp đạt mốc mới) dòng thay đổi
-export function potCard(onTier: OwnedPot[], pot: OwnedPot) {
+export function potCard(onTier: OwnedPot[], pot: OwnedPot, tier: number) {
   const kind = potKindById.get(pot.kind)!
   const set = potSetById.get(kind.set)!
+  const block = tierBlock(set, tier)
+  if (block) return { kind, set, progress: `${set.name} · ${set.kinds.length} chậu`, change: null, block }
   const before = setsOnTier(onTier).find((s) => s.set.id === set.id)
   const after = setsOnTier([...onTier, pot]).find((s) => s.set.id === set.id)!
   const better = after.reached > (before?.reached ?? 0)
@@ -81,5 +83,6 @@ export function potCard(onTier: OwnedPot[], pot: OwnedPot) {
     change: better
       ? `${EFFECTS[set.effect].name} ${before?.value != null ? fmt(set, before.value) : '0%'} → ${fmt(set, after.value!)}`
       : null,
+    block: null as string | null,
   }
 }

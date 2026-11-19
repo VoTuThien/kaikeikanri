@@ -5,7 +5,7 @@ import { LineIcon } from '../../../components/ui/Fab'
 import { Icon3D } from '../../../components/ui/Icon3D'
 import { useGarden, useNow } from '../data/GardenContext'
 import { errorText, movePot, placePot, storePot } from '../data/api'
-import { potKindById, slotKey, type OwnedPot } from '../data/pots'
+import { potKindById, potSetById, slotKey, tierBlock, type OwnedPot } from '../data/pots'
 import { isPlaced, potsOnTier } from './potInfo'
 import { BTN, InfoPanel, LIST_H, PotList, PotMenu } from './PotUi'
 import { EMPTY_PLOT, levelOf, MAX_PLOTS } from '../data/crops'
@@ -13,6 +13,7 @@ import { loadTier, MENU_PATH, saveTier, TIER_COUNT, TIER_UNLOCK_LEVEL } from './
 import { LandscapeFrame, useLandscape } from './LandscapeFrame'
 import { LoadingScreen } from './LoadingScreen'
 import type { GameModels, SceneMode } from './TierScene'
+import { GachaScreen, ROLL_IMG, STONE_IMG } from './GachaUi'
 
 // Màn hình game Vườn mây: toàn màn hình, luôn nằm ngang (LandscapeFrame), màn hình tải → cảnh 3D xem từng tầng mây.
 // Nút thoát (góc trái trên) về menu app Giải trí. Bong bóng thông báo tự ẩn ở đường dẫn game (isGamePath).
@@ -58,6 +59,7 @@ function Game() {
   const [ui, setUi] = useState<Ui>({ kind: 'view' })
   const [busy, setBusy] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
+  const [gacha, setGacha] = useState(false)
   const toastTimer = useRef(0)
   function say(msg: string) {
     setToast(msg); window.clearTimeout(toastTimer.current)
@@ -93,9 +95,10 @@ function Game() {
   const pots = garden?.pots ?? NO_POTS
   const placed = garden?.placed ?? NO_PLACED
   const onTier = potsOnTier(pots, placed, tier)
+  const blocked = (p: OwnedPot) => (tierBlock(potSetById.get(potKindById.get(p.kind)?.set ?? '')!, tier) ? 1 : 0)
   const inStore = pots
     .filter((p) => !isPlaced(placed, p.id) && potKindById.has(p.kind))
-    .sort((a, b) => a.kind.localeCompare(b.kind) || b.level - a.level)
+    .sort((a, b) => blocked(a) - blocked(b) || a.kind.localeCompare(b.kind) || b.level - a.level)
   const selPot = ui.kind === 'place' ? pots.find((p) => p.id === ui.sel) ?? null : null
   const mode: SceneMode =
     ui.kind === 'place' ? { kind: 'place', slot: ui.slot, preview: selPot } : ui.kind === 'move' ? { kind: 'move', from: ui.from } : { kind: 'view' }
@@ -160,6 +163,23 @@ function Game() {
 
       {phase !== 'loading' && ui.kind === 'view' && (
         <>
+          {/* HUD: giữa = đá vũ trụ; phải = nút gacha (chỉ có icon) */}
+          {garden && (
+            <div className="pointer-events-none absolute top-3 left-1/2 z-20 flex h-10 -translate-x-1/2 items-center gap-1.5 border border-white/25 bg-black/30 pr-3 pl-1.5 shadow-lg shadow-black/30 backdrop-blur-md">
+              <img src={STONE_IMG} alt="" className="h-7 w-7 object-contain" />
+              <span className="text-sm font-bold tabular-nums">{garden.stones.toLocaleString('vi-VN')}</span>
+            </div>
+          )}
+          <button
+            type="button"
+            data-round
+            aria-label="Gacha (ước nguyện)"
+            onClick={() => setGacha(true)}
+            className={`${ROUND_BTN} absolute top-3 z-20 from-amber-400/70 to-fuchsia-600/70`}
+            style={{ right: 'calc(var(--safe-r) + 12px)' }}
+          >
+            <img src={ROLL_IMG.vong_tinh} alt="" className="h-9 w-9 object-contain" />
+          </button>
           {/* Chuyển tầng: ▲ ▼ xếp dọc ở mép phải, giữa ghi "Tầng n/4" */}
           <div className="absolute top-1/2 z-20 flex -translate-y-1/2 flex-col items-center gap-2" style={{ right: 'calc(var(--safe-r) + 12px)' }}>
             <button type="button" data-round aria-label="Lên tầng trên" disabled={tier >= TIER_COUNT - 1} onClick={() => go(1)} className={`${ROUND_BTN} text-xl`}>
@@ -197,7 +217,7 @@ function Game() {
       {/* Đặt chậu: danh sách chậu trong kho + bảng hiệu ứng + [huỷ] [đặt] */}
       {phase !== 'loading' && ui.kind === 'place' && (
         <>
-          <PotList pots={inStore} onTier={onTier} selected={ui.sel} onSelect={(id) => setUi({ ...ui, sel: id })} />
+          <PotList pots={inStore} onTier={onTier} tier={tier} selected={ui.sel} onSelect={(id) => setUi({ ...ui, sel: id })} />
           <InfoPanel onTier={onTier} sel={selPot} />
           <div className="absolute z-30 flex gap-3" style={{ left: 'calc(var(--safe-l) + 12px)', bottom: LIST_H + 12 }}>
             <button type="button" data-round aria-label="Huỷ đặt chậu" onClick={() => setUi({ kind: 'view' })} className={`${ROUND_BTN} from-sky-500/70 to-blue-600/70`}>
@@ -236,6 +256,8 @@ function Game() {
           <p className="border border-white/25 bg-black/60 px-4 py-2 text-sm font-semibold shadow-lg backdrop-blur-md">{toast}</p>
         </div>
       )}
+
+      {gacha && <GachaScreen onClose={() => setGacha(false)} />}
 
       {phase !== 'ready' && <LoadingScreen progress={progress} error={error} fading={phase === 'fading'} />}
     </>

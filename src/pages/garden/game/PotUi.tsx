@@ -20,9 +20,10 @@ export function RankBadge({ rank, className = '' }: { rank: Rank; className?: st
 }
 
 // ---- Danh sách chậu trong kho (cuộn ngang) ----
-export function PotList({ pots, onTier, selected, onSelect }: {
+export function PotList({ pots, onTier, tier, selected, onSelect }: {
   pots: OwnedPot[] // chậu trong kho (chưa đặt)
   onTier: OwnedPot[]
+  tier: number
   selected: string | null
   onSelect: (id: string) => void
 }) {
@@ -38,15 +39,16 @@ export function PotList({ pots, onTier, selected, onSelect }: {
       ) : (
         <DragScroll axis="x" className="h-full">
           {pots.map((p) => {
-            const c = potCard(onTier, p)
+            const c = potCard(onTier, p, tier)
             const on = p.id === selected
             return (
               <button
                 key={p.id}
                 type="button"
+                disabled={!!c.block}
                 onClick={() => onSelect(p.id)}
                 className={`relative mr-2 flex h-[112px] w-[104px] shrink-0 flex-col items-center border px-1 pt-1 text-center transition active:scale-95 ${
-                  on ? 'border-amber-200 bg-white/25' : c.change ? 'border-amber-300/80 bg-white/10 shadow-[0_0_14px_rgba(253,230,138,0.55)]' : 'border-white/20 bg-white/10'
+                  c.block ? 'border-white/10 bg-white/5 opacity-45' : on ? 'border-amber-200 bg-white/25' : c.change ? 'border-amber-300/80 bg-white/10 shadow-[0_0_14px_rgba(253,230,138,0.55)]' : 'border-white/20 bg-white/10'
                 }`}
               >
                 <RankBadge rank={c.set.rank} className="absolute top-1 left-1" />
@@ -55,6 +57,7 @@ export function PotList({ pots, onTier, selected, onSelect }: {
                 <span className="mt-0.5 text-[11px] leading-[13px] font-semibold">{c.kind.name}</span>
                 <span className="text-[10px] leading-3 text-white/70">{c.progress}</span>
                 {c.change && <span className="mt-0.5 text-[10px] leading-3 font-semibold text-amber-200">{c.change}</span>}
+                {c.block && <span className="mt-0.5 text-[10px] leading-3 font-semibold text-sky-200">{c.block}</span>}
               </button>
             )
           })}

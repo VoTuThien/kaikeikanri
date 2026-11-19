@@ -456,6 +456,9 @@ Game nông trại **tự thiết kế** (cùng thể loại game trồng trọt,
     Meo_Khay
       Meo_DiemSanPham (Empty)
   ```
+- **Script dựng mô hình Blender: `design/vuon-may/scripts/`** (xem `README.md` trong đó). **Mỗi lần Blender mở lại phải chạy `h2.py` trước**
+  (nạp hàm dùng chung `ns["H2"]`, `render_lv`, `render_lv_glow` vào `bpy.app.driver_namespace`); ảnh chậu / icon có quầng sáng ghép bằng `glow_merge.py`;
+  bộ chậu mới dựng theo mẫu `ph_base.py` / `ph_levels.py`. Thao tác Blender nặng thì chia nhỏ (vd 2 chậu / lần), không gộp dựng + render trong 1 lần gọi.
 - [ ] **Bộ chậu** (thiết kế đã chốt, chưa làm logic):
   - **Số chậu mỗi tầng**: tầng 1: **12**, tầng 2: **6**, tầng 3: **5**, tầng 4: **4** (tầng 1–3 đã trừ chỗ đặt máy).
   - **Mỗi bộ chậu có TỐI ĐA 6 chậu, các chậu trong bộ khác nhau nhưng chung 1 chủ đề** (vd Biển cả); có bộ ít hơn (vd bộ 4 chậu) → tầng 1 đặt được 2 bộ.
@@ -474,6 +477,80 @@ Game nông trại **tự thiết kế** (cùng thể loại game trồng trọt,
     **Phần lẻ tính thành cơ hội** (vd +0,3 nông sản = 30% khả năng được thêm 1).
     Danh sách hiệu ứng: Lớn nhanh (giảm thời gian chín), Bội thu (thêm nông sản), Thêm kinh nghiệm, Giá tốt (bán đắt hơn), Hạt rẻ (gieo rẻ hơn), Giữ ẩm (tự tính là đã tưới),
     Ít sâu, Hút côn trùng (gặp bọ rùa / đom đóm / nhện / sâu nhiều hơn), Mùa may (cơ hội thu gấp đôi), Máy chạy nhanh (máy cùng tầng làm nhanh hơn).
+  - **Bộ Phượng Hoàng = hạng S, BỘ BANNER CHẬU 1** (bộ thứ 10, ĐÃ LÀM — B3 của kế hoạch chậu S, chăm chút kỹ): thân đỏ thẫm chuyển cam vàng (màu đỉnh `Col`, như Băng Tinh), viền vàng, lông vũ, lửa.
+    Hiệu ứng chính **Lớn nhanh + Bội thu** (`growyield`; 2 / 4 / 6 chậu: lv1 6 / 12 / 18%, lv6 15 / 30 / 45%), đủ bộ thưởng **Giữ ẩm** (lv1 6% → lv6 15%)
+    + **đặc quyền "Côn trùng tự vào lưới"**. Collection `BoChau_PhuongHoang` (hàng mẫu x 9 → 18, cách 1,8; y −24), file `chau-phuong-hoang.glb` (~1,19MB; thân giảm 0,5, Lv3–4 0,5, Lv5 0,42, Lv6 0,4).
+    6 chậu `ChauPH_1…6`: 1 **Bình lông vũ** (5 hàng vảy lông vũ ôm sát thân), 2 **Bát cánh phượng** (2 cánh 2 lớp lông xoè hai bên, khớp vàng ngọc lam), 3 **Chậu tổ lửa** (64 cành vàng đan + than hồng phát sáng),
+    4 **Chậu đuôi phượng** (3 lông đuôi cuộn chéo mặt trước, tơ lông 2 bên, "mắt" vàng + ngọc lam + đỏ), 5 **Chậu mặt trời** (mặt trời vàng lõi lửa sáng + 16 tia, đai tia nắng), 6 **Tháp lửa** (6 ô ngọn lửa đổ màu vàng viền vàng).
+    Vật liệu `PH_*` (Than (màu đỉnh), Vang, VangDam, DoSon, Long, LongVang, NgocLam, Lua / ThanHong / LongSang / HongNgoc / Sao phát sáng, HaoQuang trong). Dựng bằng `ph_base.py` / `ph_levels.py` (`design/vuon-may/scripts/`; chạy theo nhóm 2 chậu qua `PH_ONLY`, cả 6 một lần dễ làm Blender quá thời gian).
+    Cấp: Lv2 đai vàng · Lv3 đai + hạt hồng ngọc + cổ lông vàng quanh miệng · Lv4 + 8 lưỡi lửa PHÁT SÁNG ở chân · Lv5 + chỉ vàng uốn sóng + 10 lưỡi lửa + tàn lửa + huy chương vàng hồng ngọc sáng có lông xoè
+    (chậu 4: mắt đuôi sáng, chậu 5: lõi mặt trời sáng) · Lv6 vương miện 10 lông vàng sáng quanh miệng + **2 cánh phượng phát sáng vươn lên sau miệng chậu** + vòng hào quang lửa dưới đáy + tia lấp lánh + huy chương.
+    Đã đo 8 cây × 6 chậu (`PLANT_FIT`): hướng dương / bí ngô / dưa hấu thu nhỏ ở vài chậu. Ảnh `bo-chau-phuong-hoang-6-cap.png`.
+  - **Bộ Băng Tinh = hạng S, "LỆCH RATE" 2** (bộ thứ 9, ĐÃ LÀM — B2 của kế hoạch chậu S): băng xanh chuyển màu, bạc, tuyết, tinh thể băng phát sáng.
+    Hiệu ứng chính **Máy chạy nhanh** (máy chế tạo cùng tầng; 2 / 4 / 6 chậu: lv1 −6 / −12 / −18%, lv6 −15 / −30 / −45%), đủ bộ thưởng **Lớn nhanh** (lv1 −6% → lv6 −15%)
+    + **đặc quyền "Tầng không bao giờ bị sâu"**. Collection `BoChau_BangTinh` (hàng mẫu x 9 → 16,5; y −22), file `chau-bang-tinh.glb` (~1,08MB).
+    6 chậu `ChauBT_1…6`: 1 **Bình băng** (10 mặt cắt phẳng + gân), 2 **Bát tuyết** (vành tuyết phủ miệng + tuyết chảy xuống), 3 **Chậu tinh thể** (9 tinh thể băng ở chân),
+    4 **Chậu bông tuyết** (4 bông tuyết trắng lớn), 5 **Chậu băng xoắn** (rãnh xoắn), 6 **Chậu chân băng** (3 chân tinh thể + vòng đế bạc).
+    **Màu thân chuyển xanh băng đậm (đáy) → xanh nhạt (miệng) bằng MÀU ĐỈNH** (thuộc tính `Col`, vật liệu `BT_Bang` dùng nút Color Attribute → glTF `COLOR_0`).
+    **LƯU Ý: three.js nhân màu đỉnh với MỌI vật liệu trong cùng mesh có `COLOR_0`** → phần không phải thân băng (bạc, tuyết, tinh thể) phải có màu đỉnh TRẮNG (đã sửa; mặc định là đen → sẽ thành đen trong game).
+    Vật liệu `BT_*` (Bang, BangDam, Tuyet, Bac, TinhThe, TinhTheSang / Sang (phát sáng), CotBang (trong), HaoQuang). Dựng bằng file `bt_base.py` / `bt_levels.py` (`design/vuon-may/scripts/`).
+    Cấp: Lv2 2 dải bạc · Lv3 + 6 bông tuyết nhỏ · Lv4 + 4 chùm tinh thể băng PHÁT SÁNG ở chân · Lv5 + 16 cột băng rủ từ miệng + chỉ bạc uốn sóng · Lv6 vương miện 12 tinh thể sáng quanh miệng
+    + cột băng + chùm tinh thể + 2 vòng hào quang sương giá + 14 hạt tuyết / sao lấp lánh + bông tuyết lớn phát sáng phía trước. Đã đo 8 cây × 6 chậu (`PLANT_FIT`).
+  - **Bộ Sứ Lam = hạng S, "LỆCH RATE" 1** (bộ thứ 8, ĐÃ LÀM — B1 của kế hoạch chậu S; rơi khi ra vàng ngoài banner): sứ trắng vẽ lam cobalt + viền vàng kiểu đồ sứ cung đình.
+    Hiệu ứng chính **Mùa may** (cơ hội thu gấp đôi; 2 / 4 / 6 chậu: lv1 6 / 12 / 18%, lv6 15 / 30 / 45%), đủ bộ thưởng **Bội thu** (lv1 +6% → lv6 +15%) + **đặc quyền "Cây chín tự vào kho"** (`perk`).
+    Collection `BoChau_SuLam` (hàng mẫu x 9 → 16,5; y −20), file `chau-su-lam.glb` (~0,98MB, đã giảm đỉnh: thân 0,5, Lv 0,38–0,6).
+    6 chậu `ChauSL_1…6`: 1 **Bình hoa lam** (dáng bình cổ thắt, dải lam, đường sóng, mây cuộn đôi), 2 **Bát sen** (12 cánh sen viền lam + sóng nhỏ), 3 **Chóe tai lân** (2 tai vòng vàng có núm),
+    4 **Đôn sứ** (2 hàng đinh, 4 ô hoa 4 cánh), 5 **Chậu bát giác** (8 mặt, mỗi mặt 1 vòng lam), 6 **Chậu chân quỳ** (3 chân vàng uốn cong + vòng đế vàng).
+    Vật liệu `SL_*` (SuTrang, Lam, LamNhat, NgocSang (phát sáng), NgocBich, DayDo, HaoQuang (trong, phát sáng), SaoLapLanh). Mặt cắt `sl_specs`; dựng cấp bằng file `sl_levels.py` (`design/vuon-may/scripts/`).
+    Cấp: Lv2 2 dải vàng · Lv3 + 6 hoa vàng nhuỵ ngọc sáng · Lv4 + 4 huy chương vàng có ngọc trai PHÁT SÁNG · Lv5 + chỉ vàng uốn sóng ở chân + 2 tua ngọc bích (dây đỏ, nắp vàng, tua đỏ)
+    · Lv6 vương miện vàng 10 vòm có ngọc sáng quanh miệng + huy chương to + tua ngọc + **2 vòng hào quang xanh dưới đáy** + 9 sao lấp lánh. Huy chương chậu 4 / 5 lệch góc để không đè hoa văn sẵn có.
+    Đã đo 8 cây × 6 chậu (hàm `fit_plants` trong `H2`, chậu bát giác đo theo bán kính đỉnh / cạnh): bí ngô / dưa hấu / hướng dương thu nhỏ ở vài chậu (`PLANT_FIT`).
+  - **Bộ Thiên hà = hạng A, BỘ 4 CHẬU, CHỈ ĐẶT Ở TẦNG 4** (bộ thứ 7, ĐÃ LÀM; `tiers: [3]` trong `POT_SETS`, `tierBlock`: ở tầng khác ô chậu mờ + "Chỉ đặt ở tầng 4", `placePot` cũng chặn).
+    Mốc theo 2 / 3 / 4 chậu khác nhau: hiệu ứng chính **Lớn nhanh** (lv1 −4 / −8 / −12%, lv6 −10 / −20 / −30%; trùng hiệu ứng với Rừng nấm vì hạng A chỉ có 4 hiệu ứng),
+    đủ bộ thưởng **Thêm kinh nghiệm** (lv1 +4% → lv6 +10%). Collection `BoChau_ThienHa`, hàng mẫu ngoài mây (x 9 → 13,8; y −16); file `chau-thien-ha.glb` (~0,38MB).
+    4 chậu `ChauTH_1…4`: 1 **Trăng khuyết** (xanh đêm chấm sao, trăng khuyết vàng phát sáng nhẹ nhô lên sau lưng), 2 **Hành tinh** (cam hồng, 2 dải đậm, vành vàng nghiêng),
+    3 **Ngôi sao** (xanh đêm, 5 cánh sao vàng xoè quanh miệng), 4 **Tinh vân** (tím, 3 nhánh xoắn xanh / hồng, chấm sáng).
+    Vật liệu `TH_*` (DemXanh, Trang (phát sáng nhẹ), HanhTinh, HanhTinhDam, VanhHT, VangSao, TinhVan 1–3, SaoSang / TrangSang phát sáng, ChamTrang). Mặt cắt lưu ở `th_specs`.
+    Cấp: Lv2 3 sao vàng trên thân · Lv3 chòm sao sáng nối dây vàng + 2 sao · Lv4 1 quỹ đạo vàng nghiêng + mặt trăng nhỏ · Lv5 2 quỹ đạo + 2 mặt trăng (1 sáng) + chòm sao
+    · Lv6 vành vàng + vương miện 5 sao sáng + 2 quỹ đạo trăng sáng + 10 sao lấp lánh + sao chổi. Đã đo 8 cây × 4 chậu: chỉ dưa hấu thu nhỏ nhẹ (0,9–0,95).
+  - **Bộ Mật ong = hạng A** (bộ thứ 6, ĐÃ LÀM): hiệu ứng chính **Hút côn trùng** (gặp bọ rùa / đom đóm / nhện / sâu nhiều hơn; 2 / 4 / 6 chậu: lv1 +4 / +8 / +12%, lv6 +10 / +20 / +30%),
+    đủ bộ thưởng **Ít sâu** (lv1 −4% → lv6 −10%). Collection `BoChau_MatOng`, hàng mẫu ngoài mây (x 9 → 16,5; y −14); file `chau-mat-ong.glb` (~1MB, đã giảm đỉnh mạnh: thân 0,55, Lv 0,4–0,5).
+    6 chậu `ChauMO_1…6`: 1 **Tổ ong rơm** (vòng rơm chồng, cửa tổ), 2 **Hũ mật ong** (hổ phách bóng, khăn đỏ buộc cổ, nhãn hình ong), 3 **Chậu tổ ong** (LỤC GIÁC, ô lục giác nổi trên 6 mặt),
+    4 **Hoa cúc** (thân vàng, 18 cánh trắng xoè quanh miệng, lá ở chân), 5 **Cánh bướm** (tím nhạt, 2 cánh bướm xanh / cam hai bên), 6 **Chú ong** (vàng, 2 sọc đen, mắt, má hồng, cánh, râu, kim).
+    **Chậu lục giác** dựng bằng mặt cắt xoay với 6 cạnh (bán kính ĐỈNH = bán kính cạnh / cos30°); kiểm tra xuyên thành dùng bán kính đỉnh cho mặt ngoài và bán kính cạnh cho mặt trong (an toàn hơn).
+    Vật liệu `MO_*` (Rom, RomDam, HoPhach, Mat, MatSang / PhanHoa phát sáng, VangOng, Den, Canh, TimNhat, Buom1, Buom2, CanhHoa, Nhuy, La, Vai, HoaHong, OTim). Mặt cắt lưu ở `mo_specs`.
+    Cấp: Lv2 2 chú ong đậu trên thân · Lv3 2 ong + 3 hoa cúc nhỏ · Lv4 mật chảy từ miệng chậu (7 giọt) + dây hoa lá quanh thân · Lv5 mật chảy + dây hoa hồng + 3 ong bay + 1 bướm
+    · Lv6 mật PHÁT SÁNG (9 giọt) + vành vàng + dây hoa + 3 ong bay + 2 bướm + 12 hạt phấn hoa lấp lánh. Đã đo 8 cây × 6 chậu: bí ngô / dưa hấu thu nhỏ ở nhiều chậu (`PLANT_FIT`, thấp nhất 0,65).
+  - **Bộ Trung thu = hạng A** (bộ thứ 5, ĐÃ LÀM): hiệu ứng chính **Bội thu** (thêm nông sản; 2 / 4 / 6 chậu: lv1 +4 / +8 / +12%, lv6 +10 / +20 / +30%),
+    đủ bộ thưởng **Giá tốt** (lv1 +4% → lv6 +10%). Collection `BoChau_TrungThu`, hàng mẫu ngoài mây (x 9 → 16,5; y −12); file `chau-trung-thu.glb` (~0,75MB).
+    6 chậu `ChauTT_1…6`: 1 **Bánh trung thu** (thấp, 8 múi, hoa văn tròn), 2 **Đèn lồng** (đỏ, 12 nan, đai vàng, cổ hẹp), 3 **Mặt trăng** (vàng nhạt, miệng hố),
+    4 **Ông sao** (thân đỏ, 5 ngôi sao vàng quanh thân, viền vàng), 5 **Thỏ ngọc** (trắng, 2 tai ở phía sau miệng, mắt / mũi / má hồng, đuôi bông), 6 **Trống lân** (thân đỏ, mặt da trống, 2 hàng đinh vàng).
+    Vật liệu `TT_*` (Banh, BanhDam, Do, DoDam, VangNhat, Trang, Hong, Den, Trang2, MiengTrang, DaTrong, Xanh, XanhLa, DenLong / SaoSang phát sáng). Mặt cắt lưu ở `tt_specs` lúc dựng.
+    Cấp: Lv2 ruy băng + nơ phía trước · Lv3 ruy băng + 2 đèn lồng đỏ treo vành · Lv4 dây cờ đuôi nheo 4 màu + 3 đèn lồng · Lv5 dây cờ + 3 đèn lồng PHÁT SÁNG + 2 đèn ông sao sáng cắm hai bên
+    · Lv6 vành vàng + dây cờ đỏ vàng + đèn lồng sáng + 2 đèn ông sao to + 8 ngôi sao nhỏ bay trên miệng chậu.
+    Đã đo 8 cây × 6 chậu: Đèn lồng cổ hẹp nên bí ngô 0,75, dưa hấu 0,65; dưa hấu 0,9 ở 4 chậu khác (`PLANT_FIT`).
+  - **Bộ Rừng nấm = hạng A** (bộ thứ 4, ĐÃ LÀM): hiệu ứng chính **Lớn nhanh** (giảm thời gian chín; 2 / 4 / 6 chậu: lv1 −4 / −8 / −12%, lv6 −10 / −20 / −30%),
+    đủ bộ thưởng **Hạt rẻ** (lv1 −4% → lv6 −10%). Collection `BoChau_RungNam`, hàng mẫu ngoài mây (x 9 → 16,5; y −10); file `chau-rung-nam.glb` (~0,6MB).
+    6 chậu `ChauNam_1…6`: 1 **Nấm mũ đỏ** (thân kem, vành mũ nấm đỏ chấm trắng xoè ra), 2 **Gốc cây** (vỏ sần, vòng gỗ ở miệng, 5 rễ bám đất), 3 **Chậu đá rêu** (đá sần + mảng rêu),
+    4 **Nhà nấm** (vành mũ tím, cửa gỗ vòm, cửa sổ tròn sáng đèn), 5 **Chậu lá** (9 lá to ôm thân, chóp cong ra), 6 **Chậu nấm chùm** (bát gỗ + 3 chùm nấm ở chân).
+    Vật liệu `Nam_*` (Do, Trang, Than, VoCay, GoVong, Da, Reu, Tim, La, LaNhat, CuaGo, CuaSo / NamSang / DenTien / DomDom phát sáng, NamNau). Mặt cắt lưu ở `nam_specs` lúc dựng.
+    Cấp: Lv2 2 nấm nâu ở chân · Lv3 3 nấm đỏ chấm trắng + rêu · Lv4 3 nấm xanh PHÁT SÁNG + 2 lá dương xỉ · Lv5 4 dây đèn tiên quanh thân + nấm sáng + dương xỉ
+    · Lv6 vành vàng + đèn tiên + 5 nấm sáng to + 7 đom đóm bay quanh miệng chậu + dương xỉ. Đã đo 8 cây × 6 chậu: bí ngô / dưa hấu thu nhỏ ở vài chậu (`PLANT_FIT`).
+  - **Bộ Biển cả = hạng A** (bộ thứ 3, ĐÃ LÀM): hiệu ứng chính **Giữ ẩm** (cơ hội cây tự tính là đã tưới; 2 / 4 / 6 chậu khác nhau: lv1 4 / 8 / 12%, lv6 10 / 20 / 30%),
+    đủ bộ thưởng **Thêm kinh nghiệm** (lv1 +4% → lv6 +10%). Collection `BoChau_BienCa`, hàng mẫu ngoài mây (x 9 → 16,5; y −8); file `chau-bien-ca.glb` (~0,97MB).
+    6 chậu `ChauBien_1…6`: 1 **Vỏ sò** (thấp rộng, 14 khía + gân, miệng gợn), 2 **Ốc xoắn** (gờ xoắn 3 vòng + gai), 3 **Chậu san hô** (xanh biển sâu, đế cát, 3 bụi san hô đỏ hồng),
+    4 **Sóng biển** (xanh ngọc, dải xanh đậm, 2 đường sóng trắng + bọt), 5 **Thùng gỗ đắm** (16 ván, 3 đai sắt, hà bám), 6 **Hũ xà cừ** (đặt trên vỏ hàu, chuỗi ngọc ở cổ).
+    Vật liệu `Bien_*` (XanhNgoc, XanhDam, Cat, SoHong, SoHongDam, SanHo, XaCu, NgocTrai, NgocSang (phát sáng), Go, Sat, Bot, Rong, SaoBien). Mặt cắt lưu ở `bien_specs` lúc dựng.
+    Cấp: Lv2 3 vỏ sò nhỏ · Lv3 2 sao biển cam + 2 vỏ sò · Lv4 chuỗi ngọc trai quanh miệng + 3 sao biển · Lv5 chuỗi ngọc miệng + 3 dây ngọc rủ + sao biển + 2 bụi san hô + 2 dải rong
+    · Lv6 vành vàng + chuỗi / dây ngọc PHÁT SÁNG + 2 sao biển vàng + vỏ sò lớn ôm ngọc trai phát sáng phía trước + 2 bụi san hô.
+    Đã đo 8 cây × 6 chậu: chỉ bí ngô / dưa hấu phải thu nhỏ ở vài chậu (`PLANT_FIT`).
+  - **Bộ Mây tre = hạng B** (bộ thứ 2, ĐÃ LÀM): hiệu ứng chính **Giá tốt** (bán nông sản đắt hơn; 2 / 4 / 6 chậu khác nhau: lv1 +2 / +3 / +5%, lv6 +4 / +8 / +12%),
+    đủ bộ thưởng **Ít sâu** (lv1 −2% → lv6 −5%). Collection `BoChau_MayTre` trong `tang-may.blend`, đặt riêng 1 hàng ngoài mây (x 9 → 16,5; y −6) để làm mẫu;
+    6 chậu `ChauTre_1…6`: 1 **Giỏ đan tròn**, 2 **Ống tre** (đốt tre xanh), 3 **Thúng mây** (vòng cuộn), 4 **Gùi tre** (cao, loe miệng), 5 **Bình mây** (bầu, cổ thắt), 6 **Giỏ chân tre** (4 chân tre + đai).
+    Đan mây = vỏ xoay mặt cắt + các vòng ngang 2 màu + 18 nan dọc theo mặt cắt. Vật liệu `Tre_May` / `Tre_MayDam` / `Tre_Xanh` / `Tre_Dot` / `Tre_Ruot` / `Tre_Coi` / `Tre_SonDo` / `Tre_DenLong` / `Tre_La`.
+    Cấp (lớp riêng, KHÔNG cộng dồn, cùng quy ước `_Lv2…Lv6`): Lv2 1 dây cói · Lv3 2 dây cói + 6 nút buộc · Lv4 vành sơn mài đỏ + dây cói + 2 tua đỏ
+    · Lv5 vành sơn đỏ + 2 dải sơn đỏ + 3 nhánh lá tre · Lv6 vành vàng + 2 dải đỏ viền vàng + 3 đèn lồng đỏ nhỏ (phát sáng nhẹ) treo ở vành.
+    Mặt cắt (ngoài / trong, dùng để kiểm tra xuyên thành) lưu ở `tre_specs` lúc dựng; đã kiểm tra 8 cây × 6 chậu: chỉ hướng dương / bí ngô / dưa hấu phải thu nhỏ ở vài chậu (`PLANT_FIT`).
   - **Bộ đất nung = hạng B**: hiệu ứng chính **Hạt rẻ** (2 / 4 / 6 chậu khác nhau: lv1 −2 / −3 / −5%, lv6 −4 / −8 / −12% giá hạt gieo ở tầng đó);
     đủ bộ thưởng **+kinh nghiệm** (lv1 +2% → lv6 +5%).
   - **Bộ chậu đất nung cơ bản** (bộ đầu tiên, 6 chậu, chưa có cấp / hiệu ứng): dựng trong Blender, collection `BoChau_DatNung` (ảnh `bo-chau-dat-nung.png`),
@@ -688,7 +765,10 @@ Game nông trại **tự thiết kế** (cùng thể loại game trồng trọt,
 - [x] **GĐ3 ĐÃ LÀM — đặt / dời / cất chậu**:
   - Dữ liệu bộ chậu `src/pages/garden/data/pots.ts`: `POT_SETS` (bộ: tên, hạng, các chậu, hiệu ứng chính + mốc `{ count, lv1, lv6 }`, thưởng đủ bộ), `POT_KINDS` (chậu: tên, `shape` = dáng trong `chau-dat-nung.glb`),
     `setsOnTier` (số chậu khác nhau, cấp trung bình của các chậu được tính — mỗi loại lấy chậu cấp cao nhất —, mốc đã đạt, mức hiệu ứng), `valueAt` (tăng đều lv1 → lv6), `RANK_STYLE`.
-    **Thêm bộ chậu mới: thêm vào `POT_SETS` + `POT_KINDS` + ảnh `public/game/chau/<kind>_<cấp>.webp`.** Hiệu ứng mới thêm vào `EFFECTS`.
+    **Thêm bộ chậu mới**: xuất 1 file `.glb` riêng cho bộ (`POT_SETS[].file`, vd `chau-may-tre.glb` ~0,64MB; game tự tải mọi file bộ chậu),
+    thêm vào `POT_SETS` + `POT_KINDS` (`model` = tên node gốc, con `<model>_Than` / `_Dat` / `_DiemCay` / `_Lv2…Lv6`) + 36 ảnh `public/game/chau/<kind>_<cấp>.webp`,
+    đo 8 cây × chậu mới và ghi `PLANT_FIT` (khoá = id loại chậu). Hiệu ứng mới thêm vào `EFFECTS` (đang có Hạt rẻ, Thêm kinh nghiệm, Giá tốt, Ít sâu, Giữ ẩm, Lớn nhanh, Bội thu, Hút côn trùng; hạng S: Mùa may, Máy chạy nhanh, Lớn nhanh + Bội thu; bộ S có thêm `perk` = đặc quyền đủ bộ).
+    **Chưa có gacha: mọi người được sẵn các bộ trong `STARTER_SETS`** (Đất nung + Mây tre + Biển cả + Rừng nấm + Trung thu + Mật ong + Thiên hà + Sứ Lam + Băng Tinh + Phượng Hoàng — tạm để thử, khi làm gacha (GĐ7) thì bỏ bớt; bộ nào chưa có chậu nào thì `withStarterSets` thêm 6 chậu cấp 1, id `g_<loại>`, nằm trong kho).
   - Vườn có thêm `pots` = mọi chậu đang có `{ id, kind, level }` và `placed` = map `"<tầng 0-3>-<chỗ>"` → id chậu (`slotKey`). **Chưa có gacha nên mỗi người được sẵn bộ Đất nung 6 chậu cấp 1**
     (`startPots`): vườn mới đặt sẵn 6 chậu ở 6 chỗ đầu tầng 1; vườn cũ chưa có `pots` thì mỗi ô đất đã mở được 1 chậu đúng dáng mặc định của chỗ (thêm chậu nếu > 6 ô), lưu lại ở lần ghi kế tiếp.
   - Ghi: `placePot` / `movePot` / `storePot` (`data/api.ts`, transaction): chỉ ở tầng đã mở khoá; **dời chỉ trong cùng tầng** (tầng 1: cây đi theo chậu, `plots[from]` → `plots[to]`);
@@ -702,6 +782,149 @@ Game nông trại **tự thiết kế** (cùng thể loại game trồng trọt,
     Menu chậu (`PotMenu`): [Đóng] [Dời chỗ] [Cất vào kho]; chậu có cây: lần đầu hiện "Cất chậu? Cây đang trồng sẽ mất", nút thành "Cất luôn". Dời chỗ: dải trên cùng "Chạm vào vòng trống…" + [Huỷ].
     Báo kết quả / lỗi bằng dòng nhắc ngắn (2,4 giây).
   - **Cuộn trong game dùng `DragScroll`** (`game/DragScroll.tsx`, trục `x` / `y`, toạ độ qua `toLocal`, quán tính + kéo lại ở 2 đầu, kéo > 8px thì chặn click của mục bên dưới), không dùng cuộn gốc.
+- [ ] **Gieo hạt trên cảnh 3D (GĐ4) — ĐÃ CHỐT, CHƯA LÀM** (chốt: làm theo mọi đề xuất bên dưới, cộng thêm):
+  - **Lướt ngón tay qua nhiều chậu = gieo liên tục mọi chậu trống đi qua** (không phải mỗi lần kéo 1 chậu).
+  - **Chỉ dùng hạt đang có trong túi** (`seeds`, nhận từ gacha / mua ở cửa hàng); **hết hạt thì bao biến mất, phải đi mua** (KHÔNG tự trừ lông chim khi gieo).
+  - Bao hạt biến mất khi: hết hạt, chạm chỗ trống, bấm nút X, chuyển tầng.
+  - Danh sách hạt = dải cuộn ngang ở đáy (giống danh sách chậu): bao hạt, tên cây, số hạt đang có; cây chưa đủ cấp thì mờ.
+  - **Đổi dữ liệu trồng cây**: bỏ `plots[12]` (chỉ tầng 1), lưu cây theo chỗ đặt chậu `plants["<tầng>-<chỗ>"]` = `{ crop, plantedAt, watered, bugCleared }`;
+    Dời chậu thì cây đi theo, cất chậu thì mất cây (như hiện tại). **Người dùng đã đồng ý: dữ liệu `plots` / `unlocked` của bảng 2D cũ KHÔNG quan trọng,
+    làm theo cách dễ code nhất cho game 3D** (không cần chuyển dữ liệu cũ; được bỏ trang 2D cũ `/garden/farm` + `plots` / `unlocked` / `buyPlot`).
+  - **Mô hình túi hạt giống (ĐÃ LÀM)**: collection `TuiHatGiong` trong `tang-may.blend` (hàng mẫu x 9, y −26), xuất `public/models/tui-hat.glb` (~40KB, meshopt, CÓ UV).
+    Ảnh xem thử `design/vuon-may/tui-hat-giong.png` (4 màu + nhãn tạm). Dựng bằng `tui_hat.py` (`design/vuon-may/scripts/`). Cây:
+    ```
+    TuiHat (Empty, gốc ở GIỮA túi: tiện lơ lửng / kéo thả; túi cao ~0,7, rộng ~0,54)
+      TuiHat_Than   túi giấy dạng gối (phồng giữa, đáy bo, hẹp dần lên miệng, nếp nhăn nhẹ) + dải dán miệng răng cưa + chỉ khâu nét đứt 2 mặt
+                    vật liệu: TuiHat_Than (sáng màu → code tô màu theo `CROPS[].color`), TuiHat_Mieng (code tô đậm hơn ~0,7), TuiHat_Chi (giữ màu kem)
+      TuiHat_Nhan   nhãn mặt trước (mặt -Y Blender = +Z three), lưới uốn theo mặt túi, UV 0..1, vật liệu TuiHat_Nhan trắng → code gán `map` = ảnh nhãn
+                    (nền kem + viền + icon cây, vẽ bằng canvas từ `public/game/cay/<id>.webp`)
+    ```
+  Ghi chú lúc đề xuất (giữ để tham khảo):
+  - **Cách gieo (người dùng mô tả)**: chạm 1 chậu chưa gieo → hiện **danh sách hạt giống** → chọn 1 loại → **bao hạt giống** của loại đó hiện **lơ lửng phía trên chậu**
+    (gieo luôn vào chậu đó) → người chơi **kéo bao hạt sang các chậu trống khác** để gieo tiếp. Mỗi loại cây có **item "bao hạt giống" riêng**.
+  - **Mô hình bao hạt (đề xuất)**: CHỈ 1 mô hình 3D túi hạt (Blender, `public/models/tui-hat.glb`, nhẹ) có 1 mặt nhãn riêng; màu túi tô theo `CROPS[].color`,
+    nhãn = ảnh icon cây dán bằng texture trong code → 1 mô hình ra đủ mọi loại bao (thêm cây mới không phải dựng lại).
+    Icon cây = ảnh render giai đoạn chín của từng cây (`public/game/cay/<id>.webp`), dùng chung cho danh sách hạt, kho, nhiệm vụ…;
+    ảnh bao hạt trong danh sách (2D) = ảnh túi nền + icon cây chồng lên bằng CSS (không phải render từng bao).
+  - **Bất cập đã nêu, cần chốt**: (1) kéo bao lẫn với xoay camera 1 ngón → chạm bắt đầu trên bao = kéo bao, chỗ khác = xoay;
+    (2) chậu nhỏ / bị che khi thu xa → "hút" vào chậu trống gần ngón tay nhất trong bán kính trên màn hình, chậu nhận được thì sáng viền;
+    (3) kéo **lướt qua nhiều chậu gieo liên tục** hay mỗi lần kéo chỉ 1 chậu; (4) **hết hạt giữa chừng**: hạt lấy từ túi (gacha) hay tự mua bằng lông chim mỗi lần gieo;
+    (5) mỗi chậu 1 lần ghi Firestore là chậm → gom các chậu đã gieo trong 1 lần kéo rồi ghi 1 transaction lúc thả tay (hiện trước trên màn hình);
+    (6) bao hạt biến mất khi nào (chạm chỗ trống / nút X / chuyển tầng); (7) ngón tay che bao → bao nổi lệch lên trên ngón tay;
+    (8) dữ liệu hiện chỉ có `plots[12]` cho tầng 1 → đổi sang cây theo chỗ đặt chậu `"<tầng>-<chỗ>"` để gieo được ở tầng 2–4;
+    (9) chạm chậu đang có cây: chín = thu hoạch, chưa chín = tưới / bắt sâu (không mở danh sách hạt).
+- [ ] **Tiền trong game + cục roll (ĐÃ CHỐT phần dưới, CHƯA LÀM)**:
+  - **Bỏ xu trong game Vườn mây, chỉ còn 2 loại tiền**: **Lông chim** và **Đá vũ trụ**. **Mua hạt và bán nông sản dùng LÔNG CHIM.**
+    **Xu + cấp độ cũ đang hiện ở menu app Giải trí (`GardenStats`) GIỮ NGUYÊN, KHÔNG SỬA.** Lông chim, đá vũ trụ và **kinh nghiệm của game làm RIÊNG** và **hiển thị trong game**.
+  - **Lông chim**: nâng cấp chậu (**côn trùng + lông chim**, lông chim thay chỗ xu), mua hạt. Kiếm từ: **bán nông sản**, **nhiệm vụ hằng ngày**, **đổi từ đá vũ trụ**.
+  - **Đá vũ trụ**: mua cục roll. Kiếm từ: **tặng khi lên cấp**, **bán sản phẩm của máy chế tạo**, **nhiệm vụ hằng ngày**.
+  - Nhiệm vụ hằng ngày, vd 1 nhiệm vụ thưởng **20 lông chim + 16 đá vũ trụ**. **Không nạp tiền thật.**
+  - **Cục roll** (vật phẩm quay gacha), 2 loại **làm giống hệt nhau, chỉ khác màu**: **"Sao Duyên"** = banner 1, ánh sáng **xanh biển trắng**;
+    **"Vọng Tinh"** = banner 2, ánh sáng **vàng trắng**. Hình **khối chữ nhật, bên trong có ngôi sao phát sáng**. **Giá 16 đá vũ trụ / cục, 2 loại bằng giá.** **Cho quay 10 lần 1 lượt.**
+  - **Chậu tặng sẵn khi bắt đầu: chỉ bộ Đất nung** (bỏ các bộ khác khỏi `STARTER_SETS` khi làm phần này; các bộ khác lấy qua gacha).
+  - **Kinh nghiệm game mới** (riêng, bắt đầu từ 0): **mở tầng theo cấp game mới** (tầng 2 / 3 / 4 ở cấp 5 / 10 / 15), công thức lên cấp giữ như `levelOf`.
+  - **Giá hạt / giá bán nông sản**: giữ đúng các con số hiện có trong `CROPS`, chỉ đổi đơn vị xu → **lông chim**.
+  - **Vốn ban đầu**: **100 lông chim + 32 đá vũ trụ**, và **tặng 20 Vọng Tinh qua HÒM THƯ** (thư quà chào mừng, bấm nhận).
+  - **Đổi đá → lông chim: 1 đá = 5 lông chim**, chỉ 1 chiều.
+  - **Đá tặng khi lên cấp: 16 đá / cấp; cấp 5 / 10 / 15 (mốc mở tầng) tặng 160 đá.**
+  - **Nâng cấp chậu** (côn trùng loại nào cũng được + lông chim), hạng A giá ×1,5, hạng S ×2:
+    | Lên cấp | Côn trùng | Lông chim |
+    |---|---|---|
+    | 1→2 | 2 | 50 |
+    | 2→3 | 4 | 100 |
+    | 3→4 | 6 | 200 |
+    | 4→5 | 8 | 400 |
+    | 5→6 | 10 | 800 |
+  - **Quay 10 lần = 160 đá** (không giảm giá). Tỉ lệ / đảm bảo trong banner: chờ người dùng mô tả gacha.
+  - **Nhiệm vụ hằng ngày: mỗi ngày 5 nhiệm vụ NGẪU NHIÊN**, độ khó tăng theo **số tầng đã mở** (đề xuất, xem danh sách dưới).
+  - **HUD trong game**: **trái** = nút thoát + **cấp + thanh kinh nghiệm**; **giữa** = **đá vũ trụ + lông chim**;
+    **phải** = các nút CHỈ CÓ ICON: **cửa hàng, hòm thư, gacha, túi đồ**. Số Sao Duyên / Vọng Tinh hiện trong màn hình gacha.
+  - **Icon tiền (ĐÃ LÀM, dựng trong Blender, CHỈ xuất ảnh — không đưa mô hình 3D vào game)**: collection `TienTe` (`Tien_LongChim`, `Tien_DaVuTru`; ảnh xem `design/vuon-may/tien-te.png`).
+    **Lông chim** = lông vũ cong, phiến trắng ngà chuyển tím nhạt ở đầu lông (màu chuyển theo trục cục bộ bằng ColorRamp), 2 khe tách tơ mỗi bên, cọng vàng nhạt, lông tơ ở gốc, 3 ngôi sao lấp lánh 4 cánh.
+    **Đá vũ trụ** = tinh thể 2 chóp nhiều mặt cắt tam giác (vòng 8 cạnh lệch góc), màu tinh vân xanh dương → tím → hồng, trong mờ, lõi sáng + quầng + đốm sao li ti bên trong, 3 ngôi sao lấp lánh.
+    Icon `public/game/tien/long_chim.webp` / `da_vu_tru.webp` (128px, cắt sát hình, ~10–13KB), render kiểu ghép 2 lần giữ quầng sáng như cục roll; đã xem thử ở cỡ 24 / 32 / 48px.
+  - **Cục roll dựng trong Blender** (collection `CucRoll`), phát sáng nhè nhẹ: khối chữ nhật pha lê trong mờ bo cạnh + khung bạc mảnh; bên trong là **QUẢ CẦU SÁNG TRÒN có các TIA SÁNG** (KHÔNG dùng ngôi sao 5 cánh) + **1 HÀNH TINH NHỎ MÀU ĐEN** lơ lửng bên cạnh.
+    **ĐÃ DỰNG** (ảnh `design/vuon-may/cuc-roll.png`): `Roll_SaoDuyen` / `Roll_VongTinh` (Empty, thuộc tính `ten`, `banner` 1 / 2), hàng mẫu ngoài mây (x 9 / 10,2; y −18). Con:
+    `_Vo` (**khối LẬP PHƯƠNG thủy tinh trong suốt** cạnh 0,6, bo cạnh 0,05, **KHÔNG có khung viền**; trong Blender độ trong theo góc nhìn (fresnel: giữa 5%, viền 42%), file .glb dùng độ trong cố định 15% — trong game nên làm lại fresnel bằng shader), `_Loi` (quả cầu sáng), `_Quang` + `_Quang2` + `_Quang3` (3 lớp quầng sáng mờ dần ra ngoài — giả hiệu ứng toả sáng, dùng được cả trong game không cần bloom), `_Tia` (16 tia dài / ngắn xen kẽ),
+    `_HanhTinh` (cầu đen bóng) + `_VanhHT` (vành mảnh ánh màu), `_Dom` (12 đốm sáng li ti); các bộ phận động có thuộc tính `anim`. Vật liệu `Roll_<Ten>_*` (chỉ khác màu), `Roll_Khung`, `Roll_HanhTinhDen`.
+    Xuất `public/models/cuc-roll.glb` (~95KB, meshopt) + icon `public/game/roll/sao_duyen.webp` / `vong_tinh.webp` (256px, render tông màu **Standard** — tông AgX làm màu phát sáng bị bạc).
+    **Icon giữ quầng sáng trên nền trong suốt**: cảnh có compositor `NenSang` (Glare kiểu Bloom); render nền trong suốt thì mất phần sáng tràn ra ngoài vật,
+    nên render 2 lần (nền trong suốt + nền đen tắt trời) rồi ghép: alpha = max(alpha vật, độ sáng ảnh nền đen), màu = ảnh nền đen chia alpha.
+    Trong game muốn sáng như icon thì cần thêm bloom (postprocessing) hoặc dựa vào 3 lớp quầng.
+  - **Nhiệm vụ hằng ngày (ĐÃ CHỐT)**: mỗi ngày (làm mới 0 giờ) bốc **5 nhiệm vụ khác loại** từ bảng dưới, cố định theo ngày + người chơi;
+    **bậc = số tầng đã mở** (1–4), con số theo bậc 1 / 2 / 3 / 4. Nhiệm vụ cần thứ chưa có (máy chế tạo, nâng cấp chậu…) thì chỉ bốc khi đã có chức năng đó.
+    | Nhiệm vụ | Bậc 1 | Bậc 2 | Bậc 3 | Bậc 4 |
+    |---|---|---|---|---|
+    | Gieo hạt | 3 | 6 | 10 | 15 |
+    | Tưới cây | 3 | 6 | 10 | 15 |
+    | Thu hoạch nông sản | 5 | 12 | 20 | 32 |
+    | Thu hoạch 1 loại cây chỉ định (loại đã mở) | 2 | 4 | 6 | 8 |
+    | Bán nông sản | 5 | 12 | 20 | 35 |
+    | Kiếm lông chim từ bán nông sản | 40 | 100 | 200 | 350 |
+    | Bắt côn trùng | 1 | 3 | 5 | 8 |
+    | Bắt 1 loại côn trùng chỉ định | 1 | 2 | 3 | 4 |
+    | Thu hoạch ở tầng chỉ định (tầng đã mở) | — | 4 | 8 | 12 |
+    | Chế tạo sản phẩm ở máy | 1 | 3 | 5 | 8 |
+    | Nâng cấp chậu | — | 1 | 1 | 2 |
+    | Thu hoạch cây hạng cao (cây mở ở cấp ≥ 5) | — | 2 | 4 | 6 |
+    Thưởng mỗi nhiệm vụ: bậc 1 **20 lông chim + 16 đá**, bậc 2 25 + 16, bậc 3 30 + 24, bậc 4 40 + 32. **Xong cả 5 nhiệm vụ trong ngày: thưởng thêm 1 Sao Duyên.**
+    Xong nhiệm vụ thì bấm nhận thưởng (không tự cộng), ngày qua thì nhiệm vụ cũ mất.
+- [ ] **Gacha (ĐÃ CHỐT, CHƯA LÀM — làm SAU khi có các bộ chậu hạng S)**:
+  - **ĐÃ LÀM (bản đầu — banner CHẬU, dùng Vọng Tinh)**: nút tròn có hình Vọng Tinh ở góc phải trên HUD + ô đá vũ trụ ở giữa trên → `GachaScreen` (`game/GachaUi.tsx`, phủ kín khung game):
+    banner (tên bộ S, tháng, 6 chậu cấp 6, số lần còn tới vàng chắc chắn, bảo hiểm), số Vọng Tinh / Sao Duyên / đá, **nhận quà chào mừng 20 Vọng Tinh** (tạm nhận tại đây, chưa có hòm thư),
+    **đổi 1 / 10 Vọng Tinh** (16 đá / cục), **Quay ×1 / ×10**, bảng "Tỉ lệ" (quy tắc + tỉ lệ) và "Lịch sử" (100 lần gần nhất). Quay = `pullPots` (`data/api.ts`, 1 transaction: trừ roll, quay, ghi kết quả + lịch sử)
+    → **`RollReveal`** (`game/RollReveal.tsx`, hiệu ứng ở trên, tự vỡ không cần chạm) → hiện từng món (chạm để tiếp, "Bỏ qua") → tổng kết 2×5 [Xong] [Quay tiếp].
+    Logic ở `data/gacha.ts` (`pullMany`, `goldRate`, `bannerOf`; lịch banner `BANNER_SETS` xoay theo tháng từ 11/2026, hiện chỉ có Phượng Hoàng; vàng lệch lấy từ các bộ S không có trong lịch `OFF_SETS` = Sứ Lam, Băng Tinh).
+    Đã mô phỏng 300.000 lần: lâu nhất 74 lần ra vàng, ≤ 9 lần liền không tím, sau lệch không bao giờ lệch tiếp, trung bình ~63 lần / vàng.
+    Vườn có thêm `stones` (mặc định 32), `rolls` { sao_duyen, vong_tinh }, `gift`, `seeds` (hạt nhận từ gacha, **chưa dùng để gieo**), `insects` (côn trùng, chưa dùng), `gacha` { sinceGold, sincePurple, insured, total }, `pullLog`.
+    **Hạt giống chỉ rơi 8 cây đang có trong `CROPS`** (cây hiếm thêm sau). **`STARTER_SETS` = chỉ Đất nung** (vườn đã lưu 10 bộ tặng thử trước đây vẫn giữ). Chưa có: banner Sao Duyên, hòm thư, cách kiếm thêm đá, lông chim.
+    **TẠM để test**: tài khoản trong `TESTER_UIDS` (`data/gacha.ts`) thấy nút "+100 Vọng Tinh (test)" trong màn hình gacha (`grantTestRolls`); gỡ khi làm xong phần tiền tệ.
+    Icon nét côn trùng mới trong `GLYPHS`: 🐞 bọ rùa, 🦋 bướm, 🕷 nhện, 🪲 đom đóm (🐛 sâu đã có).
+  - **KHÔNG có sổ tay cách trồng** (đã bỏ). **Đủ cấp + có hạt giống là trồng được.** Hạt giống mua bằng **lông chim**;
+    **nhiều loại hạt HIẾM chỉ rơi từ gacha, KHÔNG bán ở cửa hàng** (tỉ lệ rơi khác nhau theo độ hiếm, xem bảng dưới).
+  - **2 banner, 2 bộ đếm RIÊNG**: **banner 1 = đồ trang trí, dùng Sao Duyên** (hệ thống đồ trang trí + cơ chế mô tả sau); **banner 2 = chậu, dùng Vọng Tinh**.
+  - **Banner chậu**: mỗi đợt **1 tháng**, chỉ định **1 bộ chậu hạng S** (cần ≥ 2 bộ S để có "vàng ngoài banner"); lịch ghi sẵn trong code, xoay vòng các bộ S.
+    1 lần quay = 1 Vọng Tinh; quay 10 lần 1 lượt tỉ lệ y như 10 lần lẻ.
+  - **Tỉ lệ mỗi lần quay**: vàng (chậu S) **0,08%**; tím (**chậu A**) **6%**; chậu B **14%**; **10 hạt giống** **30%**; côn trùng (bọ rùa, sâu, đom đóm, nhện, **bươm bướm**) phần còn lại ≈ 50%, chia đều.
+  - **Bảo đảm tím**: 10 lần quay chắc chắn có ≥ 1 tím; **ra vàng cũng tính là ra tím**.
+  - **Tăng tỉ lệ vàng (đếm từ lần ra vàng gần nhất)**: lần 1–59: 0,08%; **lần 60–63: 10%**; **lần 64–79 tăng dần** (10% + 6% × (n − 63), tức 16%, 22% … 100% ở lần 79);
+    **lần 80 chắc chắn vàng** (thực tế đã đạt 100% ở lần 79 — giữ mốc 80 làm chốt chặn).
+  - **Khi ra vàng**: **33%** vàng ngoài banner (lệch), **33%** vàng TRÙNG chậu đã có của bộ được chỉ định (lệch; chưa có chậu nào của bộ thì không tính lệch → thành chậu mới),
+    **34%** vàng MỚI của bộ. **Lệch thì có bảo hiểm: lần vàng kế tiếp chắc chắn là chậu mới của bộ.**
+    **Đủ bộ thì "reset"**: bắt đầu vòng 2, chậu nào chưa có bản thứ 2 thì KHÔNG tính trùng; tới khi lại gặp bản trùng lần nữa (bản thứ 3…) mới tính trùng (vòng 3, …).
+    **Chậu trùng cứ giữ lại** (đặt ở tầng khác để có hiệu ứng cho tầng đó).
+  - **Bộ đếm lần quay + bảo hiểm giữ nguyên khi đổi sang banner mới** (mỗi banner 1 / 2 một bộ đếm riêng).
+  - **Hiệu ứng lúc vừa bấm quay (ĐÃ CHỐT)** — quay 1 hay 10 lần đều chỉ **1 cục roll** (đúng loại: Vọng Tinh / Sao Duyên), màu báo theo **món hiếm nhất**:
+    1. **Màn hình tối, cục roll ĐÃ CÓ SẴN giữa màn hình nhưng CHÌM TRONG BÓNG TỐI** (KHÔNG loé sáng, KHÔNG phóng to cục roll từ nút quay): kính, hành tinh, đèn phụ, phản chiếu môi trường
+       (`scene.environmentIntensity`) theo bình phương độ sáng trời (`lit2`), lõi sáng theo `lit³` → trăng mới ló thì cục roll gần như vô hình, trăng vào nhiều mới rõ dần.
+    2. **Mặt trăng trôi 1 MẠCH từ ngoài mép phải tới đúng chỗ thẳng hàng, KHÔNG dừng giữa chừng** (đoạn lọt vào màn hình ~2,3 giây đi chậm đều, sau đó tăng tốc mượt rồi chậm dần khi khớp hàng).
+       **Quầng sáng quanh trăng có mặt từ đầu và ló vào mép phải TRƯỚC đĩa trăng** (khu vực trăng sắp xuất hiện sáng hơn chỗ khác; trăng vào tới đâu đã có viền sáng tới đó).
+       **Bầu trời / sao / bụi sáng dần theo PHẦN DIỆN TÍCH quầng (40%) + đĩa trăng (60%) đã lọt vào màn hình** (`onScreen`, lấy mẫu đĩa tròn); **ánh trăng chiếu lên khối kính**: đèn đặt theo hướng trăng + phản chiếu môi trường
+       mạnh dần theo độ sáng trời → mặt kính sáng dần, vệt sáng trượt trên các mặt / cạnh kính khi trăng di chuyển; lõi sáng của cục roll cũng sáng dần.
+    3. **Thẳng hàng**: trăng tới sau cục roll, hành tinh đen trong khối trôi ra trước quả cầu sáng → **trăng – quả cầu – hành tinh thẳng hàng** nhìn từ màn hình;
+       tia sáng dài dần, cục roll rung nhẹ, kính nứt dần. **Nâng màu bất ngờ**: tia đang xanh có thể chuyển tím giữa chừng.
+    4. Thẳng hàng xong thì **khối thủy tinh TỰ VỠ (~0,5 giây sau, KHÔNG cần chạm)** thành mảnh, **ánh sáng bùng lên theo màu**: xanh biển (thường) / tím (chậu A, thêm vòng sóng sáng)
+       / **vàng = nhật thực**: hành tinh che kín quả cầu, tối ~0,4s, rồi vành vàng bừng quanh mép hành tinh tràn trắng màn hình (tím có thể nâng thành vàng đúng lúc này).
+    5. Bay ra 1 / 10 điểm sáng theo màu từng món → màn hiện từng món (chạm để sang món tiếp) → bảng tổng kết 2×5. Có nút **Bỏ qua**.
+    Ánh sáng bằng các lớp quầng + lớp phủ màu toàn màn hình (không bloom). Kết quả quay ghi Firestore TRƯỚC khi phát hiệu ứng.
+    **Chiều sâu 3D** (`RollReveal.tsx`): camera bay vòng nhẹ quanh cục roll (`camAt`: từ trái-trên vòng sang phải, lại gần dần) nên trăng / sao / bụi sáng trượt lệch nhau;
+    cục roll nghiêng 3/4 (thấy 3 mặt), lật chậm; kính phản chiếu môi trường (`RoomEnvironment`) + viền đục sáng theo góc nhìn (fresnel bằng `onBeforeCompile`); hành tinh đen bóng;
+    **mặt trăng là ĐĨA SÁNG đơn giản** (người dùng không muốn trăng 3D), vị trí tính THEO KHUNG NHÌN (trăng ở rất xa, không lệch khi camera bay):
+    trôi vào từ ngoài mép phải theo 1 cung mượt lên góc trên bên phải, rồi trôi đều vào đúng sau quả cầu; mảnh kính là lăng trụ có độ dày, vài mảnh bay sượt qua camera; 260 hạt bụi sáng nhiều lớp xa gần.
+    Phần phát sáng của cục roll (lõi, quầng, tia, đốm) dùng `MeshBasicMaterial` (không chịu đèn) để giữ đúng màu gợi ý.
+  - **Hiệu ứng che màn hình khi ra vàng / tím.** Màn hình banner: xem **quy tắc quay + tỉ lệ rơi từng vật phẩm**, xem **lịch sử đã quay được gì**; số Sao Duyên / Vọng Tinh hiện ở đây.
+  - **Độ hiếm hạt giống (ĐÃ DUYỆT)** — mỗi lần rơi "10 hạt giống" là 10 hạt CÙNG 1 loại; trong suất 30% hạt giống chia theo độ hiếm, trong cùng độ hiếm chia đều:
+    | Độ hiếm | Cây | Bán ở cửa hàng | Tỉ lệ trong suất hạt | ≈ mỗi lần quay (mỗi loại) |
+    |---|---|---|---|---|
+    | Thường | cải, cà rốt, cà chua, ngô, dâu, hướng dương, dưa hấu, bí ngô, **mía** | Có | 60% | 2% |
+    | Hiếm | đậu phộng, chanh, trà, bạc hà | Không | 28% | 2,1% |
+    | Rất hiếm | ca cao, cà phê, vani, nho, việt quất, mâm xôi | Không | 10% | 0,5% |
+    | Cực hiếm | hoa hồng, oải hương, hoa nhài | Không | 2% | 0,2% |
+    Mía để loại Thường + bán ở cửa hàng vì là "đường" dùng trong rất nhiều công thức ở máy mèo / thỏ (hiếm thì máy gần như không chạy được). Hạt hiếm vẫn cần đủ cấp mới trồng.
+  - **Kế hoạch làm chậu hạng S (theo thứ tự)**: B1 bộ S **lệch rate 1**, B2 bộ S **lệch rate 2** (2 bộ "vàng ngoài banner": **chỉ cần đẹp hơn hạng A một chút**);
+    B3–B8 **6 bộ chậu banner** (banner chậu 1 → 6, mỗi bộ cấp 1–6): **phải chăm chút kỹ, đẹp, tinh tế, thu hút người chơi quay**.
+  - **Bươm bướm** = côn trùng mới (cần dựng mô hình), dùng để nâng cấp chậu như 4 loại kia.
+  - **Quay chạy trên điện thoại rồi ghi vào Firestore** (không có máy chủ riêng; chấp nhận được với app gia đình, không nạp tiền thật).
 - [ ] Ghé vườn người thân (tưới giúp / hái trộm) + thông báo trong bong bóng — làm sau (dữ liệu vườn đã cho cả gia đình đọc).
 
 Dữ liệu Firestore, thuộc gia đình đang chọn:

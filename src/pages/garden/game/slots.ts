@@ -35,9 +35,22 @@ export const PLANT_NODE: Record<string, string> = {
   cai: 'Cai', carot: 'CaRot', cachua: 'CaChua', ngo: 'Ngo', dau: 'Dau', huongduong: 'HuongDuong', duahau: 'DuaHau', bingo: 'BiNgo',
 }
 
-// Cây to quá so với 1 số dáng chậu (lá / quả xuyên thành chậu) thì thu nhỏ theo hệ số này — đo bằng số liệu trong Blender
-export const PLANT_FIT: Record<string, Record<number, number>> = {
-  bingo: { 3: 0.9, 5: 0.85 },
-  duahau: { 3: 0.8, 4: 0.9, 5: 0.75, 6: 0.9 },
+// Cây to quá so với 1 số chậu (lá / quả xuyên thành chậu) thì thu nhỏ theo hệ số này — đo bằng số liệu trong Blender.
+// Khoá = id loại chậu (`POT_KINDS`); thêm bộ chậu mới thì đo lại 8 cây × các chậu mới và ghi vào đây.
+export const PLANT_FIT: Record<string, Record<string, number>> = {
+  huongduong: { may_tre_6: 0.95, su_lam_5: 0.95, bang_tinh_5: 0.9, phuong_hoang_5: 0.8 },
+  bingo: { dat_nung_3: 0.9, dat_nung_5: 0.85, may_tre_2: 0.85, may_tre_5: 0.85, bien_ca_2: 0.95, bien_ca_5: 0.95, bien_ca_6: 0.85, rung_nam_1: 0.9, rung_nam_2: 0.9, rung_nam_4: 0.9, trung_thu_2: 0.75, mat_ong_1: 0.75, mat_ong_2: 0.8, mat_ong_3: 0.9, mat_ong_6: 0.95, su_lam_1: 0.85, su_lam_3: 0.8, bang_tinh_1: 0.85, bang_tinh_4: 0.9, phuong_hoang_1: 0.9, phuong_hoang_4: 0.95 },
+  duahau: {
+    dat_nung_3: 0.8, dat_nung_4: 0.9, dat_nung_5: 0.75, dat_nung_6: 0.9,
+    may_tre_2: 0.75, may_tre_4: 0.95, may_tre_5: 0.75, may_tre_6: 0.95,
+    bien_ca_2: 0.85, bien_ca_3: 0.9, bien_ca_5: 0.85, bien_ca_6: 0.75,
+    rung_nam_1: 0.8, rung_nam_2: 0.8, rung_nam_3: 0.95, rung_nam_4: 0.8,
+    trung_thu_2: 0.65, trung_thu_3: 0.9, trung_thu_4: 0.9, trung_thu_5: 0.9, trung_thu_6: 0.9,
+    mat_ong_1: 0.65, mat_ong_2: 0.75, mat_ong_3: 0.8, mat_ong_4: 0.9, mat_ong_5: 0.9, mat_ong_6: 0.85,
+    thien_ha_1: 0.95, thien_ha_2: 0.9, thien_ha_3: 0.9, thien_ha_4: 0.95,
+    su_lam_1: 0.7, su_lam_3: 0.7, su_lam_4: 0.8, su_lam_5: 0.85, su_lam_6: 0.9,
+    bang_tinh_1: 0.7, bang_tinh_3: 0.85, bang_tinh_4: 0.85, bang_tinh_5: 0.95, bang_tinh_6: 0.9,
+    phuong_hoang_1: 0.75, phuong_hoang_3: 0.85, phuong_hoang_4: 0.85, phuong_hoang_5: 0.9, phuong_hoang_6: 0.8,
+  },
 }
-export const plantFit = (crop: string, shape: number) => PLANT_FIT[crop]?.[shape] ?? 1
+export const plantFit = (crop: string, kind: string) => PLANT_FIT[crop]?.[kind] ?? 1

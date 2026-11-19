@@ -35,7 +35,7 @@ import {
 } from '../models/CloudScene'
 import { TIER_COUNT } from './constants'
 import { plotState, type Plot } from '../data/crops'
-import { potKindById, slotKey, type OwnedPot } from '../data/pots'
+import { POT_SETS, potKindById, slotKey, type OwnedPot, type PotKind } from '../data/pots'
 import { PLANT_NODE, plantFit, SLOTS } from './slots'
 
 // Cảnh 3D của game Vườn mây: camera CHỈ NHÌN 1 TẦNG MÂY mỗi lúc (xem CLAUDE.md "Cơ chế hiển thị game"):
@@ -47,14 +47,14 @@ import { PLANT_NODE, plantFit, SLOTS } from './slots'
 //   Chạm vòng = chọn chỗ đặt chậu, nhấn giữ chậu ~0,5 giây = menu Dời chỗ / Cất vào kho (GamePage lo giao diện).
 // Bộ điều khiển camera tự viết (không dùng OrbitControls) vì khung game có thể đang xoay 90° → toạ độ chạm phải đổi qua `toLocal`.
 
-// Mô hình chậu (6 dáng đất nung, mỗi dáng có lớp trang trí `_Lv2…Lv6`) và cây trồng (mỗi cây 4 giai đoạn `_GD0…GD3`), xuất từ Blender có nén meshopt
-const POT_MODEL = '/models/chau-dat-nung.glb'
+// Mô hình chậu (mỗi bộ 1 file `POT_SETS[].file`, mỗi chậu có lớp trang trí `_Lv2…Lv6`) và cây trồng (mỗi cây 4 giai đoạn `_GD0…GD3`), xuất từ Blender có nén meshopt
+const POT_FILES = [...new Set(POT_SETS.map((s) => s.file))]
 const PLANT_MODEL = '/models/cay-trong.glb'
 
 export interface GameModels {
   cloud: GLTF
   machines: GLTF
-  pots: GLTF
+  pots: GLTF[] // theo thứ tự POT_FILES
   plants: GLTF
 }
 
@@ -81,12 +81,12 @@ async function fetchWithProgress(url: string, onBytes: (loaded: number, total: n
 }
 export async function loadGameModels(onProgress: (p: number) => void): Promise<GameModels> {
   if (cached) { onProgress(1); return cached }
-  const urls = [CLOUD_MODEL, MACHINE_MODEL, POT_MODEL, PLANT_MODEL]
+  const urls = [CLOUD_MODEL, MACHINE_MODEL, PLANT_MODEL, ...POT_FILES]
   const prog = urls.map(() => ({ loaded: 0, total: 1 }))
   const report = () => onProgress(prog.reduce((s, p) => s + Math.min(1, p.loaded / p.total), 0) / urls.length * 0.9)
   const bufs = await Promise.all(urls.map((u, i) => fetchWithProgress(u, (l, t) => { prog[i] = { loaded: l, total: t }; report() })))
   const loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder)
-  const [cloud, machines, pots, plants] = await Promise.all(bufs.map((b) => loader.parseAsync(b, '')))
+  const [cloud, machines, plants, ...pots] = await Promise.all(bufs.map((b) => loader.parseAsync(b, '')))
   onProgress(1)
   cached = { cloud, machines, pots, plants }
   return cached
@@ -105,9 +105,13 @@ function cloneMaterials(obj: Object3D, edit?: (m: Material) => void) {
   return mats
 }
 
-// Chậu dáng `shape`, chỉ bật lớp trang trí đúng cấp (`_Lv{cấp}`, cấp 1 = tắt hết)
-function makePot(models: GameModels, shape: number, level: number) {
-  const pot = models.pots.scene.getObjectByName(`ChauDat_${shape}`)!.clone(true)
+const potNode = (models: GameModels, name: string) => {
+  for (const g of models.pots) { const o = g.scene.getObjectByName(name); if (o) return o }
+  return null
+}
+// Chậu loại `kind`, chỉ bật lớp trang trí đúng cấp (`_Lv{cấp}`, cấp 1 = tắt hết)
+function makePot(models: GameModels, kind: PotKind, level: number) {
+  const pot = potNode(models, kind.model)!.clone(true)
   pot.traverse((o) => { const m = /_Lv(\d)$/.exec(o.name); if (m) o.visible = Number(m[1]) === level })
   pot.position.set(0, 0, 0); pot.rotation.set(0, 0, 0)
   return pot
@@ -130,7 +134,7 @@ interface SlotNode {
   group: Group
   hit: Mesh
   ring: Mesh
-  pot: { key: string; shape: number; obj: Object3D; mats: Material[]; holder: Group } | null
+  pot: { key: string; kind: string; obj: Object3D; mats: Material[]; holder: Group } | null
   plant: { crop: string; obj: Object3D; mats: Material[] } | null
   ghost: { key: string; obj: Object3D } | null
 }
@@ -169,7 +173,7 @@ function buildWorld(models: GameModels) {
 
   // Bán kính vòng chỗ trống = chậu to nhất (tính cả đĩa lót)
   const pb = new Box3()
-  for (let s = 1; s <= 6; s++) { const o = models.pots.scene.getObjectByName(`ChauDat_${s}_Than`); if (o) pb.expandByObject(o) }
+  for (let s = 1; s <= 6; s++) { const o = potNode(models, `ChauDat_${s}_Than`); if (o) pb.expandByObject(o) }
   const sz = pb.getSize(new Vector3())
   const R = Math.max(0.3, Math.max(sz.x, sz.z) / 2) * 1.1
   const ringGeo = dashedRing(R)
@@ -237,13 +241,13 @@ function syncSlots(world: World, models: GameModels, inp: SyncInput) {
         s.pot = null
       }
       if (kind) {
-        const obj = makePot(models, kind.shape, owned!.level)
+        const obj = makePot(models, kind, owned!.level)
         const mats = cloneMaterials(obj)
         const holder = new Group()
-        ;(obj.getObjectByName(`ChauDat_${kind.shape}_DiemCay`) ?? obj).add(holder)
+        ;(obj.getObjectByName(`${kind.model}_DiemCay`) ?? obj).add(holder)
         s.group.add(obj)
         t.mats.push(...mats)
-        s.pot = { key, shape: kind.shape, obj, mats, holder }
+        s.pot = { key, kind: kind.id, obj, mats, holder }
       }
     }
     // Cây (tầng 1: chỗ i ↔ ô đất i)
@@ -254,7 +258,7 @@ function syncSlots(world: World, models: GameModels, inp: SyncInput) {
       if (!s.plant) {
         const obj = tpl.clone(true)
         obj.position.set(0, 0, 0)
-        obj.scale.multiplyScalar(plantFit(v.crop, s.pot.shape))
+        obj.scale.multiplyScalar(plantFit(v.crop, s.pot.kind))
         const mats = cloneMaterials(obj)
         s.pot.holder.add(obj)
         t.mats.push(...mats)
@@ -270,7 +274,7 @@ function syncSlots(world: World, models: GameModels, inp: SyncInput) {
     if ((s.ghost?.key ?? '') !== gkey) {
       if (s.ghost) { s.ghost.obj.removeFromParent(); s.ghost = null }
       if (pk) {
-        const obj = makePot(models, pk.shape, pv!.level)
+        const obj = makePot(models, pk, pv!.level)
         cloneMaterials(obj, (c) => { c.transparent = true; c.opacity = 0.55; c.depthWrite = false })
         s.group.add(obj)
         s.ghost = { key: gkey, obj }
