@@ -1047,6 +1047,7 @@ Game nông trại **tự thiết kế** (cùng thể loại game trồng trọt,
        | `--title "…"` (bắt buộc), `--body "…"` (`\n` = xuống dòng), `--from "…"` (mặc định "Vườn mây") | nội dung thư |
        | `--feathers N`, `--stones N`, `--vong N`, `--sao N` | lông chim, đá vũ trụ, Vọng Tinh, Sao Duyên |
        | `--seed <id cây>:N`, `--insect <id>:N`, `--pot <id loại chậu>[:N]` | hạt, côn trùng, chậu cấp 1 — **lặp lại được** nhiều lần |
+       | `--charm B:N` / `A:N` / `S:N` / `keep:N` | bùa may mắn B / A / S, bùa giữ cấp (đập chậu) |
        | `--expires 7d` / `12h` / `2026-12-31` | hạn nhận (bỏ trống = không hết hạn) |
        Id cây: `cai`, `carot`, `cachua`, `ngo`, `dau`, `huongduong`, `duahau`, `bingo` (`CROPS` trong `data/crops.ts`).
        Id côn trùng: `sau`, `bo_rua`, `dom_dom`, `nhen`, `buom`. Id chậu: `<bộ>_<1-6>`, vd `dat_nung_1`, `su_lam_3`, `phuong_hoang_6`, `thien_ha_4` (`POT_KINDS` trong `data/pots.ts`).
@@ -1074,7 +1075,7 @@ Game nông trại **tự thiết kế** (cùng thể loại game trồng trọt,
   - **Mật ong**: thưởng đủ bộ đổi thành **Giá tốt** (lv1 +4% → lv6 +10%) — ĐÃ CHỐT.
   - **Băng Tinh**: đặc quyền đổi thành **"Cây trên tầng không bao giờ khát nước"** — ĐÃ CHỐT.
   - Tỉ lệ côn trùng hiện ~1/2 số cây; Hút côn trùng cộng vào tỉ lệ này, trần 100%.
-- [ ] **Nâng cấp chậu có tỉ lệ ("đập chậu", GĐ5) — NGƯỜI DÙNG MÔ TẢ + ĐÃ CHỐT 20/11/2026 (mọi con số + mục 1–9 theo đề xuất, kể cả Bùa giữ cấp), CHƯA LÀM** (thay bảng giá cố định "côn trùng loại nào cũng được" ở mục Tiền trong game):
+- [x] **Nâng cấp chậu có tỉ lệ ("đập chậu", GĐ5) — ĐÃ LÀM 20/11/2026 (xem "THỨ TỰ CODE" bước 5; bùa từ gacha / đổi sao chưa có) — NGƯỜI DÙNG MÔ TẢ + ĐÃ CHỐT 20/11/2026 (mọi con số + mục 1–9 theo đề xuất, kể cả Bùa giữ cấp), CHƯA LÀM** (thay bảng giá cố định "côn trùng loại nào cũng được" ở mục Tiền trong game):
   - **Người dùng mô tả**: mỗi lần nâng cần **côn trùng (đúng loại, đủ số) + lông chim** (vd 3 sâu + 3 nhện + 30 lông chim). **Nâng có tỉ lệ thành công**, chậu A thấp hơn B, S thấp nhất.
     **Thất bại** chia tiếp: **10% về lv1, 70% giữ nguyên cấp, 20% tuột ngẫu nhiên 1 / 2 / 3 / 4 cấp**. Được bỏ thêm **tối đa 5 chậu khác** (chưa nâng / đã nâng đều được) để tăng tỉ lệ,
     và **tối đa 3 item tăng tỉ lệ** (3 loại B / A / S; icon dựng bằng Blender — làm sau). **Tỉ lệ thành công hiện trên màn hình** để người chơi điều chỉnh. Chậu đang trồng cây vẫn nâng được.
@@ -1173,8 +1174,13 @@ Game nông trại **tự thiết kế** (cùng thể loại game trồng trọt,
      giao diện `game/MailUi.tsx` (`MailScreen`), nút 📬 trong menu ☰ (chấm đỏ = thư chưa nhận còn hạn), Rules (`mail` chỉ đọc + ghi `claimedAt` 1 lần; `gardenBroadcasts` chỉ đọc),
      script `scripts/send-mail.mjs` (`npm run send-mail -- …`, `firebase-admin` devDependency, khoá ở `scripts/.service-account.json` đã gitignore). Đã gỡ nút "+100 Vọng Tinh (test)" (`TESTER_UIDS`, `grantTestRolls`).
      **Phải deploy Rules** (`npm run deploy` hoặc `npx firebase-tools deploy --only firestore:rules`) thì hòm thư mới đọc được. **CHƯA TEST** (máy làm không có `.env` / khoá service account); cách dùng lệnh xem mục "Hòm thư".
-  4. Hiệu ứng bộ chậu chạy thật: chụp `plant.buff` lúc gieo, bỏ Ít sâu, Hạt rẻ / Giá tốt kiểu mới, Mật ong Giá tốt, Băng Tinh không khát nước.
-  5. Đập chậu (tỉ lệ, chậu bỏ vào, bùa may mắn B / A / S, bùa giữ cấp, nút ?) — icon bùa tạm.
+  4. **[ ] TẠM ĐỂ LẠI (người dùng bảo chuyển qua bước 5 trước, 20/11/2026)** — Hiệu ứng bộ chậu chạy thật: chụp `plant.buff` lúc gieo, bỏ Ít sâu, Hạt rẻ / Giá tốt kiểu mới, Mật ong Giá tốt, Băng Tinh không khát nước.
+  5. **[x] ĐÃ LÀM (20/11/2026)**: Đập chậu — luật ở `data/upgrade.ts` (`BASE_RATE`, `FODDER_BONUS`, `CHARMS`, `FAIL_SPLIT`, `UPGRADE_INSECTS` = 2 loại côn trùng của từng bộ, `upgradeCost`, `upgradeRate`, `rollUpgrade`, `riskyFodder`),
+     ghi `upgradePot` + `buyCharms` (`data/api.ts`; vườn có `charms` = { B, A, S, keep }; `stats` upgradeTry / upgradeOk / potLv6 / setLv6), màn hình `game/UpgradeUi.tsx` (`UpgradeScreen` + nút ? `UpgradeHelp`),
+     lối vào: nhấn giữ chậu → [Đập chậu] (`PotMenu` 2×2), Túi đồ tab **Chậu** (mọi chậu) + tab **Vật phẩm** (bùa); Cửa hàng tab **Bùa** (bùa B 100 lông chim, mua 1 / 5); thư + script gửi được bùa (`--charm B:3`);
+     thành tựu "Chậu tinh xảo" (IV) + "Bộ hoàn mỹ" (VI). Icon bùa tạm 🍀 / 🔒. Bùa từ gacha + đổi sao làm ở bước 6. Chưa thử trong game (máy làm không có `.env`).
+     Cặp côn trùng từng bộ (tự chọn theo chủ đề, sửa được): Đất nung sâu + bọ rùa, Mây tre nhện + sâu, Biển cả bọ rùa + đom đóm, Rừng nấm sâu + đom đóm, Trung thu đom đóm + bướm,
+     Mật ong bướm + bọ rùa, Thiên hà đom đóm + nhện, Sứ Lam bướm + nhện, Băng Tinh nhện + bọ rùa, Phượng Hoàng đom đóm + bướm. **Thêm bộ chậu mới thì thêm vào `UPGRADE_INSECTS`.**
   6. Mảnh vỡ sao sáng / sao (kèm khi quay, tỉ lệ gacha mới có bùa), cửa hàng 3 tab [Hạt giống] [Bùa] [Đổi sao], đổi mảnh → lông chim, đổi đá → lông chim (1 : 5).
   7. Nhiệm vụ hằng ngày (tab "Hôm nay" trong Thành tựu).
   8. Phân bón (đã duyệt): `plant.boost`, túi phân kiểu túi hạt, cửa hàng "Hạt & phân", gacha (côn trùng 35,5% + phân B 6% + phân A 2%), đổi sao, tab "Vật phẩm" trong Túi đồ, thành tựu + nhiệm vụ bón phân, quà thư `fertilizer` — icon tạm.

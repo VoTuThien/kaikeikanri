@@ -12,6 +12,7 @@ export interface MailRewards extends Reward {
   seeds?: Record<string, number> // id cây -> số hạt
   insects?: Record<string, number> // id côn trùng -> số con
   pots?: string[] // id loại chậu (mỗi phần tử = 1 chậu cấp 1)
+  charms?: Record<string, number> // bùa: B / A / S (may mắn), keep (giữ cấp)
 }
 export interface Mail {
   id: string

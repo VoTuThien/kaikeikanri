@@ -97,12 +97,13 @@ export function InfoPanel({ onTier, sel }: { onTier: OwnedPot[]; sel: OwnedPot |
 }
 
 // ---- Menu khi nhấn giữ chậu đã đặt: Dời chỗ / Cất vào kho ----
-export function PotMenu({ pot, confirm, busy, onMove, onStore, onClose }: {
+export function PotMenu({ pot, confirm, busy, onMove, onStore, onUpgrade, onClose }: {
   pot: OwnedPot
   confirm: boolean // đã bấm "Cất" 1 lần (chậu có cây)
   busy: boolean
   onMove: () => void
   onStore: () => void
+  onUpgrade: () => void // mở màn hình đập chậu
   onClose: () => void
 }) {
   const kind = potKindById.get(pot.kind)
@@ -121,8 +122,9 @@ export function PotMenu({ pot, confirm, busy, onMove, onStore, onClose }: {
           </div>
         </div>
         {confirm && <p className="mb-2 text-sm leading-5 font-semibold text-rose-200">Cất chậu? Cây đang trồng sẽ mất</p>}
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-2 gap-2">
           <button type="button" className={`${BTN} from-slate-400/40 to-slate-600/50`} onClick={onClose}>Đóng</button>
+          <button type="button" className={`${BTN} from-amber-400/70 to-fuchsia-600/70`} disabled={busy} onClick={onUpgrade}>Đập chậu</button>
           <button type="button" className={BTN} disabled={busy} onClick={onMove}>Dời chỗ</button>
           <button type="button" className={`${BTN} ${confirm ? 'from-rose-500/80 to-red-700/80' : ''}`} disabled={busy} onClick={onStore}>
             {confirm ? 'Cất luôn' : 'Cất vào kho'}

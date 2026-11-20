@@ -10,6 +10,7 @@ import { potImage, potKindById } from '../data/pots'
 import { DragScroll } from './DragScroll'
 import { FEATHER_IMG, ROLL_IMG, STONE_IMG } from './GachaUi'
 import { BTN } from './PotUi'
+import { charmById, type CharmId } from '../data/upgrade'
 
 // Popup Hòm thư (xem CLAUDE.md "Hòm thư"): trái = danh sách thư (mới nhất trước, chưa nhận đậm + chấm đỏ, hết hạn mờ),
 // phải = nội dung thư đang chọn + các ô quà + nút [Nhận]; thanh trên có [Nhận tất cả]. Thư do quản trị gửi bằng script.
@@ -34,6 +35,7 @@ export function mailGifts(r: MailRewards): Gift[] {
   if (r.sao_duyen) out.push({ key: 'd', label: 'Sao Duyên', n: r.sao_duyen, img: ROLL_IMG.sao_duyen })
   for (const [k, n] of Object.entries(r.seeds ?? {})) { const c = cropById.get(k); if (c && n > 0) out.push({ key: `seed_${k}`, label: `Hạt ${c.name.toLowerCase()}`, n, img: cropImage(k) }) }
   for (const [k, n] of Object.entries(r.insects ?? {})) { const i = insectById.get(k); if (i && n > 0) out.push({ key: `ins_${k}`, label: i.name, n, emoji: i.icon }) }
+  for (const [k, n] of Object.entries(r.charms ?? {})) { const c = charmById.get(k as CharmId); if (c && n > 0) out.push({ key: `charm_${k}`, label: c.name, n, emoji: c.icon }) }
   const pots = new Map<string, number>()
   for (const k of r.pots ?? []) if (potKindById.has(k)) pots.set(k, (pots.get(k) ?? 0) + 1)
   for (const [k, n] of pots) out.push({ key: `pot_${k}`, label: potKindById.get(k)!.name, n, img: potImage(k, 1) })

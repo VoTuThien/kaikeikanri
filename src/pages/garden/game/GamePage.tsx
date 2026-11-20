@@ -21,6 +21,7 @@ import { AchievementsScreen } from './AchievementsUi'
 import { readyTotal } from '../data/achievements'
 import { mailView, useMailbox } from '../data/mail'
 import { MailScreen } from './MailUi'
+import { UpgradeScreen } from './UpgradeUi'
 
 // Màn hình game Vườn mây: toàn màn hình, luôn nằm ngang (LandscapeFrame), màn hình tải → cảnh 3D xem từng tầng mây.
 // Nút thoát (góc trái trên) về menu app Giải trí. Bong bóng thông báo tự ẩn ở đường dẫn game (isGamePath).
@@ -75,11 +76,13 @@ function Game() {
   const [ui, setUi] = useState<Ui>({ kind: 'view' })
   const [busy, setBusy] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
-  const [popup, setPopupState] = useState<'gacha' | 'bag' | 'guide' | 'shop' | 'ach' | 'mail' | null>(null)
+  const [popup, setPopupState] = useState<'gacha' | 'bag' | 'guide' | 'shop' | 'ach' | 'mail' | 'upgrade' | null>(null)
   // Menu ☰: gom các nút bên phải HUD; nhớ đóng / mở; mở 1 popup thì tự đóng menu
   const [menuOpen, setMenuOpenState] = useState(() => loadMenuOpen(uid))
   const setMenuOpen = (open: boolean) => { setMenuOpenState(open); if (uid) saveMenuOpen(uid, open) }
   const setPopup = (p: typeof popup) => { setPopupState(p); if (p) setMenuOpen(false) }
+  const [upgradeId, setUpgradeId] = useState<string | null>(null) // chậu đang mở màn hình đập chậu
+  const openUpgrade = (id: string) => { setUpgradeId(id); setPopup('upgrade') }
   // Chậu vừa gieo, chưa ghi xong (hiện ngay trên cảnh): key chỗ đặt -> cây
   const [pending, setPendingState] = useState<Record<string, Plant>>({})
   const pendRef = useRef<Record<string, Plant>>({}) // bản đồng bộ của `pending` (kéo túi nhanh hơn React vẽ lại)
@@ -449,6 +452,7 @@ function Game() {
           busy={busy}
           onClose={() => setUi({ kind: 'view' })}
           onMove={() => setUi({ kind: 'move', from: ui.slot })}
+          onUpgrade={() => { const id = menuPot.id; setUi({ kind: 'view' }); openUpgrade(id) }}
           onStore={store}
         />
       )}
@@ -460,8 +464,9 @@ function Game() {
       )}
 
       {popup === 'gacha' && <GachaScreen onClose={() => setPopup(null)} />}
-      {popup === 'bag' && garden && <BagPopup garden={garden} actor={actor} onClose={() => setPopup(null)} say={say} />}
+      {popup === 'bag' && garden && <BagPopup garden={garden} actor={actor} onClose={() => setPopup(null)} say={say} onUpgrade={openUpgrade} />}
       {popup === 'guide' && garden && <GuidePopup garden={garden} onClose={() => setPopup(null)} />}
+      {popup === 'upgrade' && garden && upgradeId && <UpgradeScreen garden={garden} actor={actor} potId={upgradeId} onClose={() => setPopup(null)} />}
       {popup === 'mail' && <MailScreen list={mail.list} isOpen={mail.open} actor={actor} onClose={() => setPopup(null)} />}
       {popup === 'ach' && garden && <AchievementsScreen garden={garden} actor={actor} onClose={() => setPopup(null)} />}
       {popup === 'shop' && garden && <ShopPopup garden={garden} actor={actor} onClose={() => setPopup(null)} say={say} />}

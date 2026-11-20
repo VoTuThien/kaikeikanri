@@ -2,12 +2,13 @@ import { doc, runTransaction, serverTimestamp, setDoc, type DocumentData, type D
 import { familyCol } from '../../../lib/family'
 import { requireDb, type Actor } from '../../../lib/firestore'
 import { CATCH_XP, cropById, levelOf, plantState, START_COINS, START_FEATHERS, type Plant } from './crops'
-import { potKindById, potSetById, setsOnTier, slotKey, STARTER_SETS, tierBlock, type OwnedPot } from './pots'
+import { POT_SETS, potKindById, potSetById, setsOnTier, slotKey, STARTER_SETS, tierBlock, type OwnedPot } from './pots'
 import { SLOTS } from '../game/slots'
 import { bannerOf, EMPTY_GACHA, insectById, pullMany, ROLL_PRICE, START_STONES, type GachaState, type PullItem, type PullLog, type RollKind } from './gacha'
 import { TIER_COUNT, TIER_UNLOCK_LEVEL } from '../game/constants'
 import { achievementById, achState, ACHIEVEMENTS, addReward, type Reward } from './achievements'
 import { broadcastFor, broadcastsCol, mailCol, toMail, type MailRewards } from './mail'
+import { CHARM_SHOP_PRICE, MAX_FODDER, MAX_LUCK, MAX_POT_LEVEL, NO_CHARMS, rollUpgrade, upgradeCost, upgradeRate, type Charms, type CharmId, type UpgradeOutcome } from './upgrade'
 
 // Vườn của mỗi thành viên: families/{familyId}/gardens/{uid}
 // Cả gia đình xem được (sau này ghé vườn nhau), mỗi người chỉ sửa vườn của mình (firestore.rules).
@@ -35,18 +36,29 @@ export interface Garden {
   claimed: Record<string, number> // thành tựu: id -> số bậc đã nhận thưởng
   mailClaimed: Record<string, number> // thư chung (gardenBroadcasts) đã nhận: id -> lúc nhận (ms)
   born: number // lúc tạo vườn (ms, từ createdAt; CHỈ ĐỌC, không ghi lại)
+  charms: Charms // bùa: may mắn B / A / S, giữ cấp (đập chậu)
 }
 
 // ---- Bộ đếm tích luỹ (thành tựu, xem CLAUDE.md "Thành tựu") ----
 // Mọi số chỉ tăng, cộng trong CÙNG transaction với thao tác. Khoá:
 //   sow, water, harvestItems (số nông sản), harvest_<cây> (số LẦN thu hoạch loại đó), catch, catch_<loại>,
 //   sold (số nông sản đã bán), soldFeathers, boughtSeeds, pulls, gold (số chậu S ra từ gacha),
-//   pot_<loại chậu> = 1 (đã từng có), fullTier = 1 (từng đặt kín 1 tầng), fullSetTier = 1 (từng đặt đủ 1 bộ trên 1 tầng)
+//   pot_<loại chậu> = 1 (đã từng có), fullTier = 1 (từng đặt kín 1 tầng), fullSetTier = 1 (từng đặt đủ 1 bộ trên 1 tầng),
+//   upgradeTry, upgradeOk (đập chậu), potLv6 = 1 (từng có chậu lv6), setLv6 = 1 (từng có cả 1 bộ lv6)
 export type Stats = Record<string, number>
 export const bump = (g: Garden, key: string, n = 1) => { g.stats[key] = (g.stats[key] ?? 0) + n }
 const flag = (g: Garden, key: string) => { g.stats[key] = 1 }
 // Ghi "đã từng có" cho mọi loại chậu đang có
-function markPots(g: Garden) { for (const p of g.pots) if (potKindById.has(p.kind)) flag(g, `pot_${p.kind}`) }
+function markPots(g: Garden) {
+  const best = new Map<string, number>()
+  for (const p of g.pots) {
+    if (!potKindById.has(p.kind)) continue
+    flag(g, `pot_${p.kind}`)
+    best.set(p.kind, Math.max(best.get(p.kind) ?? 0, p.level))
+    if (p.level >= MAX_POT_LEVEL) flag(g, 'potLv6')
+  }
+  if (POT_SETS.some((set) => set.kinds.every((k) => (best.get(k) ?? 0) >= MAX_POT_LEVEL))) flag(g, 'setLv6')
+}
 // Sau khi đặt / dời chậu ở tầng: từng đặt kín tầng? từng đủ 1 bộ trên tầng?
 function markTier(g: Garden, tier: number) {
   const keys = Object.keys(g.placed).filter((k) => k.startsWith(`${tier}-`))
@@ -121,6 +133,7 @@ export function toGarden(d: DocumentData): Garden {
     stats: { ...(d.stats ?? {}) },
     claimed: { ...(d.claimed ?? {}) },
     mailClaimed: { ...(d.mailClaimed ?? {}) },
+    charms: { ...NO_CHARMS, ...(d.charms ?? {}) },
     born: typeof d.createdAt?.toMillis === 'function' ? d.createdAt.toMillis() : 0,
   }
   if (g.gift && !g.claimed.welcome) g.claimed.welcome = 1 // đã nhận quà chào mừng ở màn hình gacha cũ
@@ -150,6 +163,7 @@ export function createGarden(actor: Actor) {
     ...startPots(START_POTS),
     claimed: {},
     mailClaimed: {},
+    charms: NO_CHARMS,
     stats: Object.fromEntries([...new Set(startPots(START_POTS).pots.map((p) => p.kind))].map((k) => [`pot_${k}`, 1])),
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
@@ -397,12 +411,65 @@ export function pullPots(actor: Actor, count: 1 | 10) {
   })
 }
 
+// ---- Đập chậu (xem data/upgrade.ts) ----
+// Nâng 1 chậu (đang đặt hoặc trong kho): trừ côn trùng + lông chim + bùa, MẤT các chậu bỏ vào (chỉ lấy từ kho), quay tỉ lệ (tính lại từ dữ liệu server).
+export function upgradePot(actor: Actor, potId: string, fodderIds: string[], luck: { B: number; A: number; S: number }, keep: boolean) {
+  return mutate(actor, (g): { outcome: UpgradeOutcome; from: number; to: number; rate: number } => {
+    const pot = g.pots.find((p) => p.id === potId)
+    if (!pot || !potKindById.has(pot.kind)) throw new Error('Không tìm thấy chậu')
+    if (pot.level >= MAX_POT_LEVEL) throw new Error('Chậu đã đạt cấp tối đa')
+    const ids = [...new Set(fodderIds)]
+    if (ids.length > MAX_FODDER) throw new Error(`Chỉ bỏ vào tối đa ${MAX_FODDER} chậu`)
+    const placedNow = placedIds(g)
+    const fodder = ids.map((id) => {
+      const f = g.pots.find((p) => p.id === id)
+      if (!f || id === potId) throw new Error('Chậu bỏ vào không hợp lệ')
+      if (placedNow.has(id)) throw new Error('Chậu bỏ vào phải ở trong kho (cất chậu đang đặt trước)')
+      return f
+    })
+    for (const k of ['B', 'A', 'S'] as const) if (!Number.isInteger(luck[k]) || luck[k] < 0 || luck[k] > g.charms[k]) throw new Error('Không đủ bùa may mắn')
+    if (luck.B + luck.A + luck.S > MAX_LUCK) throw new Error(`Chỉ dùng tối đa ${MAX_LUCK} bùa may mắn`)
+    if (keep && g.charms.keep < 1) throw new Error('Không có bùa giữ cấp')
+    const cost = upgradeCost(pot)
+    for (const [id, n] of Object.entries(cost.insects)) if ((g.insects[id] ?? 0) < n) throw new Error(`Thiếu ${insectById.get(id)?.name.toLowerCase() ?? 'côn trùng'}: cần ${n}, đang có ${g.insects[id] ?? 0}`)
+    if (g.feathers < cost.feathers) throw new Error(`Cần ${cost.feathers} lông chim, bạn đang có ${g.feathers}`)
+    // trừ đồ
+    for (const [id, n] of Object.entries(cost.insects)) { g.insects[id] -= n; if (g.insects[id] <= 0) delete g.insects[id] }
+    g.feathers -= cost.feathers
+    for (const k of ['B', 'A', 'S'] as const) g.charms[k] -= luck[k]
+    if (keep) g.charms.keep -= 1
+    const rate = upgradeRate(pot, fodder, luck).total
+    const gone = new Set(ids)
+    g.pots = g.pots.filter((p) => !gone.has(p.id))
+    // quay
+    const from = pot.level
+    const r = rollUpgrade(from, rate, keep)
+    pot.level = r.level
+    bump(g, 'upgradeTry')
+    if (r.outcome === 'up') bump(g, 'upgradeOk')
+    markPots(g)
+    return { outcome: r.outcome, from, to: r.level, rate }
+  })
+}
+// Cửa hàng: mua bùa may mắn B bằng lông chim
+export function buyCharms(actor: Actor, n: number) {
+  return mutate(actor, (g) => {
+    if (!Number.isInteger(n) || n < 1) throw new Error('Số bùa không hợp lệ')
+    const cost = CHARM_SHOP_PRICE * n
+    if (g.feathers < cost) throw new Error(`Cần ${cost} lông chim, bạn đang có ${g.feathers}`)
+    g.feathers -= cost
+    g.charms.B += n
+    return cost
+  })
+}
+
 // ---- Hòm thư (xem data/mail.ts) ----
 // Cộng quà của 1 thư vào vườn (bỏ qua cây / côn trùng / chậu không còn trong game)
 function giveMail(g: Garden, r: MailRewards, mailId: string) {
   giveReward(g, r)
   for (const [k, n] of Object.entries(r.seeds ?? {})) if (cropById.has(k) && n > 0) g.seeds[k] = (g.seeds[k] ?? 0) + n
   for (const [k, n] of Object.entries(r.insects ?? {})) if (insectById.has(k) && n > 0) g.insects[k] = (g.insects[k] ?? 0) + n
+  for (const [k, n] of Object.entries(r.charms ?? {})) if (k in NO_CHARMS && n > 0) g.charms[k as CharmId] += n
   ;(r.pots ?? []).forEach((kind, i) => { if (potKindById.has(kind)) g.pots.push({ id: `m${mailId}_${i}`, kind, level: 1 }) })
   markPots(g)
 }

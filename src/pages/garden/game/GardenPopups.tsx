@@ -1,7 +1,9 @@
 import { useState, type ReactNode } from 'react'
 import { LineIcon } from '../../../components/ui/Fab'
 import { Icon3D } from '../../../components/ui/Icon3D'
-import { buySeeds, errorText, sell, type Garden } from '../data/api'
+import { buyCharms, buySeeds, errorText, placedIds, sell, type Garden } from '../data/api'
+import { CHARM_SHOP_PRICE, CHARMS, MAX_POT_LEVEL, potRank } from '../data/upgrade'
+import { potImage, potKindById, potSetById } from '../data/pots'
 import type { Actor } from '../../../lib/firestore'
 import { CROPS, cropImage, formatCoins, formatGrow, levelOf, seedImage } from '../data/crops'
 import { INSECTS } from '../data/gacha'
@@ -49,10 +51,12 @@ function Popup({ title, sub, onClose, tabs, children }: { title: string; sub?: R
 const ROW = 'flex h-16 items-center gap-3 border-b border-white/10 px-4'
 
 // ---- Túi đồ ----
-type Tab = 'barn' | 'seeds' | 'insects'
-const TABS: { id: Tab; label: string }[] = [{ id: 'barn', label: 'Nông sản' }, { id: 'seeds', label: 'Hạt giống' }, { id: 'insects', label: 'Côn trùng' }]
+type Tab = 'barn' | 'seeds' | 'insects' | 'pots' | 'items'
+const TABS: { id: Tab; label: string }[] = [
+  { id: 'barn', label: 'Nông sản' }, { id: 'seeds', label: 'Hạt giống' }, { id: 'insects', label: 'Côn trùng' }, { id: 'pots', label: 'Chậu' }, { id: 'items', label: 'Vật phẩm' },
+]
 
-export function BagPopup({ garden, actor, onClose, say }: { garden: Garden; actor: Actor; onClose: () => void; say: (m: string) => void }) {
+export function BagPopup({ garden, actor, onClose, say, onUpgrade }: { garden: Garden; actor: Actor; onClose: () => void; say: (m: string) => void; onUpgrade: (potId: string) => void }) {
   const [tab, setTab] = useState<Tab>('barn')
   const [busy, setBusy] = useState<string | null>(null)
   const items = CROPS.filter((c) => (garden.barn[c.id] ?? 0) > 0)
@@ -70,7 +74,7 @@ export function BagPopup({ garden, actor, onClose, say }: { garden: Garden; acto
       sub={<>Đang có <Feathers n={garden.feathers} /></>}
       onClose={onClose}
       tabs={
-        <div className="grid shrink-0 grid-cols-3 gap-2 border-b border-white/15 p-2">
+        <div className="grid shrink-0 grid-cols-5 gap-2 border-b border-white/15 p-2">
           {TABS.map((t) => (
             <button key={t.id} type="button" onClick={() => setTab(t.id)}
               className={`h-9 border text-sm font-semibold transition ${tab === t.id ? 'border-white/50 bg-white/25' : 'border-white/15 bg-white/5 text-white/70'}`}>
@@ -124,14 +128,63 @@ export function BagPopup({ garden, actor, onClose, say }: { garden: Garden; acto
           </div>
         ))
       )}
+      {tab === 'pots' && <PotsTab garden={garden} onUpgrade={onUpgrade} />}
+      {tab === 'items' && (
+        CHARMS.every((c) => !garden.charms[c.id]) ? <Empty>Chưa có vật phẩm. Bùa may mắn B mua ở Cửa hàng; bùa A, S, giữ cấp nhận từ thư / gacha. Dùng bùa khi đập chậu.</Empty> : CHARMS.filter((c) => garden.charms[c.id] > 0).map((c) => (
+          <div key={c.id} className={ROW}>
+            <span className="flex h-11 w-11 items-center justify-center border border-white/20 bg-gradient-to-br from-amber-400/50 to-fuchsia-600/60"><Icon3D emoji={c.icon} className="h-7 w-7" /></span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm leading-5 font-semibold">{c.name}</span>
+              <span className="block truncate text-xs leading-4 text-white/65">{c.note}</span>
+            </span>
+            <span className="w-14 text-right text-base font-bold tabular-nums">×{garden.charms[c.id]}</span>
+          </div>
+        ))
+      )}
     </Popup>
+  )
+}
+
+// Tab Chậu của Túi đồ: mọi chậu (đang đặt + trong kho), nút Đập chậu
+function PotsTab({ garden, onUpgrade }: { garden: Garden; onUpgrade: (potId: string) => void }) {
+  const placed = placedIds(garden)
+  const list = garden.pots
+    .filter((p) => potKindById.has(p.kind))
+    .sort((a, b) => Number(placed.has(b.id)) - Number(placed.has(a.id)) || b.level - a.level || a.kind.localeCompare(b.kind))
+  if (!list.length) return <Empty>Chưa có chậu nào.</Empty>
+  return (
+    <>
+      {list.map((p) => {
+        const kind = potKindById.get(p.kind)!
+        const set = potSetById.get(kind.set)
+        return (
+          <div key={p.id} className={ROW}>
+            <img src={potImage(p.kind, p.level)} alt="" className="h-12 w-12 object-contain" />
+            <span className="min-w-0 flex-1">
+              <span className="flex items-center gap-1.5 text-sm leading-5 font-semibold"><RankBadge rank={potRank(p.kind)} />{kind.name}</span>
+              <span className="block truncate text-xs leading-4 text-white/65">Bộ {set?.name} · Cấp {p.level} · {placed.has(p.id) ? 'Đang đặt' : 'Trong kho'}</span>
+            </span>
+            <button type="button" disabled={p.level >= MAX_POT_LEVEL} onClick={() => onUpgrade(p.id)} className={`${BTN} w-24 from-amber-400/70 to-fuchsia-600/70`}>
+              {p.level >= MAX_POT_LEVEL ? 'Tối đa' : 'Đập chậu'}
+            </button>
+          </div>
+        )
+      })}
+    </>
   )
 }
 
 // ---- Cửa hàng: chỉ bán hạt hạng B, trả bằng lông chim; cây chưa đủ cấp thì chưa mua được ----
 const PACKS = [1, 10] as const
+type ShopTab = 'seeds' | 'charms'
 export function ShopPopup({ garden, actor, onClose, say }: { garden: Garden; actor: Actor; onClose: () => void; say: (m: string) => void }) {
   const [busy, setBusy] = useState<string | null>(null)
+  const [tab, setTab] = useState<ShopTab>('seeds')
+  async function buyCharm(n: number) {
+    if (busy) return
+    setBusy(`charm:${n}`)
+    try { const cost = await buyCharms(actor, n); say(`Đã mua ${n} bùa may mắn B · −${formatCoins(cost)} lông chim`) } catch (err) { say(errorText(err)) } finally { setBusy(null) }
+  }
   const level = levelOf(garden.xp)
   const list = CROPS.filter((c) => c.rank === 'B')
   async function buy(id: string, name: string, n: number) {
@@ -140,8 +193,43 @@ export function ShopPopup({ garden, actor, onClose, say }: { garden: Garden; act
     try { const cost = await buySeeds(actor, id, n); say(`Đã mua ${n} hạt ${name.toLowerCase()} · −${formatCoins(cost)} lông chim`) } catch (err) { say(errorText(err)) } finally { setBusy(null) }
   }
   return (
-    <Popup title="Cửa hàng" sub={<>Hạt giống hạng B · đang có <Feathers n={garden.feathers} /></>} onClose={onClose}>
-      {list.map((c) => {
+    <Popup
+      title="Cửa hàng"
+      sub={<>Đang có <Feathers n={garden.feathers} /></>}
+      onClose={onClose}
+      tabs={
+        <div className="grid shrink-0 grid-cols-2 gap-2 border-b border-white/15 p-2">
+          {([['seeds', 'Hạt giống'], ['charms', 'Bùa']] as const).map(([id, label]) => (
+            <button key={id} type="button" onClick={() => setTab(id)}
+              className={`h-9 border text-sm font-semibold transition ${tab === id ? 'border-white/50 bg-white/25' : 'border-white/15 bg-white/5 text-white/70'}`}>
+              {label}
+            </button>
+          ))}
+        </div>
+      }
+    >
+      {tab === 'charms' && (
+        <>
+          <div className={`${ROW} h-[72px]`}>
+            <span className="flex h-12 w-12 items-center justify-center border border-white/20 bg-gradient-to-br from-amber-400/50 to-fuchsia-600/60"><Icon3D emoji="🍀" className="h-7 w-7" /></span>
+            <span className="min-w-0 flex-1">
+              <span className="flex items-center gap-1.5 text-sm leading-5 font-semibold"><RankBadge rank="B" />Bùa may mắn B</span>
+              <span className="block truncate text-xs leading-4 text-white/70">+5% tỉ lệ đập chậu · <Feathers n={CHARM_SHOP_PRICE} /> / bùa</span>
+              <span className="block text-xs leading-4 text-white/55">Đang có ×{garden.charms.B}</span>
+            </span>
+            <div className="grid w-44 shrink-0 grid-cols-2 gap-2">
+              {[1, 5].map((n) => (
+                <button key={n} type="button" disabled={!!busy || garden.feathers < CHARM_SHOP_PRICE * n} onClick={() => buyCharm(n)} className={`${BTN} flex-col gap-0 px-1 leading-4`}>
+                  <span>{busy === `charm:${n}` ? '…' : `Mua ${n}`}</span>
+                  <Feathers n={CHARM_SHOP_PRICE * n} className="text-[11px] font-normal" />
+                </button>
+              ))}
+            </div>
+          </div>
+          <p className="px-4 py-3 text-xs leading-5 text-white/60">Bùa may mắn A, S và bùa giữ cấp nhận từ thư, gacha, hoặc đổi bằng mảnh vỡ sao (sắp có).</p>
+        </>
+      )}
+      {tab === 'seeds' && list.map((c) => {
         const locked = level < c.level
         return (
           <div key={c.id} className={`${ROW} h-[72px] ${locked ? 'opacity-50' : ''}`}>
@@ -165,7 +253,7 @@ export function ShopPopup({ garden, actor, onClose, say }: { garden: Garden; act
           </div>
         )
       })}
-      <p className="px-4 py-3 text-xs leading-5 text-white/60">Hạt hạng A / S không bán ở cửa hàng, chỉ nhận được từ gacha. Bán nông sản trong Túi đồ để có thêm lông chim.</p>
+      {tab === 'seeds' && <p className="px-4 py-3 text-xs leading-5 text-white/60">Hạt hạng A / S không bán ở cửa hàng, chỉ nhận được từ gacha. Bán nông sản trong Túi đồ để có thêm lông chim.</p>}
     </Popup>
   )
 }
@@ -179,7 +267,8 @@ const RULES = [
   'Chạm vòng sáng trống để đặt chậu. Chạm chậu trống để chọn hạt giống và gieo.',
   'Sau khi gieo, túi hạt lơ lửng trên chậu: nhấn vào túi rồi kéo lướt qua các chậu trống khác để gieo liên tục. Hết hạt thì túi biến mất.',
   'Cây lớn theo thời gian thật, đóng game cây vẫn lớn. Chạm cây có huy hiệu giọt nước để tưới: thu thêm 1 nông sản.',
-  'Côn trùng bay quanh cây: chạm để bắt, dùng nâng cấp chậu sau này. Cây chín (huy hiệu giỏ): chạm để thu hoạch.',
+  'Côn trùng bay quanh cây: chạm để bắt (+2 kinh nghiệm), dùng để đập chậu (nâng cấp). Cây chín (huy hiệu giỏ): chạm để thu hoạch.',
+  'Đập chậu: nhấn giữ chậu → Đập chậu, hoặc Túi đồ → Chậu. Có tỉ lệ thành công; bỏ thêm chậu trong kho / bùa may mắn để tăng tỉ lệ (nút ? giải thích chi tiết).',
   'Thu hoạch được kinh nghiệm để lên cấp, mở khoá cây mới và tầng mây mới. Bán nông sản trong Túi đồ để nhận lông chim.',
   'Dùng lông chim mua hạt giống ở Cửa hàng (nút xe đẩy góc phải trên).',
   'Hạt giống có hạng B (xanh biển), A (tím), S (vàng); hạt hạng A / S chỉ có từ gacha.',

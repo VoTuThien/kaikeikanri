@@ -107,6 +107,8 @@ function build(): Achievement[] {
   list.push({ id: 'pot_A', group: 'thu_thap', icon: '🪴', name: () => 'Chậu quý', desc: () => 'Có 1 chậu hạng A', goals: [1], reward: one(2), progress: (g) => potRankOwned(g, 'A') })
   list.push({ id: 'pot_S', group: 'thu_thap', icon: '🪴', name: () => 'Chậu huyền thoại', desc: () => 'Có 1 chậu hạng S', goals: [1], reward: one(4), progress: (g) => potRankOwned(g, 'S') })
   list.push({ id: 'full_tier', group: 'thu_thap', icon: '🏠', name: () => 'Vườn kín chỗ', desc: () => 'Đặt kín chậu mọi chỗ của 1 tầng mây', goals: [1], reward: one(1), progress: (g) => st(g, 'fullTier') })
+  list.push({ id: 'pot_lv6', group: 'thu_thap', icon: '⭐', name: () => 'Chậu tinh xảo', desc: () => 'Đập 1 chậu lên cấp 6', goals: [1], reward: one(3), progress: (g) => st(g, 'potLv6') })
+  list.push({ id: 'set_lv6', group: 'thu_thap', icon: '⭐', name: () => 'Bộ hoàn mỹ', desc: () => 'Có đủ 1 bộ chậu, mọi chậu đều cấp 6', goals: [1], reward: one(5), progress: (g) => st(g, 'setLv6') })
   list.push({ id: 'full_set_tier', group: 'thu_thap', icon: '⭐', name: () => 'Hiệu ứng trọn bộ', desc: () => 'Đặt đủ 1 bộ chậu trên cùng 1 tầng', goals: [1], reward: one(3), progress: (g) => st(g, 'fullSetTier') })
 
   // ---- Chăm sóc (gồm côn trùng) ----
