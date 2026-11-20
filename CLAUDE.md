@@ -1010,17 +1010,24 @@ Game nông trại **tự thiết kế** (cùng thể loại game trồng trọt,
     - Nút "Nhận quà chào mừng" ở `GachaScreen` + cờ `gift` chuyển sang thành tựu "Chào mừng"; nút "+100 Vọng Tinh (test)" thay bằng gửi thư (script).
   - **Đã chốt 20/11/2026**: thưởng mở tầng THAY THẾ thưởng cấp thường; thưởng bậc ×2 (không phải ×6), nhiệm vụ ngày ×2; sau cấp 15 vẫn thưởng mỗi cấp, cấp tối đa 90, từ cấp 40 rất khó lên;
     Sao Duyên cứ tích trữ (banner đồ trang trí chưa có); mốc "Nhà sưu tầm" giữ 60; sẽ có bộ chậu 5 / 4 chậu dành riêng tầng 3 / 4 (như Thiên hà).
-  - **Bất cập còn lại (đã báo người dùng 20/11/2026, chờ chốt)**:
-    a. **Cấp 15 → 90 không còn mốc gì** ngoài thưởng mỗi cấp → đề xuất thêm mốc **20 / 30 / 40 / 50 / 60 / 70 / 80 / 90** (dùng thưởng mở tầng, hoặc mở khoá: cây mới, hạng chậu…).
-    b. **Kinh nghiệm hiện CHỈ đến từ thu hoạch** (cây tốt nhất 80 / lần) → lên cấp 40+ rất chậm, cấp 90 cần ≈ 1,2 triệu → đề xuất thêm kinh nghiệm từ nhiệm vụ ngày, bắt côn trùng, chế tạo; 14 cây mới (GĐ8) rải cấp mở tới ~cấp 40 và cho kinh nghiệm cao hơn.
-    c. **Thăng tiến rất nhiều Vọng Tinh** (10 / cấp → tới cấp 90 ≈ 900 Vọng Tinh + 450 Sao Duyên): người dùng đã chấp nhận rộng tay, ghi lại để biết khi cân banner.
-    d. **"Nhà sưu tầm" chỉ có 6 bậc tới 60 loại** — khi đã có > 60 loại thì nên thêm bậc (80 / 100 / 150…); "Trọn bộ <bộ>" tự sinh dòng mới từ `POT_SETS`.
-    e. **Bộ 5 / 4 chậu**: mốc hiệu ứng của từng bộ phải tự định (vd bộ 5 chậu: 2 / 4 / 5; bộ 4 chậu: 2 / 3 / 4 như Thiên hà). "Hiệu ứng trọn bộ" sẽ đạt được ở mọi tầng.
-    f. **Menu ☰ trên HUD** đè nút ▲ ▼ chuyển tầng (cùng mép phải) khi mở → xem mục "HUD menu ☰" bên dưới.
+  - **Chốt thêm 20/11/2026 (lượt 3, các bất cập a–f đều làm theo đề xuất)**:
+    a. **Mốc Thăng tiến sau cấp 15: 20 / 30 / 40 / 50 / 60 / 70 / 80 / 90, thưởng TĂNG DẦN**, thay cho thưởng cấp thường của cấp đó (như mốc mở tầng). Con số (đề xuất, cân chỉnh được):
+       | Cấp | 20 | 30 | 40 | 50 | 60 | 70 | 80 | 90 (tối đa) |
+       |---|---|---|---|---|---|---|---|---|
+       | Đá vũ trụ | 200 | 240 | 280 | 320 | 360 | 400 | 440 | 480 |
+       | Lông chim | 400 | 600 | 800 | 1.000 | 1.200 | 1.400 | 1.600 | 2.000 |
+       | Vọng Tinh | 35 | 40 | 45 | 50 | 55 | 60 | 65 | 80 |
+       | Sao Duyên | 25 | 30 | 35 | 40 | 45 | 50 | 55 | 70 |
+    b. **Thêm nguồn kinh nghiệm** (ngoài thu hoạch; con số đề xuất, cân chỉnh được): mỗi nhiệm vụ ngày bậc 1 / 2 / 3 / 4 = **20 / 40 / 80 / 150 kinh nghiệm**; **bắt 1 côn trùng = 2 kinh nghiệm**;
+       chế tạo: mỗi sản phẩm ≈ ½ tổng kinh nghiệm thu hoạch của nguyên liệu (định khi làm GĐ6); **14 cây mới (GĐ8) rải cấp mở từ cấp 9 tới ~cấp 40**, cây lớn lâu cho kinh nghiệm cao hơn (cây 24 giờ ≈ 200–300).
+    c. **GHI NHỚ khi cân banner**: Thăng tiến rất rộng tay (10 Vọng Tinh + 5 Sao Duyên mỗi cấp + các mốc → tới cấp 90 ≈ 1.200 Vọng Tinh + 700 Sao Duyên). Người dùng cố ý chấp nhận vì sẽ ra banner / bộ chậu mới liên tục.
+    d. **"Nhà sưu tầm"**: khi game có > 60 loại chậu thì thêm bậc 80 / 100 / 150…; dòng "Trọn bộ <bộ>" tự sinh từ `POT_SETS` (không phải thêm tay).
+    e. **Bộ 5 / 4 chậu (dành riêng tầng 3 / 4)**: mốc hiệu ứng riêng — bộ 5 chậu **2 / 4 / 5**, bộ 4 chậu **2 / 3 / 4** (như Thiên hà); khai báo `tiers` trong `POT_SETS` như Thiên hà.
+    f. **Menu ☰**: làm theo đề xuất (xem mục "HUD menu ☰").
 - [ ] **HUD menu ☰ (CHỐT 20/11/2026, CHƯA LÀM)**: các nút phải của HUD (Cẩm nang, Cửa hàng, 🏆 Thành tựu, Gacha, Túi đồ, ✉ Hòm thư) gom vào **1 nút chung ☰ (3 gạch)** ở góc phải trên.
   Bấm ☰ → **mở hết các nút, xếp lưới 2 nút / hàng** (3 hàng, nút bằng nhau) ngay dưới ☰; bấm lần nữa → chỉ còn ☰ (☰ đổi thành X khi đang mở).
-  Đề xuất (chờ chốt): **chấm đỏ trên ☰** = tổng các chấm đỏ bên trong (thư, thành tựu, quà) để lúc đóng vẫn biết; **nhớ trạng thái đóng / mở** (localStorage);
-  khi mở thì **lưới nằm bên TRÁI cột ▲ ▼** (hoặc dời ▲ ▼ xuống góc phải dưới) để không đè nút chuyển tầng; mở 1 popup thì tự đóng menu.
+  ĐÃ CHỐT: **chấm đỏ trên ☰** = tổng các chấm đỏ bên trong (thư, thành tựu, quà) để lúc đóng vẫn biết; **nhớ trạng thái đóng / mở** (localStorage);
+  khi mở thì **lưới nằm bên TRÁI cột ▲ ▼** để không đè nút chuyển tầng (nếu vẫn chật trên iPhone 12 ngang thì dời ▲ ▼ xuống góc phải dưới); mở 1 popup thì tự đóng menu.
 - [ ] **Hòm thư — gửi thư kèm quà bằng SCRIPT (ĐÃ CHỐT 20/11/2026, CHƯA LÀM)**: người dùng (quản trị) chạy script trên máy để gửi thư; người chơi mở hòm thư trong game, **bấm nhận quà**.
   - **Dữ liệu**: thư riêng `families/{familyId}/gardens/{uid}/mail/{mailId}` = `{ title, body, rewards: { feathers, stones, rolls: { vong_tinh, sao_duyen }, seeds: { id: n }, insects: { id: n }, pots: [kind] },
     from ("Vườn mây"), createdAt, expiresAt (null = không hết hạn), claimedAt (null = chưa nhận) }`.
