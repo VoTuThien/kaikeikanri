@@ -1224,6 +1224,29 @@ Game nông trại **tự thiết kế** (cùng thể loại game trồng trọt,
     6. **Thêm vào**: Túi đồ (tab mới "Vật phẩm": phân bón, bùa, mảnh sao), thư (quà có `fertilizer`), bộ đếm `stats.fertilize` + thành tựu Chăm sóc **"Nhà nông chăm bón"** (bón 20 / 100 / 500 / 2.000 lần, I–IV) + nhiệm vụ ngày "Bón phân" (3 / 6 / 10 / 15).
     7. **Icon 2 túi phân bón** dựng bằng Blender (làm sau, cùng icon bùa / mảnh sao); trước đó dùng tạm icon nét. Có thể tái dùng mô hình **túi hạt** (`tui-hat.glb`) đổi màu + nhãn cho túi phân 3D lơ lửng.
 - Lưu ý nhiệm vụ ngày: bậc 1 có thể bốc "Bón phân 3 lần" dù người mới chưa có phân (phải mua phân B 40 lông chim ở Cửa hàng) — nếu thấy khó thì chỉ bốc khi đã có phân / từ bậc 2.
+- [ ] **Màn hình "Có gì mới" (What's new) — NGƯỜI DÙNG YÊU CẦU 20/11/2026; ĐỀ XUẤT dưới đây CHỜ DUYỆT, CHƯA LÀM**:
+  - **Yêu cầu**: mỗi lần deploy, người dùng ghi nội dung cập nhật của game; người chơi **lần đầu mở game ở bản mới** thì **tự mở sẵn màn hình "Có gì mới"**.
+  - **Khả thi: CÓ**, không cần máy chủ. Đề xuất:
+    1. **Nội dung viết trong code**: file `src/pages/garden/data/changelog.ts`, mảng `CHANGELOG` (mới nhất trên cùng), mỗi bản
+       `{ version: '2026-11-21', title: 'Phân bón & nhiệm vụ ngày', items: ['…', '…'], image?: '/game/news/…webp' }` — chữ thuần (không HTML), mỗi ý 1 dòng.
+       **Mã bản = ngày (+ `.2`, `.3` nếu deploy nhiều lần / ngày), tự ghi tay**, không lấy mã build tự sinh → deploy sửa lỗi nhỏ không cần ghi gì thì người chơi KHÔNG bị bật màn hình.
+       Quy trình: trước `npm run deploy` thêm 1 mục vào đầu `CHANGELOG` (nhờ Claude soạn từ git log cũng được).
+    2. **Nhớ đã xem theo TÀI KHOẢN** (không theo máy): vườn thêm `seenVersion`; đóng màn hình thì ghi bản mới nhất → đổi máy / cài lại không bị hiện lại. (localStorage chỉ làm dự phòng khi mất mạng.)
+    3. **Khi nào hiện**: sau màn hình tải, nếu `CHANGELOG[0].version` > `seenVersion` → mở popup phủ kín khung game (kiểu Thành tựu, cuộn bằng `DragScroll`), nút [Đã hiểu] / X.
+       **Bỏ lỡ nhiều bản** thì gộp hiện tất cả bản chưa xem (mới nhất trên cùng, tối đa 5 bản, còn lại "và n bản cũ hơn").
+       Không chen ngang khi đang mở popup / hiệu ứng gacha (chỉ mở lúc vào game).
+    4. **Người chơi mới** (vườn vừa tạo) KHÔNG hiện danh sách cập nhật cũ: lúc tạo vườn ghi luôn `seenVersion` = bản mới nhất.
+    5. **Xem lại bất cứ lúc nào**: Cẩm nang thêm tab / mục "Cập nhật" liệt kê mọi bản.
+  - **Bất cập & giải pháp (đề xuất, chờ duyệt)**:
+    1. **PWA cập nhật trễ 1 lần mở** (quan trọng): `vite.config.ts` đang `registerType: 'autoUpdate'` nhưng app KHÔNG tự tải lại khi có bản mới → lần mở đầu sau deploy vẫn chạy bản cũ
+       (service worker tải bản mới ngầm), **phải mở lần 2 mới thấy bản mới + màn hình "Có gì mới"**; iPhone giữ app chạy nền lâu thì càng trễ.
+       → Giải pháp: dùng `useRegisterSW` (`virtual:pwa-register/react`) kiểm tra bản mới khi mở app / mỗi 30–60 phút; có bản mới thì hiện thanh nhỏ **"Có bản cập nhật · Tải lại"**
+       (hoặc tự tải lại khi đang ở màn hình chính / màn hình tải game, KHÔNG tự tải lại khi đang nhập form để khỏi mất dữ liệu — app có `UnsavedGuard`). Áp dụng cho cả app, không riêng game.
+    2. **Quên ghi changelog khi deploy** → không ai thấy gì (không lỗi). Có thể thêm bước nhắc trong `npm run deploy` (in ra bản mới nhất trong `CHANGELOG`, hỏi "đúng chưa?") — tuỳ chọn.
+    3. **Chỉ hiện trong game hay cả app?** Đề xuất làm cho **game Vườn mây trước** (yêu cầu nói "game"); cùng cơ chế có thể dùng cho cả app sau (màn hình chính).
+    4. **Nhiều tài khoản / nhiều gia đình**: `seenVersion` nằm trong vườn (theo gia đình) → người chơi ở 2 gia đình sẽ thấy 2 lần. Nếu muốn 1 lần / tài khoản thì lưu ở `users/{uid}/settings/game` (cần thêm Rules) — đề xuất làm cách này.
+    5. **Ảnh minh hoạ** trong changelog (tuỳ chọn): để ở `public/game/news/`, nhỏ (< 100KB, webp), không precache.
+    6. **Ngôn ngữ / độ dài**: mỗi bản 3–6 ý ngắn, viết cho người chơi (không ghi chi tiết kỹ thuật).
 - **Các phần Vườn mây CÒN CẦN NGƯỜI DÙNG ĐẶC TẢ** (rà ngày 20/11/2026; session hiện tại chủ yếu đặc tả trước, code sau):
   1. GĐ5 hiệu ứng bộ chậu + nâng cấp chậu (cơ chế nâng có tỉ lệ đã mô tả + đề xuất số, chờ duyệt; "Ít sâu" đã chốt bỏ → Hút côn trùng; Mật ong thưởng Giá tốt, Băng Tinh không khát nước).
   2. Banner 1 Sao Duyên = đồ trang trí (chưa có gì). 3. Chủ đề + hiệu ứng 5 bộ banner S còn lại (B4–B8).
