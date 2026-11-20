@@ -412,6 +412,7 @@ const RULES = [
   'Côn trùng bay quanh cây: chạm để bắt (+2 kinh nghiệm), dùng để đập chậu (nâng cấp). Cây chín (huy hiệu giỏ): chạm để thu hoạch.',
   'Phân bón: chạm cây đang lớn (đã tưới) → chọn phân B (−20%) / A (−40%) thời gian lớn, rồi kéo túi phân lướt qua cây khác để bón tiếp. Mỗi cây tối đa 2 lần, tổng tối đa −60%.',
   'Gacha ra món hạng S / A được KÈM mảnh vỡ sao sáng / mảnh vỡ sao: đổi đồ đặc biệt ở Cửa hàng → Đổi sao.',
+  'Nhiệm vụ hằng ngày (nút 📝 trong menu ☰): 5 nhiệm vụ mỗi ngày, xong thì bấm nhận lông chim, đá vũ trụ, kinh nghiệm; xong cả 5 được thêm Sao Duyên.',
   'Đập chậu: nhấn giữ chậu → Đập chậu, hoặc Túi đồ → Chậu. Có tỉ lệ thành công; bỏ thêm chậu trong kho / bùa may mắn để tăng tỉ lệ (nút ? giải thích chi tiết).',
   'Thu hoạch được kinh nghiệm để lên cấp, mở khoá cây mới và tầng mây mới. Bán nông sản trong Túi đồ để nhận lông chim.',
   'Dùng lông chim mua hạt giống ở Cửa hàng (nút xe đẩy góc phải trên).',

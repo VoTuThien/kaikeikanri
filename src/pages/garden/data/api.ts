@@ -10,6 +10,7 @@ import { achievementById, achState, ACHIEVEMENTS, addReward, type Reward } from 
 import { broadcastFor, broadcastsCol, mailCol, toMail, type MailRewards } from './mail'
 import { dayKey, fertById, FERT_MIN_MINUTES, MAX_FERT_CUT, MAX_FERT_TIMES, monthKey, NO_FERTS, NO_SHARDS, shardById, STONE_TO_FEATHERS, type FertId, type Ferts, type ShardId, type Shards } from './items'
 import { choicesOf, offerById } from './exchange'
+import { DAILY_BONUS, DAILY_REWARD, dailyView, EMPTY_DAILY, rollDaily, type DailyState } from './daily'
 import { CHARM_SHOP_PRICE, MAX_FODDER, MAX_LUCK, MAX_POT_LEVEL, NO_CHARMS, rollUpgrade, upgradeCost, upgradeRate, type Charms, type CharmId, type UpgradeOutcome } from './upgrade'
 
 // Vườn của mỗi thành viên: families/{familyId}/gardens/{uid}
@@ -42,6 +43,7 @@ export interface Garden {
   ferts: Ferts // phân bón B / A
   shards: Shards // mảnh vỡ sao sáng / mảnh vỡ sao
   shop: ShopLimit // đếm số lần mua / đổi có giới hạn
+  daily: DailyState // nhiệm vụ hằng ngày (ảnh chụp bộ đếm đầu ngày + đã nhận)
 }
 // Giới hạn cửa hàng: `bought` = số lần đổi sao trong `month`, `today` = số túi phân A đã mua trong `day`
 export interface ShopLimit { month: string; day: string; bought: Record<string, number>; today: Record<string, number> }
@@ -57,7 +59,8 @@ function shopNow(g: Garden) {
 //   sow, water, harvestItems (số nông sản), harvest_<cây> (số LẦN thu hoạch loại đó), catch, catch_<loại>,
 //   sold (số nông sản đã bán), soldFeathers, boughtSeeds, pulls, gold (số chậu S ra từ gacha),
 //   pot_<loại chậu> = 1 (đã từng có), fullTier = 1 (từng đặt kín 1 tầng), fullSetTier = 1 (từng đặt đủ 1 bộ trên 1 tầng),
-//   upgradeTry, upgradeOk (đập chậu), potLv6 = 1 (từng có chậu lv6), setLv6 = 1 (từng có cả 1 bộ lv6)
+//   upgradeTry, upgradeOk (đập chậu), potLv6 = 1 (từng có chậu lv6), setLv6 = 1 (từng có cả 1 bộ lv6),
+//   harvestTier_<tầng 0-3> (số LẦN thu hoạch ở tầng), fertilize (số lần bón), shardsEarned
 export type Stats = Record<string, number>
 export const bump = (g: Garden, key: string, n = 1) => { g.stats[key] = (g.stats[key] ?? 0) + n }
 const flag = (g: Garden, key: string) => { g.stats[key] = 1 }
@@ -150,6 +153,7 @@ export function toGarden(d: DocumentData): Garden {
     ferts: { ...NO_FERTS, ...(d.ferts ?? {}) },
     shards: { ...NO_SHARDS, ...(d.shards ?? {}) },
     shop: { month: '', day: '', bought: {}, today: {}, ...(d.shop ?? {}) },
+    daily: { ...EMPTY_DAILY, ...(d.daily ?? {}) },
     born: typeof d.createdAt?.toMillis === 'function' ? d.createdAt.toMillis() : 0,
   }
   if (g.gift && !g.claimed.welcome) g.claimed.welcome = 1 // đã nhận quà chào mừng ở màn hình gacha cũ
@@ -183,6 +187,7 @@ export function createGarden(actor: Actor) {
     ferts: NO_FERTS,
     shards: NO_SHARDS,
     shop: { month: '', day: '', bought: {}, today: {} },
+    daily: EMPTY_DAILY,
     stats: Object.fromEntries([...new Set(startPots(START_POTS).pots.map((p) => p.kind))].map((k) => [`pot_${k}`, 1])),
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
@@ -196,6 +201,7 @@ async function mutate<T>(actor: Actor, change: (g: Garden) => T): Promise<T> {
     const snap = await tx.get(ref)
     if (!snap.exists()) throw new Error('Không tìm thấy vườn')
     const g = toGarden(snap.data())
+    g.daily = rollDaily(g.daily, actor.uid, g) // ngày mới: chụp bộ đếm TRƯỚC khi thao tác cộng thêm
     const result = change(g)
     writeGarden(tx, ref, g, actor)
     return result
@@ -280,6 +286,7 @@ export function harvestPlant(actor: Actor, tier: number, slot: number) {
     g.xp += st.crop.xp
     g.harvested += st.harvest
     bump(g, 'harvestItems', st.harvest)
+    bump(g, `harvestTier_${tier}`)
     bump(g, `harvest_${st.crop.id}`)
     delete g.plants[slotKey(tier, slot)]
     return { crop: st.crop.id, count: st.harvest, xp: st.crop.xp, before, after: levelOf(g.xp) }
@@ -570,6 +577,35 @@ export function stonesToFeathers(actor: Actor, n: number) {
     g.stones -= n
     g.feathers += n * STONE_TO_FEATHERS
     return n * STONE_TO_FEATHERS
+  })
+}
+
+// ---- Nhiệm vụ hằng ngày (xem data/daily.ts) ----
+// Nhận thưởng 1 nhiệm vụ (`id`), thưởng xong cả 5 ("bonus"), hoặc mọi thứ đang chờ (`id` = null). Trả về tổng thưởng + cấp trước / sau.
+export function claimDaily(actor: Actor, id: string | null) {
+  return mutate(actor, (g) => {
+    const v = dailyView(actor.uid, g)
+    const sum = { feathers: 0, stones: 0, xp: 0, sao_duyen: 0 }
+    const before = levelOf(g.xp)
+    let n = 0
+    for (const r of v.rows) {
+      if ((id && id !== r.q.id) || !r.done || r.claimed) continue
+      const rw = DAILY_REWARD[r.q.tier - 1]
+      g.feathers += rw.feathers; g.stones += rw.stones; g.xp += rw.xp
+      sum.feathers += rw.feathers; sum.stones += rw.stones; sum.xp += rw.xp
+      g.daily.claimed.push(r.q.id)
+      n++
+    }
+    const allNow = v.rows.length > 0 && v.rows.every((r) => g.daily.claimed.includes(r.q.id))
+    if ((id === null || id === 'bonus') && allNow && !g.daily.claimed.includes('bonus')) {
+      g.rolls.sao_duyen += DAILY_BONUS.sao_duyen
+      sum.sao_duyen += DAILY_BONUS.sao_duyen
+      g.daily.claimed.push('bonus')
+      bump(g, 'fullDays')
+      n++
+    }
+    if (!n) throw new Error('Chưa có phần thưởng nào để nhận')
+    return { ...sum, n, before, after: levelOf(g.xp) }
   })
 }
 

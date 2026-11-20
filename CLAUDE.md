@@ -1194,7 +1194,11 @@ Game nông trại **tự thiết kế** (cùng thể loại game trồng trọt,
        Chạm cây đang lớn đã tưới (có phân) → dải chọn phân (hiện "bớt bao lâu") → túi phân 3D (mô hình túi hạt, màu xanh lá / nâu vàng, nhãn chữ B / A) → kéo lướt qua cây bón được (`BagState.fert` + `targets`), gom 1 transaction lúc thả tay.
        Thành tựu "Nhà nông chăm bón" (`stats.fertilize`). Thư / script gửi được `--fert B:10`, `--shard sao:5`. Icon tạm: 🌱 / 🌿 (phân), ⭐ / ✨ (mảnh; vẽ thêm icon nét ✨).
      - **Chưa có**: icon Blender (bùa, phân, mảnh), nhiệm vụ ngày "Bón phân" (làm ở bước 7). Chưa thử trong game (máy làm không có `.env`).
-  7. Nhiệm vụ hằng ngày (tab "Hôm nay" trong Thành tựu).
+  7. **[x] ĐÃ LÀM (20/11/2026)**: Nhiệm vụ hằng ngày — **popup RIÊNG** (người dùng đổi ý: KHÔNG làm tab "Hôm nay" trong Thành tựu), nút 📝 trong menu ☰ (chấm đỏ khi có thưởng chờ).
+     Luật `data/daily.ts` (`QUESTS` bảng nhiệm vụ đã chốt + "Bón phân" 3 / 6 / 10 / 15; "Đập chậu" tính số LẦN đập; "Chế tạo" chưa có — thêm khi làm máy), `questsOf` (5 loại khác nhau, hạt giống = uid + ngày),
+     vườn có `daily` = { day, base (ảnh chụp `stats` đầu ngày), claimed, quests (chốt lúc chụp: lên cấp giữa ngày không đổi nhiệm vụ) }; `mutate` gọi `rollDaily` TRƯỚC mỗi thao tác;
+     tiến độ = `stats` − `base`; thêm bộ đếm `harvestTier_<tầng>`. Nhận: `claimDaily` (1 nhiệm vụ / "bonus" / tất cả): bậc 1–4 = 40 + 32 đá + 20 KN · 50 + 32 + 40 · 60 + 48 + 80 · 80 + 64 + 150; xong cả 5 = 2 Sao Duyên (`stats.fullDays`).
+     Giao diện `game/DailyUi.tsx` (`DailyScreen`). Thành tựu "Chăm chỉ mỗi ngày" (1 / 7 / 30 / 100 ngày) ở nhóm Chăm sóc. Chưa thử trong game.
   8. **[x] Gộp vào bước 6.** Phân bón (đã duyệt): `plant.boost`, túi phân kiểu túi hạt, cửa hàng "Hạt & phân", gacha (côn trùng 35,5% + phân B 6% + phân A 2%), đổi sao, tab "Vật phẩm" trong Túi đồ, thành tựu + nhiệm vụ bón phân, quà thư `fertilizer` — icon tạm.
   CẦN Blender (làm riêng): icon 4 bùa + 2 mảnh sao, hoạt cảnh / xuất máy chế tạo, xuất 14 cây mới, bộ chậu banner mới. CHƯA đặc tả: máy chế tạo (GĐ6), số liệu 14 cây (GĐ8), banner Sao Duyên.
 - [x] **Phân bón — rút ngắn thời gian trồng (ĐÃ LÀM 20/11/2026, xem "THỨ TỰ CODE" bước 6) (NGƯỜI DÙNG MÔ TẢ + ĐÃ DUYỆT 20/11/2026: mọi con số + mục 1–7 theo đề xuất; CHƯA LÀM)**:
@@ -1219,6 +1223,7 @@ Game nông trại **tự thiết kế** (cùng thể loại game trồng trọt,
     5. **Phân bón không có hạng S** nhưng bảng gacha / thư / thành tựu đều xử lý được 2 loại; bón không đổi `plantedAt` nên dời chậu / cất chậu vẫn đúng (cất chậu thì mất cây + phân đã bón).
     6. **Thêm vào**: Túi đồ (tab mới "Vật phẩm": phân bón, bùa, mảnh sao), thư (quà có `fertilizer`), bộ đếm `stats.fertilize` + thành tựu Chăm sóc **"Nhà nông chăm bón"** (bón 20 / 100 / 500 / 2.000 lần, I–IV) + nhiệm vụ ngày "Bón phân" (3 / 6 / 10 / 15).
     7. **Icon 2 túi phân bón** dựng bằng Blender (làm sau, cùng icon bùa / mảnh sao); trước đó dùng tạm icon nét. Có thể tái dùng mô hình **túi hạt** (`tui-hat.glb`) đổi màu + nhãn cho túi phân 3D lơ lửng.
+- Lưu ý nhiệm vụ ngày: bậc 1 có thể bốc "Bón phân 3 lần" dù người mới chưa có phân (phải mua phân B 40 lông chim ở Cửa hàng) — nếu thấy khó thì chỉ bốc khi đã có phân / từ bậc 2.
 - **Các phần Vườn mây CÒN CẦN NGƯỜI DÙNG ĐẶC TẢ** (rà ngày 20/11/2026; session hiện tại chủ yếu đặc tả trước, code sau):
   1. GĐ5 hiệu ứng bộ chậu + nâng cấp chậu (cơ chế nâng có tỉ lệ đã mô tả + đề xuất số, chờ duyệt; "Ít sâu" đã chốt bỏ → Hút côn trùng; Mật ong thưởng Giá tốt, Băng Tinh không khát nước).
   2. Banner 1 Sao Duyên = đồ trang trí (chưa có gì). 3. Chủ đề + hiệu ứng 5 bộ banner S còn lại (B4–B8).

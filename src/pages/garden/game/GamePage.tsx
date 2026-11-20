@@ -22,6 +22,8 @@ import { readyTotal } from '../data/achievements'
 import { mailView, useMailbox } from '../data/mail'
 import { MailScreen } from './MailUi'
 import { UpgradeScreen } from './UpgradeUi'
+import { DailyScreen } from './DailyUi'
+import { dailyView } from '../data/daily'
 import { fertById, FERTS, type FertId } from '../data/items'
 import { fertilize } from '../data/api'
 import { SLOTS } from './slots'
@@ -80,7 +82,7 @@ function Game() {
   const [ui, setUi] = useState<Ui>({ kind: 'view' })
   const [busy, setBusy] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
-  const [popup, setPopupState] = useState<'gacha' | 'bag' | 'guide' | 'shop' | 'ach' | 'mail' | 'upgrade' | null>(null)
+  const [popup, setPopupState] = useState<'gacha' | 'bag' | 'guide' | 'shop' | 'ach' | 'mail' | 'upgrade' | 'daily' | null>(null)
   // Menu ☰: gom các nút bên phải HUD; nhớ đóng / mở; mở 1 popup thì tự đóng menu
   const [menuOpen, setMenuOpenState] = useState(() => loadMenuOpen(uid))
   const setMenuOpen = (open: boolean) => { setMenuOpenState(open); if (uid) saveMenuOpen(uid, open) }
@@ -117,12 +119,14 @@ function Game() {
   const xpBar = levelProgress(garden?.xp ?? 0)
   // Các nút trong menu ☰ (2 nút / hàng: cẩm nang, cửa hàng / thành tựu, gacha / túi đồ); `dot` = có việc chờ (chấm đỏ)
   const achReady = useMemo(() => (garden ? readyTotal(garden, garden.claimed) : 0), [garden])
+  const dailyReady = useMemo(() => (garden && uid ? dailyView(uid, garden).ready : 0), [garden, uid, now]) // eslint-disable-line react-hooks/exhaustive-deps
   const box = useMailbox(uid || null)
   const mailNow = useNow(60_000)
   const mail = useMemo(() => mailView(box.personal, box.broadcasts, garden?.mailClaimed ?? {}, garden?.born ?? 0, mailNow), [box.personal, box.broadcasts, garden?.mailClaimed, garden?.born, mailNow])
   const menuItems: { label: string; popup: NonNullable<typeof popup>; color: string; icon: React.ReactNode; dot: boolean }[] = [
     { label: 'Cẩm nang', popup: 'guide', color: 'from-sky-400/70 to-indigo-600/70', icon: <Icon3D emoji="📖" className="h-6 w-6" />, dot: false },
     { label: 'Cửa hàng', popup: 'shop', color: 'from-rose-400/70 to-pink-600/70', icon: <Icon3D emoji="🛒" className="h-6 w-6" />, dot: false },
+    { label: 'Nhiệm vụ hằng ngày', popup: 'daily', color: 'from-lime-400/70 to-emerald-600/70', icon: <Icon3D emoji="📝" className="h-6 w-6" />, dot: dailyReady > 0 },
     { label: 'Thành tựu', popup: 'ach', color: 'from-amber-400/70 to-orange-600/70', icon: <Icon3D emoji="🏆" className="h-6 w-6" />, dot: achReady > 0 },
     { label: 'Gacha (ước nguyện)', popup: 'gacha', color: 'from-amber-400/70 to-fuchsia-600/70', icon: <img src={ROLL_IMG.vong_tinh} alt="" className="h-9 w-9 object-contain" />, dot: false },
     { label: 'Hòm thư', popup: 'mail', color: 'from-sky-400/70 to-blue-600/70', icon: <Icon3D emoji="📬" className="h-6 w-6" />, dot: mail.unread > 0 },
@@ -559,6 +563,7 @@ function Game() {
       {popup === 'bag' && garden && <BagPopup garden={garden} actor={actor} onClose={() => setPopup(null)} say={say} onUpgrade={openUpgrade} />}
       {popup === 'guide' && garden && <GuidePopup garden={garden} onClose={() => setPopup(null)} />}
       {popup === 'upgrade' && garden && upgradeId && <UpgradeScreen garden={garden} actor={actor} potId={upgradeId} onClose={() => setPopup(null)} />}
+      {popup === 'daily' && garden && <DailyScreen garden={garden} actor={actor} onClose={() => setPopup(null)} />}
       {popup === 'mail' && <MailScreen list={mail.list} isOpen={mail.open} actor={actor} onClose={() => setPopup(null)} />}
       {popup === 'ach' && garden && <AchievementsScreen garden={garden} actor={actor} onClose={() => setPopup(null)} />}
       {popup === 'shop' && garden && <ShopPopup garden={garden} actor={actor} onClose={() => setPopup(null)} say={say} />}
