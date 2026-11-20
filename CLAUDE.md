@@ -1199,6 +1199,8 @@ Game nông trại **tự thiết kế** (cùng thể loại game trồng trọt,
      vườn có `daily` = { day, base (ảnh chụp `stats` đầu ngày), claimed, quests (chốt lúc chụp: lên cấp giữa ngày không đổi nhiệm vụ) }; `mutate` gọi `rollDaily` TRƯỚC mỗi thao tác;
      tiến độ = `stats` − `base`; thêm bộ đếm `harvestTier_<tầng>`. Nhận: `claimDaily` (1 nhiệm vụ / "bonus" / tất cả): bậc 1–4 = 40 + 32 đá + 20 KN · 50 + 32 + 40 · 60 + 48 + 80 · 80 + 64 + 150; xong cả 5 = 2 Sao Duyên (`stats.fullDays`).
      Giao diện `game/DailyUi.tsx` (`DailyScreen`). Thành tựu "Chăm chỉ mỗi ngày" (1 / 7 / 30 / 100 ngày) ở nhóm Chăm sóc. Chưa thử trong game.
+  9. Màn hình "Có gì mới" (đã duyệt): `data/changelog.ts`, `seenVersion` ở `users/{uid}/settings/game` (+ Rules), popup sau màn hình tải, mục "Cập nhật" trong Cẩm nang, vườn mới không hiện;
+     kèm thanh "Có bản cập nhật · Tải lại" cho cả app (`useRegisterSW`).
   8. **[x] Gộp vào bước 6.** Phân bón (đã duyệt): `plant.boost`, túi phân kiểu túi hạt, cửa hàng "Hạt & phân", gacha (côn trùng 35,5% + phân B 6% + phân A 2%), đổi sao, tab "Vật phẩm" trong Túi đồ, thành tựu + nhiệm vụ bón phân, quà thư `fertilizer` — icon tạm.
   CẦN Blender (làm riêng): icon 4 bùa + 2 mảnh sao, hoạt cảnh / xuất máy chế tạo, xuất 14 cây mới, bộ chậu banner mới. CHƯA đặc tả: máy chế tạo (GĐ6), số liệu 14 cây (GĐ8), banner Sao Duyên.
 - [x] **Phân bón — rút ngắn thời gian trồng (ĐÃ LÀM 20/11/2026, xem "THỨ TỰ CODE" bước 6) (NGƯỜI DÙNG MÔ TẢ + ĐÃ DUYỆT 20/11/2026: mọi con số + mục 1–7 theo đề xuất; CHƯA LÀM)**:
@@ -1224,7 +1226,7 @@ Game nông trại **tự thiết kế** (cùng thể loại game trồng trọt,
     6. **Thêm vào**: Túi đồ (tab mới "Vật phẩm": phân bón, bùa, mảnh sao), thư (quà có `fertilizer`), bộ đếm `stats.fertilize` + thành tựu Chăm sóc **"Nhà nông chăm bón"** (bón 20 / 100 / 500 / 2.000 lần, I–IV) + nhiệm vụ ngày "Bón phân" (3 / 6 / 10 / 15).
     7. **Icon 2 túi phân bón** dựng bằng Blender (làm sau, cùng icon bùa / mảnh sao); trước đó dùng tạm icon nét. Có thể tái dùng mô hình **túi hạt** (`tui-hat.glb`) đổi màu + nhãn cho túi phân 3D lơ lửng.
 - Lưu ý nhiệm vụ ngày: bậc 1 có thể bốc "Bón phân 3 lần" dù người mới chưa có phân (phải mua phân B 40 lông chim ở Cửa hàng) — nếu thấy khó thì chỉ bốc khi đã có phân / từ bậc 2.
-- [ ] **Màn hình "Có gì mới" (What's new) — NGƯỜI DÙNG YÊU CẦU 20/11/2026; ĐỀ XUẤT dưới đây CHỜ DUYỆT, CHƯA LÀM**:
+- [ ] **Màn hình "Có gì mới" (What's new) — NGƯỜI DÙNG YÊU CẦU + ĐÃ DUYỆT 20/11/2026 (mọi đề xuất + bất cập 1–6 theo đề xuất; lưu "đã xem" ở `users/{uid}/settings/game`), CHƯA LÀM**:
   - **Yêu cầu**: mỗi lần deploy, người dùng ghi nội dung cập nhật của game; người chơi **lần đầu mở game ở bản mới** thì **tự mở sẵn màn hình "Có gì mới"**.
   - **Khả thi: CÓ**, không cần máy chủ. Đề xuất:
     1. **Nội dung viết trong code**: file `src/pages/garden/data/changelog.ts`, mảng `CHANGELOG` (mới nhất trên cùng), mỗi bản
@@ -1237,7 +1239,7 @@ Game nông trại **tự thiết kế** (cùng thể loại game trồng trọt,
        Không chen ngang khi đang mở popup / hiệu ứng gacha (chỉ mở lúc vào game).
     4. **Người chơi mới** (vườn vừa tạo) KHÔNG hiện danh sách cập nhật cũ: lúc tạo vườn ghi luôn `seenVersion` = bản mới nhất.
     5. **Xem lại bất cứ lúc nào**: Cẩm nang thêm tab / mục "Cập nhật" liệt kê mọi bản.
-  - **Bất cập & giải pháp (đề xuất, chờ duyệt)**:
+  - **Bất cập & giải pháp (ĐÃ DUYỆT)**:
     1. **PWA cập nhật trễ 1 lần mở** (quan trọng): `vite.config.ts` đang `registerType: 'autoUpdate'` nhưng app KHÔNG tự tải lại khi có bản mới → lần mở đầu sau deploy vẫn chạy bản cũ
        (service worker tải bản mới ngầm), **phải mở lần 2 mới thấy bản mới + màn hình "Có gì mới"**; iPhone giữ app chạy nền lâu thì càng trễ.
        → Giải pháp: dùng `useRegisterSW` (`virtual:pwa-register/react`) kiểm tra bản mới khi mở app / mỗi 30–60 phút; có bản mới thì hiện thanh nhỏ **"Có bản cập nhật · Tải lại"**
