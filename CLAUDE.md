@@ -857,7 +857,7 @@ Game nông trại **tự thiết kế** (cùng thể loại game trồng trọt,
   - **Vốn ban đầu**: **100 lông chim + 32 đá vũ trụ**, và **tặng 20 Vọng Tinh qua HÒM THƯ** (thư quà chào mừng, bấm nhận).
   - **Đổi đá → lông chim: 1 đá = 5 lông chim**, chỉ 1 chiều.
   - **Đá tặng khi lên cấp: 16 đá / cấp; cấp 5 / 10 / 15 (mốc mở tầng) tặng 160 đá.** → **Đổi (20/11/2026): thưởng lên cấp (đá + lông chim) NHẬN Ở POPUP THÀNH TỰU**, không tự cộng (xem mục "Thành tựu" bên dưới).
-  - **Nâng cấp chậu** (côn trùng loại nào cũng được + lông chim), hạng A giá ×1,5, hạng S ×2:
+  - **Nâng cấp chậu** (côn trùng loại nào cũng được + lông chim), hạng A giá ×1,5, hạng S ×2 — **SẮP BỊ THAY bởi "Nâng cấp chậu có tỉ lệ (GĐ5)" (đề xuất 20/11/2026)**:
     | Lên cấp | Côn trùng | Lông chim |
     |---|---|---|
     | 1→2 | 2 | 50 |
@@ -1045,8 +1045,47 @@ Game nông trại **tự thiết kế** (cùng thể loại game trồng trọt,
   - **Mật ong**: thưởng đủ bộ đổi thành **Giá tốt** (lv1 +4% → lv6 +10%) — ĐÃ CHỐT.
   - **Băng Tinh**: đặc quyền đổi thành **"Cây trên tầng không bao giờ khát nước"** — ĐÃ CHỐT.
   - Tỉ lệ côn trùng hiện ~1/2 số cây; Hút côn trùng cộng vào tỉ lệ này, trần 100%.
+- [ ] **Nâng cấp chậu có tỉ lệ (GĐ5) — NGƯỜI DÙNG MÔ TẢ 20/11/2026; con số dưới là ĐỀ XUẤT, CHỜ DUYỆT, CHƯA LÀM** (thay bảng giá cố định "côn trùng loại nào cũng được" ở mục Tiền trong game):
+  - **Người dùng mô tả**: mỗi lần nâng cần **côn trùng (đúng loại, đủ số) + lông chim** (vd 3 sâu + 3 nhện + 30 lông chim). **Nâng có tỉ lệ thành công**, chậu A thấp hơn B, S thấp nhất.
+    **Thất bại** chia tiếp: **10% về lv1, 70% giữ nguyên cấp, 20% tuột ngẫu nhiên 1 / 2 / 3 / 4 cấp**. Được bỏ thêm **tối đa 5 chậu khác** (chưa nâng / đã nâng đều được) để tăng tỉ lệ,
+    và **tối đa 3 item tăng tỉ lệ** (3 loại B / A / S; icon dựng bằng Blender — làm sau). **Tỉ lệ thành công hiện trên màn hình** để người chơi điều chỉnh. Chậu đang trồng cây vẫn nâng được.
+  - **Tỉ lệ thành công gốc (đề xuất)**:
+    | Lên cấp | 1→2 | 2→3 | 3→4 | 4→5 | 5→6 |
+    |---|---|---|---|---|---|
+    | Chậu B | 90% | 75% | 60% | 45% | 30% |
+    | Chậu A | 80% | 65% | 50% | 35% | 20% |
+    | Chậu S | 70% | 55% | 40% | 25% | 12% |
+  - **Chi phí mỗi LẦN THỬ (đề xuất; mất cả khi thất bại)**: mỗi bộ chậu quy định **2 loại côn trùng** (theo chủ đề, vd Mật ong = bướm + bọ rùa, Rừng nấm = sâu + đom đóm), mỗi loại:
+    1→2: 2 con + 30 lông chim · 2→3: 3 + 60 · 3→4: 4 + 120 · 4→5: 5 + 200 · 5→6: 6 + 300; **hạng A ×1,5, hạng S ×2** (làm tròn lên) cả côn trùng lẫn lông chim.
+  - **Chậu bỏ vào (tối đa 5, bị MẤT dù thành công hay thất bại)**, % cộng thêm mỗi chậu (đề xuất); **chậu CÙNG LOẠI với chậu đang nâng ×1,5** (chậu trùng từ gacha có chỗ dùng):
+    | Chậu bỏ vào | lv1 | lv2 | lv3 | lv4 | lv5 | lv6 |
+    |---|---|---|---|---|---|---|
+    | Hạng B | +2% | +3% | +4% | +6% | +8% | +10% |
+    | Hạng A | +4% | +6% | +8% | +12% | +16% | +20% |
+    | Hạng S | +8% | +12% | +16% | +24% | +32% | +40% |
+  - **Item "Bùa may mắn" (tối đa 3, trộn hạng được)**: **B +5%, A +12%, S +25%**. **Trần tỉ lệ**: chậu B / A tối đa 100%, **chậu S tối đa 95%** (luôn còn rủi ro).
+    Vd chậu S 5→6 (12%) + 5 chậu B lv1 cùng loại (+15%) + 3 bùa B (+15%) = 42%.
+  - **Trả lời câu hỏi của người dùng**: hiện tại **CHỈ có hiệu ứng CẢ BỘ** (theo số chậu khác nhau trên tầng + **cấp trung bình** các chậu được tính, `setsOnTier` trong `data/pots.ts`), **không có hiệu ứng riêng từng chậu**.
+    → 1 chậu lên / tuột cấp làm thay đổi cấp trung bình → mức hiệu ứng của bộ trên tầng đó.
+  - **Bất cập & giải pháp (đề xuất, chờ duyệt)**:
+    1. **Nâng chậu đang trồng cây, thất bại chỉ ảnh hưởng từ lần gieo sau — KHÔNG SAO, và nên làm vậy cho MỌI hiệu ứng gắn với cây**: lúc gieo **chụp mức hiệu ứng của tầng vào cây** (`plant.buff`: lớn nhanh, bội thu, mùa may, giữ ẩm, côn trùng…),
+       cây dùng đúng số đó tới khi thu hoạch → nâng / tuột cấp / dời / đặt thêm chậu giữa chừng không đổi cây đang trồng (cũng chặn mẹo đặt chậu ngay trước khi thu hoạch). Màn hình nâng cấp ghi rõ "Áp dụng từ lần gieo sau".
+    2. **"Hạt rẻ" và "Giá tốt" không còn gắn với tầng** (hạt mua ở cửa hàng chung, nông sản bán ở Túi đồ chung) → đổi: **Hạt rẻ = cơ hội KHÔNG TỐN HẠT khi gieo ở tầng đó**,
+       **Giá tốt = thu hoạch ở tầng đó được thêm lông chim = x% giá bán** số nông sản thu được (cũng chụp lúc gieo). Máy chạy nhanh vẫn tính theo hiện tại.
+    3. **Chậu bỏ vào chỉ lấy từ KHO** (chậu đang đặt phải cất trước), không được chọn chính chậu đang nâng; bỏ **chậu hạng S, chậu ≥ lv3 hoặc bản cuối cùng của 1 loại** thì bấm 2 lần xác nhận.
+       Thành tựu Thu thập đếm "đã từng có" (`stats.potKinds`) nên không bị trừ; nhưng mất bản cuối thì "Trọn bộ" trên tầng mất hiệu ứng.
+    4. **Tuột cấp ở cấp thấp trùng kết quả**: số cấp tuột ngẫu nhiên trong 1..min(4, cấp − 1); lv1 thất bại = giữ nguyên; lv2 thất bại "về lv1" và "tuột" giống nhau — chấp nhận.
+    5. **Chậu S 5→6 rất khắc nghiệt** (12% gốc, thất bại 8,8% / lần về lv1) → đề xuất sau này thêm item **"Bùa giữ cấp"** (thất bại thì luôn giữ nguyên cấp), chưa làm ngay.
+    6. **Nguồn Bùa may mắn (cần chốt)**: B = cửa hàng (vd 100 lông chim) + nhiệm vụ ngày + thành tựu; A = thành tựu bậc IV+ / mốc Thăng tiến / thư; S = thành tựu lớn / mốc Thăng tiến / thư;
+       gacha: cắt bớt suất côn trùng (~50%) thành **côn trùng 44% + bùa B 5% + bùa A 0,9% + bùa S 0,1%**.
+    7. **Bảng giá cũ** (2 / 4 / 6 / 8 / 10 côn trùng loại nào cũng được + 50 → 800 lông chim) **bị thay** bởi chi phí mỗi lần thử ở trên; côn trùng giờ có giá trị theo loại (nhiệm vụ "bắt loại chỉ định" có ý nghĩa hơn).
+    8. **Chỗ nâng cấp**: thêm [Nâng cấp] vào menu chậu (nhấn giữ chậu đã đặt) + tab **"Chậu"** trong Túi đồ (nâng chậu trong kho). Popup kiểu gacha: giữa = chậu (ảnh cấp hiện tại → cấp kế), 5 ô chậu bỏ vào, 3 ô bùa,
+       chi phí (côn trùng / lông chim đang có, thiếu thì đỏ), **tỉ lệ thành công lớn ở giữa** (ghi "gốc 45% + chậu 12% + bùa 10%") + dòng nhỏ khả năng thất bại (về lv1 / giữ / tuột), nút [Nâng cấp].
+       Kết quả: hiệu ứng sáng (thành công) / nứt (thất bại) rồi báo cấp mới. Chọn chậu bỏ vào = danh sách cuộn `DragScroll`.
+    9. **Ghi dữ liệu**: `upgradePot(potId, fodderIds[], charms{B,A,S})` 1 transaction (kiểm tra đủ đồ, tính tỉ lệ lại từ dữ liệu server, quay ngẫu nhiên, trừ đồ, xoá chậu bỏ vào khỏi `pots` + `placed`, đổi cấp, cộng `stats` `upgradeTry` / `upgradeOk` / `maxPotLevel`).
+       Ngẫu nhiên chạy trên điện thoại như gacha (chấp nhận với app gia đình).
 - **Các phần Vườn mây CÒN CẦN NGƯỜI DÙNG ĐẶC TẢ** (rà ngày 20/11/2026; session hiện tại chủ yếu đặc tả trước, code sau):
-  1. GĐ5 hiệu ứng bộ chậu + nâng cấp chậu (nâng ở đâu, cách từng hiệu ứng chạy; "Ít sâu" đã chốt bỏ → Hút côn trùng; Mật ong thưởng Giá tốt, Băng Tinh không khát nước).
+  1. GĐ5 hiệu ứng bộ chậu + nâng cấp chậu (cơ chế nâng có tỉ lệ đã mô tả + đề xuất số, chờ duyệt; "Ít sâu" đã chốt bỏ → Hút côn trùng; Mật ong thưởng Giá tốt, Băng Tinh không khát nước).
   2. Banner 1 Sao Duyên = đồ trang trí (chưa có gì). 3. Chủ đề + hiệu ứng 5 bộ banner S còn lại (B4–B8).
   4. Máy chế tạo GĐ6: số nguyên liệu, thời gian, số mẻ, **giá bán sản phẩm bằng đá**, tầng 4 có máy không.
   5. Kinh nghiệm game (đã chốt giữ `xp`; còn: nguồn kinh nghiệm ngoài thu hoạch, cấp tối đa). 6. Hòm thư: ĐÃ CHỐT gửi bằng script (xem mục Hòm thư).
