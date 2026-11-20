@@ -386,15 +386,11 @@ Dữ liệu Firestore (xem `src/pages/note/data/api.ts`), thuộc gia đình đa
 ### App Vườn mây (`/garden`) — game trồng cây
 Game nông trại **tự thiết kế** (cùng thể loại game trồng trọt, không chép tên / hình / nhân vật của game nào). Vẽ 2D bằng icon nét (`GLYPHS`), không dùng 3D.
 **Xu trong game TÁCH RIÊNG hoàn toàn, không liên quan tới app Quỹ.** Luật chơi ở `src/pages/garden/data/crops.ts`, ghi dữ liệu ở `data/api.ts` (mọi thao tác là 1 Firestore transaction `mutate`).
-- [x] Trang chính (`/garden`): thanh cấp độ + xu (`GardenStats`), tóm tắt vườn (cây chín / cần chăm / ô trống / nông sản trong kho).
-- [x] Vườn của tôi (`/garden/farm`, `FarmPage`): lưới **12 ô đất 4×3** (`MAX_PLOTS`), mở sẵn 6 ô, 100 xu lúc bắt đầu (vườn tự tạo lần đầu mở app khi server xác nhận chưa có).
-  **Chạm 1 ô làm đúng việc ô đó cần**: đất trống → popup chọn hạt (`SeedPicker`, mua hạt = gieo luôn, cây chưa đủ cấp / không đủ xu thì mờ);
-  cây khát nước (huy hiệu 💧) / có sâu (🐛) → tưới + bắt sâu; cây chín → thu hoạch (vào kho, cộng kinh nghiệm, báo lên cấp + cây mới mở khoá);
-  ô khoá kế tiếp → chạm 2 lần để mở bằng xu (`plotPrice`: 100, 200, 400…). FAB [💧 chăm cả vườn] [giỏ thu hoạch tất cả].
-  **Cây lớn theo thời gian thật** từ `plantedAt` (đóng app vẫn lớn), 4 giai đoạn hạt / mầm / lớn / chín (`plotState`). Tưới trước khi chín: +1 nông sản;
-  ~1/3 số lần gieo bị sâu (cố định theo `plantedAt`) khi lớn được nửa chừng, không bắt thì −1 nông sản. Cây chín không héo.
+- **Trang 2D cũ `/garden` (trang chính, Vườn của tôi `FarmPage`, Kho, Cẩm nang) ĐÃ BỎ ở GĐ4**: trồng / chăm / thu hoạch làm trên cảnh 3D trong game,
+  Kho + Cẩm nang thành popup trong game (xem "GĐ4 đã làm"). Luật chung vẫn ở `crops.ts`: **cây lớn theo thời gian thật** từ `plantedAt` (đóng app vẫn lớn),
+  4 giai đoạn hạt / mầm / lớn / chín (`plantState`: mầm từ 20%, đang lớn từ 60%); tưới trước khi chín: +1 nông sản; cây chín không héo.
   Cấp độ: lên cấp L cần tổng `25·L·(L−1)` kinh nghiệm (`levelOf`); 8 loại cây mở dần theo cấp (`CROPS`).
-- [x] **Cảnh mây 3D** trong Vườn của tôi: `Segmented` **[Cảnh mây] [Ô đất]** dưới thanh cấp độ (nhớ ở localStorage `garden-view`, mặc định Cảnh mây).
+- [x] **Cảnh mây 3D** (trước ở Vườn của tôi, nay là nền của game; phần mô tả dưới vẫn đúng cho mây / máy): `Segmented` **[Cảnh mây] [Ô đất]** dưới thanh cấp độ (nhớ ở localStorage `garden-view`, mặc định Cảnh mây).
   Cảnh mây chiếm phần còn lại của trang (`models/CloudScene.tsx`, lazy cùng three.js, vùng có `data-no-swipe`): **1 ngón xoay, 2 ngón phóng to / thu nhỏ**
   (OrbitControls, không dịch chuyển; tự xoay chậm cho tới khi chạm), các tầng mây nhấp nhô lơ lửng. Gieo / tưới / thu hoạch vẫn ở tab Ô đất (chưa đặt cây lên mây).
   **3 máy chế tạo hiện trong cảnh** (`public/models/may-che-tao.glb`, ~1,1MB, ~31 nghìn đỉnh, xuất KÈM vật liệu + thuộc tính `anim` (extras) từ các collection `May_Nhim` / `May_Tho` / `May_Meo`,
@@ -405,8 +401,6 @@ Game nông trại **tự thiết kế** (cùng thể loại game trồng trọt,
   xuất ra **`public/models/tang-may.glb`** (giảm còn ~2.600 đỉnh / tầng, chỉ lưới, không vật liệu). **Màu mây tô bằng code** theo độ cao cục bộ (`paintClouds`: đáy xanh tím → đỉnh trắng hồng);
   trời gradient, sao nhấp nháy, trăng + quầng sáng, đốm sáng vàng, ánh sáng đều vẽ bằng code. Sửa mây trong Blender thì xuất lại .glb (glTF, chọn các mesh `TangMay_*` / `MayNho_*`, Y-up, không vật liệu).
   File `/models/*` không precache, tải lần đầu rồi lưu bằng runtime cache `CacheFirst` (`vite.config.ts`).
-- [x] Kho nông sản (`/garden/barn`): mỗi loại 1 dòng, nút Bán (bán hết loại đó); FAB đồng xu bán tất cả.
-- [x] Cẩm nang (`/garden/guide`): cách chơi + bảng các loại cây (cấp, giá hạt, thời gian, thu được, lãi).
 - [ ] **Máy chế tạo hình con vật** (mỗi tầng mây 1 máy, chế tạo sản phẩm từ nông sản). Đã dựng **máy nhím** (tầng 1), **máy thỏ** (tầng 2) và **máy mèo** (tầng 3), xem dưới trong Blender (`design/vuon-may/tang-may.blend`,
   collection `May_Nhim`, ảnh `may-nhim.png`), đứng ở mép phải tầng dưới cùng; **chưa xuất ra app, chưa có chức năng chế tạo**.
   **Mô hình đã chuẩn bị để code điều khiển** (hoạt cảnh làm bằng code three.js theo trạng thái nghỉ / đang chế tạo / xong, KHÔNG dùng keyframe Blender):
@@ -569,7 +563,7 @@ Game nông trại **tự thiết kế** (cùng thể loại game trồng trọt,
     Lv2 1 viền sơn kem · Lv3 2 viền kem + hàng chấm kem · Lv4 miệng chậu tráng men xanh ngọc (`Chau_MenXanh`) + viền men + chấm kem + 2 quai đất
     · Lv5 men xanh + 2 viền men + dải sóng kem + quai men · Lv6 men xanh + chỉ vàng ở vành (`Chau_Vang`) + 2 viền vàng + sóng vàng + 6 đá hổ phách phát sáng (`Chau_HoPhach`) ở đỉnh sóng + quai vàng.
     Vị trí chi tiết tính theo mặt cắt của từng chậu (chậu vuông theo cạnh vuông). Cả 30 lớp ~59 nghìn đỉnh: khi xuất ra app nên giảm đỉnh hạt chấm / sóng (đang là nhiều quả cầu nhỏ).
-- [ ] **Côn trùng nâng cấp chậu** (bay / bò quanh cây, chạm để bắt): đã dựng trong Blender, collection `ConTrung` (ảnh `con-trung.png`, `con-trung-trong-vuon.png`),
+- [ ] **Côn trùng nâng cấp chậu** (bay / bò quanh cây, chạm để bắt): đã dựng trong Blender, collection `ConTrung` (5 con: sâu, đom đóm, bọ rùa, nhện, **bươm bướm**) (ảnh `con-trung.png`, `con-trung-trong-vuon.png`),
   đặt thử quanh bộ chậu ở tầng 1; **chưa xuất ra app, chưa có logic bắt**. Cùng quy ước như các máy: bộ phận tỉ lệ 1 / góc 0 ở dáng nghỉ, tâm đúng điểm xoay,
   thuộc tính `anim` mô tả chuyển động; khung gốc (Empty) đang phóng to 1,4 lần cho dễ thấy / dễ chạm trên điện thoại. Mặt các con hướng -Y (Blender).
   ```
@@ -586,6 +580,11 @@ Game nông trại **tự thiết kế** (cùng thể loại game trồng trọt,
     Nhen_Luoi               mạng nhện thẳng đứng + sợi treo: đứng yên
     Nhen_Than               nhện tím (đầu hướng lên, đậu trước mạng): bò trên mạng = dời trong mặt XZ
       Nhen_ChanT1…T4, Nhen_ChanP1…P4   tâm ở gốc chân: bước = xoay nhẹ lệch pha
+  Buom (Empty)              bươm bướm (dựng bằng `design/vuon-may/scripts/buom.py`, ảnh `buom.png`)
+    Buom_Than               đầu tròn to + mắt có đốm sáng + má hồng + miệng cười + râu cong đầu vàng, ngực lông, bụng 5 đốt
+      Buom_CanhTrai/Phai    tâm ở gốc cánh sát thân; mỗi bên = cánh trên (xanh trời, chóp nhọn) + cánh dưới (hồng tím, có đuôi ngắn),
+                            vòng trong nhạt / giữa đậm / viền tím đậm, đốm hoa văn (viền tím + lõi vàng), chấm trắng gần mép;
+                            cánh trên cao hơn cánh dưới 6mm (không đè cùng mặt phẳng); vỗ cánh = xoay quanh Y cục bộ
   ```
 - [ ] **Cây trồng 3D + công thức chế tạo** (đã dựng 3 cây trong Blender, collection `CayTrong`, ảnh `cay-4-giai-doan.png`, `cay-chin-can-canh.png`; **chưa xuất ra app, chưa có logic chế tạo**).
   3 cây đã có trong `CROPS` và **nối với nhau qua 3 máy**: ngô làm "bột" cho lò thỏ, dâu / cà rốt là "hương vị" dùng ở nhiều máy:
@@ -690,7 +689,7 @@ Game nông trại **tự thiết kế** (cùng thể loại game trồng trọt,
   `ChauDat_T2_5` (≈ (-0,72; 1,72)), `ChauDat_T2_4` (≈ (-1,09; 0,67)) và dời mạng nhện / con sâu. Ảnh toàn cảnh: `vuon-toan-canh.png`.
 - **Các giai đoạn làm game** (theo thứ tự): **GĐ1 [x]** app Giải trí + màn hình game ngang + màn hình tải + xem từng tầng (xem dưới);
   **GĐ2 [x]** xuất chậu / cây / côn trùng ra app (giảm đỉnh), vị trí chậu cố định, hiện chậu + cây đúng giai đoạn trên tầng 1 (xem "GĐ2 đã làm" dưới);
-  **GĐ3 [x]** đặt / dời / cất chậu (danh sách cuộn ngang, xem trước, bảng hiệu ứng; xem "GĐ3 đã làm" dưới); GĐ4 [ ] trồng / chăm / thu hoạch trên cảnh 3D, Kho + Cẩm nang thành popup, côn trùng xuất hiện + bắt;
+  **GĐ3 [x]** đặt / dời / cất chậu (danh sách cuộn ngang, xem trước, bảng hiệu ứng; xem "GĐ3 đã làm" dưới); **GĐ4 [x]** trồng / chăm / thu hoạch trên cảnh 3D, Kho + Cẩm nang thành popup, côn trùng xuất hiện + bắt (xem "GĐ4 đã làm" dưới);
   GĐ5 [ ] hiệu ứng bộ chậu (hạng, cấp), nâng cấp chậu bằng côn trùng + xu; GĐ6 [ ] máy chế tạo (công thức, thời gian, sản phẩm, hoạt cảnh);
   GĐ7 [ ] gacha nhận chậu + hạt giống (chờ mô tả); GĐ8 [ ] thêm 14 cây mới vào `CROPS`.
 - [x] **Cơ chế hiển thị game — GĐ1 ĐÃ LÀM** (phần đặt chậu bên dưới chưa làm):
@@ -760,7 +759,7 @@ Game nông trại **tự thiết kế** (cùng thể loại game trồng trọt,
   - Đã kiểm tra 8 cây × 6 dáng chậu (xuyên thành): chỉ bí ngô / dưa hấu phải thu nhỏ ở vài dáng → `PLANT_FIT` trong `game/slots.ts` (bí ngô: ống cao 0,9, bầu 0,85; dưa hấu: ống cao 0,8, vuông 0,9, bầu 0,75, có đĩa 0,9).
   - **Chỗ đặt chậu cố định** `SLOTS` (`game/slots.ts`, toạ độ Blender đổi sang three `(x, z, -y)` = giữa đáy chậu): tầng 1: 12, tầng 2: 6, tầng 3: 5, tầng 4: 4 (đúng số đã chốt), mặt mây phẳng quanh chỗ đặt,
     cách máy / chậu khác (tầng 3 chật nhất vì máy mèo: chỗ thứ 5 ở (4,6; 3,5) Blender, cách chậu kế bên 1,2). Mỗi chỗ có `shape` = dáng chậu đất nung mặc định.
-  - **Tầng 1: chỗ thứ i ↔ ô đất `plots[i]`**: ô đã mở (`i < unlocked`) hiện chậu (cấp 1, tắt lớp `_Lv*`), cây gắn ở `ChauDat_n_DiemCay`, **chỉ bật lớp `_GD{plotState().stage}`**
+  - (Trước GĐ4) **Tầng 1: chỗ thứ i ↔ ô đất `plots[i]`**: ô đã mở (`i < unlocked`) hiện chậu (cấp 1, tắt lớp `_Lv*`), cây gắn ở `ChauDat_n_DiemCay`, **chỉ bật lớp `_GD{plotState().stage}`**
     (`syncPlants` trong `TierScene.tsx`, tính lại mỗi giây bằng `useNow`, chỉ dựng lại khi đổi cây / giai đoạn; vật liệu cây được thêm vào danh sách làm mờ của tầng). Tầng 2–4 chưa hiện chậu (chờ GĐ3 đặt chậu).
 - [x] **GĐ3 ĐÃ LÀM — đặt / dời / cất chậu**:
   - Dữ liệu bộ chậu `src/pages/garden/data/pots.ts`: `POT_SETS` (bộ: tên, hạng, các chậu, hiệu ứng chính + mốc `{ count, lv1, lv6 }`, thưởng đủ bộ), `POT_KINDS` (chậu: tên, `shape` = dáng trong `chau-dat-nung.glb`),
@@ -772,7 +771,7 @@ Game nông trại **tự thiết kế** (cùng thể loại game trồng trọt,
   - Vườn có thêm `pots` = mọi chậu đang có `{ id, kind, level }` và `placed` = map `"<tầng 0-3>-<chỗ>"` → id chậu (`slotKey`). **Chưa có gacha nên mỗi người được sẵn bộ Đất nung 6 chậu cấp 1**
     (`startPots`): vườn mới đặt sẵn 6 chậu ở 6 chỗ đầu tầng 1; vườn cũ chưa có `pots` thì mỗi ô đất đã mở được 1 chậu đúng dáng mặc định của chỗ (thêm chậu nếu > 6 ô), lưu lại ở lần ghi kế tiếp.
   - Ghi: `placePot` / `movePot` / `storePot` (`data/api.ts`, transaction): chỉ ở tầng đã mở khoá; **dời chỉ trong cùng tầng** (tầng 1: cây đi theo chậu, `plots[from]` → `plots[to]`);
-    cất / đặt ở tầng 1 thì ô đất đó thành đất trống (**cất chậu có cây = mất cây**). `unlocked` (số ô đất) giờ chỉ còn dùng ở trang 2D cũ; GĐ4 trồng cây theo chậu đã đặt.
+    cất / đặt ở tầng 1 thì ô đất đó thành đất trống (**cất chậu có cây = mất cây**). Từ GĐ4: cây lưu theo chỗ đặt chậu (`plants`), `plots` / `unlocked` cũ bỏ hẳn (còn trong dữ liệu cũ nhưng không đọc).
   - Ảnh chậu cho danh sách: `public/game/chau/dat_nung_<dáng>_<cấp>.webp` (192px, nền trong, 36 ảnh ~190KB), render trong Blender (camera trực giao tạm, nghiêng 22°, 2 đèn mặt trời tạm, chỉ bật `_Lv<cấp>`).
   - Cảnh 3D (`TierScene.tsx`, `syncSlots`): mỗi chỗ đặt là 1 `Group` gắn vào tầng (nhấp nhô theo mây) gồm vòng nét đứt vàng + quầng sáng (nhấp nháy, xoay chậm), khối chạm dẹt, chậu (vật liệu riêng, vào danh sách làm mờ của tầng),
     cây (tầng 1) và chậu xem trước (mờ 55%). **Chạm**: tia từ camera vào hình chậu / cây thật (bỏ lớp đang ẩn) hoặc khối dẹt của chỗ trống. Chạm vòng → chế độ đặt; nhấn giữ chậu 0,5 giây → menu;
@@ -782,7 +781,24 @@ Game nông trại **tự thiết kế** (cùng thể loại game trồng trọt,
     Menu chậu (`PotMenu`): [Đóng] [Dời chỗ] [Cất vào kho]; chậu có cây: lần đầu hiện "Cất chậu? Cây đang trồng sẽ mất", nút thành "Cất luôn". Dời chỗ: dải trên cùng "Chạm vào vòng trống…" + [Huỷ].
     Báo kết quả / lỗi bằng dòng nhắc ngắn (2,4 giây).
   - **Cuộn trong game dùng `DragScroll`** (`game/DragScroll.tsx`, trục `x` / `y`, toạ độ qua `toLocal`, quán tính + kéo lại ở 2 đầu, kéo > 8px thì chặn click của mục bên dưới), không dùng cuộn gốc.
-- [ ] **Gieo hạt trên cảnh 3D (GĐ4) — ĐÃ CHỐT, CHƯA LÀM** (chốt: làm theo mọi đề xuất bên dưới, cộng thêm):
+- [x] **GĐ4 ĐÃ LÀM — gieo / chăm / thu hoạch / bắt côn trùng trên cảnh 3D** (code: `game/GamePage.tsx`, `TierScene.tsx`, `SeedUi.tsx`, `GardenPopups.tsx`; dữ liệu `data/api.ts`):
+  - **Hạng hạt giống B / A / S** (`Crop.rank`, giữ bảng độ hiếm đã duyệt: Thường = B, Hiếm = A, Rất hiếm + Cực hiếm = S → **8 cây hiện có đều là B**).
+    Tag hạng **giống chậu** (`RankBadge`: B xanh biển, A tím, S vàng + chữ) trên ô danh sách hạt, tab Hạt giống của Túi đồ, Cẩm nang.
+    Gacha: suất "10 hạt giống" chia theo hạng `SEED_RANK_RATE` **B 70% / A 25% / S 5%** (hạng chưa có cây thì chia lại, `seedRankRates`), trong hạng chia đều; bảng tỉ lệ hiện từng hạng.
+    **Chỉ hạt B bán ở cửa hàng** (xem "Lông chim + Cửa hàng").
+  - Dữ liệu: `plants` = map `"<tầng>-<chỗ>"` → `{ crop, plantedAt, watered, caught }` (chỉ ở chỗ có chậu; dời chậu cây đi theo, cất chậu mất cây). `seeds` trừ 1 hạt / chậu.
+    **Hạt tặng lúc bắt đầu**: 10 cải + 10 cà rốt (`START_SEEDS`, cờ `seedGift`, vườn cũ cũng được 1 lần).
+    API: `sow(tier, slots[], crop)` (1 transaction cho cả lần kéo túi), `water`, `harvestPlant`, `catchInsect`, `sell`. Đã bỏ `plant` / `tend` / `tendAll` / `harvestAll` / `buyPlot`.
+  - **Chạm chậu trống → danh sách hạt** (`SeedList`, dải cuộn ngang ở đáy như danh sách chậu, camera giữ chậu ở vùng trống): ảnh túi `public/game/tui/<id>.webp`, tag hạng, tên, ×số hạt, thời gian lớn;
+    cây chưa đủ cấp mờ + "Cần cấp n"; chỉ hiện hạt đang có. Chọn hạt → gieo luôn chậu đó + **túi hạt 3D lơ lửng trên chậu** (tô màu `Crop.bag`, nhãn canvas vẽ icon cây to tràn mép).
+    **Nhấn vào túi rồi kéo**: túi đi theo ngón tay (cao hơn 70px), **lướt qua chậu trống nào (trong 60px) là gieo chậu đó** (hiện ngay — `pending`, thả tay mới ghi 1 transaction).
+    Chạm chậu trống khác khi đang cầm túi cũng gieo. Thanh dưới "Cà rốt · còn n hạt" + nút X. Túi biến mất khi: hết hạt, chạm chỗ trống / chậu có cây, bấm X, chuyển tầng.
+  - **Chạm cây**: chín → thu hoạch (vào kho, +kinh nghiệm, báo lên cấp); chưa tưới → tưới; còn lại → "… chín sau …". **Huy hiệu nổi trên cây** của tầng đang xem: 🧺 (chín, nhảy nhảy), 💧 (cần tưới, từ giai đoạn mầm).
+  - **Côn trùng** (`con-trung.glb`, ~0,33MB, xuất KHÔNG UV): ~1/2 số cây (cố định theo `plantedAt`) có 1 con (sâu / bọ rùa / đom đóm / nhện / bướm) từ khi cây lớn 35%; bọ rùa + đom đóm + bướm bay vòng quanh ngọn (vỗ cánh, bướm vỗ chậm và rộng: `INSECT_NODE.flap`),
+    sâu + nhện bò trên miệng chậu (nhện bỏ mạng, nằm bò). **Chạm để bắt → túi côn trùng** (`insects`). **Không còn trừ nông sản vì sâu.** Thu hoạch thì con chưa bắt bay mất.
+    Kích thước chuẩn hoá theo phần đang hiện (`INSECT_SIZE` 0,42). **Phần bắt côn trùng người dùng sẽ tự thử lại.**
+  - HUD: trái = thoát + **cấp + thanh kinh nghiệm**; phải = [📖 Cẩm nang] [🧺 Túi đồ] [gacha]. **Túi đồ** (popup, 3 tab Nông sản (bán từng loại / bán tất cả, đang có n xu) / Hạt giống / Côn trùng), **Cẩm nang** (cách chơi + bảng cây có tag hạng).
+- Ghi chú lúc chốt GĐ4 (giữ để tham khảo; phần dưới đã làm, trừ cửa hàng):
   - **Lướt ngón tay qua nhiều chậu = gieo liên tục mọi chậu trống đi qua** (không phải mỗi lần kéo 1 chậu).
   - **Chỉ dùng hạt đang có trong túi** (`seeds`, nhận từ gacha / mua ở cửa hàng); **hết hạt thì bao biến mất, phải đi mua** (KHÔNG tự trừ lông chim khi gieo).
   - Bao hạt biến mất khi: hết hạt, chạm chỗ trống, bấm nút X, chuyển tầng.
@@ -796,9 +812,13 @@ Game nông trại **tự thiết kế** (cùng thể loại game trồng trọt,
     TuiHat (Empty, gốc ở GIỮA túi: tiện lơ lửng / kéo thả; túi cao ~0,7, rộng ~0,54)
       TuiHat_Than   túi giấy dạng gối (phồng giữa, đáy bo, hẹp dần lên miệng, nếp nhăn nhẹ) + dải dán miệng răng cưa + chỉ khâu nét đứt 2 mặt
                     vật liệu: TuiHat_Than (sáng màu → code tô màu theo `CROPS[].color`), TuiHat_Mieng (code tô đậm hơn ~0,7), TuiHat_Chi (giữ màu kem)
-      TuiHat_Nhan   nhãn mặt trước (mặt -Y Blender = +Z three), lưới uốn theo mặt túi, UV 0..1, vật liệu TuiHat_Nhan trắng → code gán `map` = ảnh nhãn
+      TuiHat_Nhan   nhãn mặt trước TO, phủ gần hết mặt túi (rộng ~0,47, cao ~0,51; mặt -Y Blender = +Z three), lưới uốn theo mặt túi, UV 0..1, vật liệu TuiHat_Nhan trắng → code gán `map` = ảnh nhãn
                     (nền kem + viền + icon cây, vẽ bằng canvas từ `public/game/cay/<id>.webp`)
     ```
+    **Icon cây (ĐÃ LÀM)**: `public/game/cay/<id>.webp` (id như `CROPS`, 8 cây; 256px nền trong, cắt sát hình) = ảnh giai đoạn chín `_GD3` (không chậu),
+    chụp bằng `ns["render_crop"](<Cay_Ten>, path)` trong `h2.py` (trực giao nghiêng 18°, render 384px rồi cắt vuông + thu nhỏ bằng Pillow). Thêm cây mới thì chụp thêm cùng cách.
+    **Nhãn: cây vẽ TO, tràn mép (bị cắt cũng được)**: ảnh nhãn vuông, nền kem + 1 viền nâu mảnh, icon vẽ cỡ ~1,18 lần cạnh nhãn, căn giữa.
+    Ảnh xem thử 8 túi đã dán nhãn: thân túi màu `from-*` của `CROPS`, miệng ×0,5: `design/vuon-may/tui-hat-8-cay.png`.
   Ghi chú lúc đề xuất (giữ để tham khảo):
   - **Cách gieo (người dùng mô tả)**: chạm 1 chậu chưa gieo → hiện **danh sách hạt giống** → chọn 1 loại → **bao hạt giống** của loại đó hiện **lơ lửng phía trên chậu**
     (gieo luôn vào chậu đó) → người chơi **kéo bao hạt sang các chậu trống khác** để gieo tiếp. Mỗi loại cây có **item "bao hạt giống" riêng**.
@@ -813,7 +833,15 @@ Game nông trại **tự thiết kế** (cùng thể loại game trồng trọt,
     (6) bao hạt biến mất khi nào (chạm chỗ trống / nút X / chuyển tầng); (7) ngón tay che bao → bao nổi lệch lên trên ngón tay;
     (8) dữ liệu hiện chỉ có `plots[12]` cho tầng 1 → đổi sang cây theo chỗ đặt chậu `"<tầng>-<chỗ>"` để gieo được ở tầng 2–4;
     (9) chạm chậu đang có cây: chín = thu hoạch, chưa chín = tưới / bắt sâu (không mở danh sách hạt).
-- [ ] **Tiền trong game + cục roll (ĐÃ CHỐT phần dưới, CHƯA LÀM)**:
+- [x] **Lông chim + Cửa hàng ĐÃ LÀM** (bước 1–2 của phần tiền tệ; bước 3 kinh nghiệm riêng + đá khi lên cấp, bước 4 GĐ5 người dùng sẽ mô tả lại):
+  - Vườn có thêm `feathers` (lông chim, vốn **100** `START_FEATHERS`; vườn cũ chưa có cũng được 100). **Bán nông sản (Túi đồ) cộng lông chim** (`sell`), giá giữ `sellPrice` của `CROPS`.
+    `coins` (xu cũ) **giữ nguyên, không cộng / trừ nữa**, vẫn hiện ở menu Giải trí (`GardenStats`).
+  - **Cửa hàng** (popup `ShopPopup` trong `game/GardenPopups.tsx`, nút 🛒 ở HUD): liệt kê hạt **hạng B** (`CROPS` có `rank === 'B'`), mỗi dòng: ảnh túi, tag hạng, tên,
+    giá / hạt (`seedPrice` lông chim), số hạt đang có, 2 nút bằng nhau **[Mua 1] [Mua 10]** (ghi giá); cây chưa đủ cấp mờ + "Cần cấp n", không đủ lông chim thì nút mờ.
+    Mua = `buySeeds(actor, crop, n)` (transaction: chỉ hạng B, đủ cấp, đủ lông chim → trừ lông chim, cộng `seeds`).
+  - HUD: **giữa = 2 ô bằng nhau [đá vũ trụ] [lông chim]** (`STONE_IMG`, `FEATHER_IMG` trong `GachaUi.tsx`); **phải = [📖 Cẩm nang] [🛒 Cửa hàng] [gacha] [🧺 Túi đồ]** (hòm thư chưa có).
+    Số lông chim trong chữ dùng `Feathers` (số + icon lông chim).
+- [ ] **Tiền trong game + cục roll (ĐÃ CHỐT phần dưới, phần lông chim + cửa hàng ĐÃ LÀM ở trên, còn lại CHƯA LÀM)**:
   - **Bỏ xu trong game Vườn mây, chỉ còn 2 loại tiền**: **Lông chim** và **Đá vũ trụ**. **Mua hạt và bán nông sản dùng LÔNG CHIM.**
     **Xu + cấp độ cũ đang hiện ở menu app Giải trí (`GardenStats`) GIỮ NGUYÊN, KHÔNG SỬA.** Lông chim, đá vũ trụ và **kinh nghiệm của game làm RIÊNG** và **hiển thị trong game**.
   - **Lông chim**: nâng cấp chậu (**côn trùng + lông chim**, lông chim thay chỗ xu), mua hạt. Kiếm từ: **bán nông sản**, **nhiệm vụ hằng ngày**, **đổi từ đá vũ trụ**.
@@ -877,7 +905,7 @@ Game nông trại **tự thiết kế** (cùng thể loại game trồng trọt,
     Logic ở `data/gacha.ts` (`pullMany`, `goldRate`, `bannerOf`; lịch banner `BANNER_SETS` xoay theo tháng từ 11/2026, hiện chỉ có Phượng Hoàng; vàng lệch lấy từ các bộ S không có trong lịch `OFF_SETS` = Sứ Lam, Băng Tinh).
     Đã mô phỏng 300.000 lần: lâu nhất 74 lần ra vàng, ≤ 9 lần liền không tím, sau lệch không bao giờ lệch tiếp, trung bình ~63 lần / vàng.
     Vườn có thêm `stones` (mặc định 32), `rolls` { sao_duyen, vong_tinh }, `gift`, `seeds` (hạt nhận từ gacha, **chưa dùng để gieo**), `insects` (côn trùng, chưa dùng), `gacha` { sinceGold, sincePurple, insured, total }, `pullLog`.
-    **Hạt giống chỉ rơi 8 cây đang có trong `CROPS`** (cây hiếm thêm sau). **`STARTER_SETS` = chỉ Đất nung** (vườn đã lưu 10 bộ tặng thử trước đây vẫn giữ). Chưa có: banner Sao Duyên, hòm thư, cách kiếm thêm đá, lông chim.
+    **Hạt giống chỉ rơi 8 cây đang có trong `CROPS`** (cây hiếm thêm sau), chia theo hạng B / A / S (xem GĐ4). **`STARTER_SETS` = chỉ Đất nung** (vườn đã lưu 10 bộ tặng thử trước đây vẫn giữ). Chưa có: banner Sao Duyên, hòm thư, cách kiếm thêm đá, lông chim.
     **TẠM để test**: tài khoản trong `TESTER_UIDS` (`data/gacha.ts`) thấy nút "+100 Vọng Tinh (test)" trong màn hình gacha (`grantTestRolls`); gỡ khi làm xong phần tiền tệ.
     Icon nét côn trùng mới trong `GLYPHS`: 🐞 bọ rùa, 🦋 bướm, 🕷 nhện, 🪲 đom đóm (🐛 sâu đã có).
   - **KHÔNG có sổ tay cách trồng** (đã bỏ). **Đủ cấp + có hạt giống là trồng được.** Hạt giống mua bằng **lông chim**;
@@ -928,7 +956,7 @@ Game nông trại **tự thiết kế** (cùng thể loại game trồng trọt,
 - [ ] Ghé vườn người thân (tưới giúp / hái trộm) + thông báo trong bong bóng — làm sau (dữ liệu vườn đã cho cả gia đình đọc).
 
 Dữ liệu Firestore, thuộc gia đình đang chọn:
-- `families/{familyId}/gardens/{uid}`: vườn của từng thành viên (`name`, `coins`, `xp`, `unlocked` số ô đã mở, `plots` = mảng 12 ô `{ crop, plantedAt (ms), watered, bugCleared }`,
+- `families/{familyId}/gardens/{uid}`: vườn của từng thành viên (`name`, `coins` (xu cũ, không dùng trong game), `feathers` (lông chim), `xp`, `plants` = map chỗ đặt `"<tầng>-<chỗ>"` → `{ crop, plantedAt (ms), watered, caught }`, `seeds`, `seedGift`, `insects`, `pots`, `placed`, gacha…; `unlocked` / `plots` của bản 2D cũ không còn dùng;
   `barn` = map id cây -> số nông sản, `harvested`); cả gia đình đọc, mỗi người chỉ ghi vườn của mình
 
 ## Cấu trúc code

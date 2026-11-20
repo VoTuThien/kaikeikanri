@@ -95,7 +95,7 @@ for side in (-1, 1):
         parts.append(H["tube"](f"TuiHat_c{side}{k}", [(x0, y, zs), (x1, y, zs)], 0.0045, M_CHI, coll, 5))
 
 # ---- nhãn mặt trước: lưới uốn theo mặt túi, UV 0..1 (code dán icon cây) ----
-u0, u1, v0, v1 = -0.74, 0.74, 0.16, 0.76
+u0, u1, v0, v1 = -0.88, 0.88, 0.08, 0.9
 NLU, NLV = 16, 16
 bm = bmesh.new(); uv = bm.loops.layers.uv.new("UVMap"); vs = []
 for j in range(NLV + 1):

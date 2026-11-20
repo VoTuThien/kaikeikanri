@@ -29,6 +29,7 @@ const RollReveal = lazy(() => import('./RollReveal').then((m) => ({ default: m.R
 
 export const ROLL_IMG = { vong_tinh: '/game/roll/vong_tinh.webp', sao_duyen: '/game/roll/sao_duyen.webp' }
 export const STONE_IMG = '/game/tien/da_vu_tru.webp'
+export const FEATHER_IMG = '/game/tien/long_chim.webp' // lông chim: tiền mua hạt / bán nông sản
 
 const GLOW: Record<Rarity, string> = {
   gold: 'border-amber-200/90 bg-gradient-to-b from-amber-300/35 to-orange-600/25 shadow-[0_0_22px_rgba(253,211,77,0.55)]',

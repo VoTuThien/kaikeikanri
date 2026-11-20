@@ -195,3 +195,38 @@ def render_lv_glow(names, base, level=1, **kw):
     render_lv(names, base + "_t.png", level, transparent=True, **kw)
     render_lv(names, base + "_k.png", level, transparent=False, world_off=True, **kw)
 ns["render_lv"] = render_lv; ns["render_lv_glow"] = render_lv_glow
+
+# ---- icon cây: chỉ bật lớp _GD3 (chín), camera trực giao nghiêng 18°, khung vuông vừa sát hình (tính theo đỉnh) ----
+def render_crop(root_name, path, res=384, pad=1.06, elev=18):
+    r = sc.render
+    sv = dict(eng=r.engine, ft=r.film_transparent, rx=r.resolution_x, ry=r.resolution_y, pct=r.resolution_percentage, fp=r.filepath, fmt=r.image_settings.file_format, cm=r.image_settings.color_mode, cam=sc.camera, vt=sc.view_settings.view_transform)
+    hid = {o.name: o.hide_render for o in O}
+    cam_d = D.cameras.new("TmpCam"); cam_d.type = 'ORTHO'; cam = O.new("TmpCam", cam_d); sc.collection.objects.link(cam)
+    lights = []
+    for nm, rot, en in (("TmpKey", (math.radians(50), 0, math.radians(35)), 3.5), ("TmpFill", (math.radians(60), 0, math.radians(-120)), 1.4)):
+        ld = D.lights.new(nm, 'SUN'); ld.energy = en; lo = O.new(nm, ld); lo.rotation_euler = rot; sc.collection.objects.link(lo); lights.append(lo)
+    try:
+        gd = O[root_name + "_GD3"]; show = {root_name, gd.name} | {c.name for c in gd.children_recursive}; pts = []
+        dg = bpy.context.evaluated_depsgraph_get()
+        for nm in show:
+            c = O[nm]
+            if c.type == 'MESH': pts += [c.matrix_world @ v.co for v in c.evaluated_get(dg).data.vertices]
+        for o in O: o.hide_render = not (o.name in show or o.name in ("TmpCam", "TmpKey", "TmpFill"))
+        d = Vector((0, -math.cos(math.radians(elev)), math.sin(math.radians(elev))))
+        q = (-d).to_track_quat('-Z', 'Y'); right = q @ Vector((1, 0, 0)); up = q @ Vector((0, 1, 0))
+        xs = [p.dot(right) for p in pts]; ys = [p.dot(up) for p in pts]
+        c3 = sum(pts, Vector()) / len(pts)
+        c3 = c3 + right * ((min(xs) + max(xs)) / 2 - c3.dot(right)) + up * ((min(ys) + max(ys)) / 2 - c3.dot(up))
+        cam.location = c3 + d * 30; cam.rotation_euler = q.to_euler()
+        cam_d.ortho_scale = max(max(xs) - min(xs), max(ys) - min(ys)) * pad
+        r.engine = 'BLENDER_EEVEE'; r.film_transparent = True; r.resolution_x = r.resolution_y = res; r.resolution_percentage = 100
+        r.image_settings.file_format = 'PNG'; r.image_settings.color_mode = 'RGBA'; r.filepath = path; sc.camera = cam; sc.view_settings.view_transform = 'Standard'
+        bpy.ops.render.render(write_still=True)
+    finally:
+        for o in O:
+            if o.name in hid: o.hide_render = hid[o.name]
+        for l in lights: D.objects.remove(l, do_unlink=True)
+        D.objects.remove(cam, do_unlink=True)
+        r.engine, r.film_transparent, r.resolution_x, r.resolution_y, r.resolution_percentage, r.filepath = sv['eng'], sv['ft'], sv['rx'], sv['ry'], sv['pct'], sv['fp']
+        r.image_settings.file_format = sv['fmt']; r.image_settings.color_mode = sv['cm']; sc.camera = sv['cam']; sc.view_settings.view_transform = sv['vt']
+ns["render_crop"] = render_crop

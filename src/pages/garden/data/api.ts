@@ -1,7 +1,7 @@
 import { doc, runTransaction, serverTimestamp, setDoc, type DocumentData } from 'firebase/firestore'
 import { familyCol } from '../../../lib/family'
 import { requireDb, type Actor } from '../../../lib/firestore'
-import { cropById, EMPTY_PLOT, levelOf, MAX_PLOTS, plotPrice, plotState, START_COINS, START_PLOTS, type Plot } from './crops'
+import { cropById, levelOf, plantState, START_COINS, START_FEATHERS, type Plant } from './crops'
 import { potKindById, potSetById, slotKey, STARTER_SETS, tierBlock, type OwnedPot } from './pots'
 import { SLOTS } from '../game/slots'
 import { bannerOf, EMPTY_GACHA, GIFT_ROLLS, TEST_GRANT, TESTER_UIDS, pullMany, ROLL_PRICE, START_STONES, type GachaState, type PullItem, type PullLog, type RollKind } from './gacha'
@@ -12,27 +12,31 @@ import { TIER_COUNT, TIER_UNLOCK_LEVEL } from '../game/constants'
 // Xu trong game TÁCH RIÊNG hoàn toàn, không liên quan tới app Quỹ.
 export interface Garden {
   name: string
-  coins: number
+  coins: number // xu cũ (chỉ hiện ở menu Giải trí, game không dùng nữa)
+  feathers: number // lông chim: tiền trong game (mua hạt, bán nông sản, sau này nâng cấp chậu)
   xp: number
-  unlocked: number // số ô đất đã mở
-  plots: Plot[] // luôn đủ MAX_PLOTS phần tử, ô từ `unlocked` trở đi là ô còn khoá
+  plants: Record<string, Plant> // cây trong chậu: chỗ đặt `${tầng}-${chỗ}` -> cây (chỗ đó phải có chậu)
   barn: Record<string, number> // kho: id cây -> số nông sản
   harvested: number // tổng số nông sản đã thu hoạch
   pots: OwnedPot[] // mọi chậu người chơi có (đang đặt + trong kho)
-  placed: Record<string, string> // chỗ đặt `${tầng}-${chỗ}` -> id chậu; tầng 1 (tầng 0 trong code): chỗ i ↔ ô đất plots[i]
+  placed: Record<string, string> // chỗ đặt `${tầng}-${chỗ}` -> id chậu
   // ---- Gacha (xem data/gacha.ts) ----
   stones: number // đá vũ trụ
   rolls: Record<RollKind, number> // số cục roll đang có
   gift: boolean // đã nhận quà chào mừng (20 Vọng Tinh)
-  seeds: Record<string, number> // hạt giống nhận từ gacha: id cây -> số hạt
+  seeds: Record<string, number> // hạt giống (gacha / cửa hàng): id cây -> số hạt; gieo là trừ 1 hạt
+  seedGift: boolean // đã nhận hạt tặng lúc bắt đầu (START_SEEDS)
   insects: Record<string, number> // côn trùng: id -> số con
   gacha: GachaState // bộ đếm banner chậu
   pullLog: PullLog[] // lịch sử quay (mới nhất cuối, tối đa PULL_LOG_MAX)
 }
 const PULL_LOG_MAX = 100
+// Hạt tặng lúc bắt đầu (chưa có cửa hàng): vườn nào chưa nhận thì được cộng 1 lần
+const START_SEEDS: Record<string, number> = { cai: 10, carot: 10 }
+const START_POTS = 6
 
 // Chậu ban đầu: đủ bộ Đất nung (6 chậu cấp 1), đặt ở các chỗ đầu của tầng 1 theo dáng mặc định của chỗ.
-// Vườn cũ chưa có chậu: mỗi ô đất đã mở được 1 chậu (đúng dáng mặc định của chỗ), cộng thêm cho đủ bộ.
+// Vườn cũ (trước GĐ3) chưa có chậu: số ô đất đã mở cũ = số chậu được đặt sẵn.
 function startPots(unlocked: number) {
   const pots: OwnedPot[] = []
   const placed: Record<string, string> = {}
@@ -62,47 +66,55 @@ export const gardensCol = () => familyCol('gardens')
 export const gardenDoc = (uid: string) => doc(gardensCol(), uid)
 
 export function toGarden(d: DocumentData): Garden {
-  const plots = ((d.plots ?? []) as Partial<Plot>[]).map((p) => ({ ...EMPTY_PLOT, ...p }))
-  while (plots.length < MAX_PLOTS) plots.push({ ...EMPTY_PLOT })
+  const seeds: Record<string, number> = { ...(d.seeds ?? {}) }
+  if (!d.seedGift) for (const [k, n] of Object.entries(START_SEEDS)) seeds[k] = (seeds[k] ?? 0) + n
+  const plants: Record<string, Plant> = {}
+  for (const [k, p] of Object.entries((d.plants ?? {}) as Record<string, Partial<Plant>>)) {
+    if (p?.crop && cropById.has(p.crop)) plants[k] = { crop: p.crop, plantedAt: p.plantedAt ?? 0, watered: !!p.watered, caught: !!p.caught }
+  }
+  const potData = Array.isArray(d.pots)
+    ? { pots: withStarterSets((d.pots as OwnedPot[]).map((p) => ({ id: p.id, kind: p.kind, level: p.level ?? 1 }))), placed: { ...(d.placed ?? {}) } as Record<string, string> }
+    : startPots(Math.min(SLOTS[0].length, d.unlocked ?? START_POTS))
+  for (const k of Object.keys(plants)) if (!potData.placed[k]) delete plants[k] // cây chỉ sống trong chậu
   return {
     name: d.name ?? '',
     coins: d.coins ?? START_COINS,
+    feathers: d.feathers ?? START_FEATHERS,
     xp: d.xp ?? 0,
-    unlocked: Math.min(MAX_PLOTS, d.unlocked ?? START_PLOTS),
-    plots: plots.slice(0, MAX_PLOTS),
+    plants,
     barn: { ...(d.barn ?? {}) },
     harvested: d.harvested ?? 0,
     stones: d.stones ?? START_STONES,
     rolls: { sao_duyen: d.rolls?.sao_duyen ?? 0, vong_tinh: d.rolls?.vong_tinh ?? 0 },
     gift: d.gift ?? false,
-    seeds: { ...(d.seeds ?? {}) },
+    seeds,
+    seedGift: true,
     insects: { ...(d.insects ?? {}) },
     gacha: { ...EMPTY_GACHA, ...(d.gacha ?? {}) },
     pullLog: Array.isArray(d.pullLog) ? (d.pullLog as PullLog[]) : [],
-    ...(Array.isArray(d.pots)
-      ? { pots: withStarterSets((d.pots as OwnedPot[]).map((p) => ({ id: p.id, kind: p.kind, level: p.level ?? 1 }))), placed: { ...(d.placed ?? {}) } }
-      : startPots(Math.min(MAX_PLOTS, d.unlocked ?? START_PLOTS))),
+    ...potData,
   }
 }
 
-// Lần đầu mở game: tạo vườn mới (6 ô đất, 100 xu)
+// Lần đầu mở game: tạo vườn mới (6 chậu đất nung ở tầng 1, 100 xu, hạt tặng)
 export function createGarden(actor: Actor) {
   return setDoc(gardenDoc(actor.uid), {
     name: actor.name,
     coins: START_COINS,
+    feathers: START_FEATHERS,
     xp: 0,
-    unlocked: START_PLOTS,
-    plots: Array.from({ length: MAX_PLOTS }, () => ({ ...EMPTY_PLOT })),
+    plants: {},
     barn: {},
     harvested: 0,
     stones: START_STONES,
     rolls: { sao_duyen: 0, vong_tinh: 0 },
     gift: false,
-    seeds: {},
+    seeds: { ...START_SEEDS },
+    seedGift: true,
     insects: {},
     gacha: EMPTY_GACHA,
     pullLog: [],
-    ...startPots(START_PLOTS),
+    ...startPots(START_POTS),
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   })
@@ -121,103 +133,104 @@ async function mutate<T>(actor: Actor, change: (g: Garden) => T): Promise<T> {
   })
 }
 
-const usable = (g: Garden, index: number) => {
-  if (index < 0 || index >= g.unlocked) throw new Error('Ô đất này chưa mở')
-  return g.plots[index]
+// ---- Cây trong chậu (GĐ4): gieo / tưới / thu hoạch / bắt côn trùng theo chỗ đặt chậu ----
+function tierOpen(g: Garden, tier: number) {
+  if (levelOf(g.xp) < TIER_UNLOCK_LEVEL[tier]) throw new Error(`Tầng ${tier + 1} mở khoá ở cấp ${TIER_UNLOCK_LEVEL[tier]}`)
+}
+function plantAt(g: Garden, tier: number, slot: number) {
+  const p = g.plants[slotKey(tier, slot)]
+  if (!p) throw new Error('Chậu này chưa có cây')
+  return p
 }
 
-// Gieo hạt: trừ xu mua hạt
-export function plant(actor: Actor, index: number, cropId: string) {
+// Gieo hạt `cropId` vào các chậu trống `slots` của tầng (1 lần kéo túi hạt = 1 transaction). Mỗi chậu trừ 1 hạt.
+// Chậu đã có cây / không có chậu thì bỏ qua; hết hạt thì dừng. Trả về số chậu đã gieo.
+export function sow(actor: Actor, tier: number, slots: number[], cropId: string) {
   return mutate(actor, (g) => {
     const crop = cropById.get(cropId)
     if (!crop) throw new Error('Không có loại cây này')
-    if (usable(g, index).crop) throw new Error('Ô đất đã có cây')
+    tierOpen(g, tier)
     if (levelOf(g.xp) < crop.level) throw new Error(`Cần đạt cấp ${crop.level} để trồng ${crop.name}`)
-    if (g.coins < crop.seedPrice) throw new Error('Không đủ xu mua hạt')
-    g.coins -= crop.seedPrice
-    g.plots[index] = { crop: crop.id, plantedAt: Date.now(), watered: false, bugCleared: false }
-  })
-}
-
-// Chăm cây: tưới nước và / hoặc bắt sâu (chạm 1 ô làm hết việc đang cần)
-export function tend(actor: Actor, index: number) {
-  return mutate(actor, (g) => {
-    const plot = usable(g, index)
-    const st = plotState(plot, Date.now())
-    if (!st) return
-    if (st.thirsty) plot.watered = true
-    if (st.hasBug) plot.bugCleared = true
-  })
-}
-
-// Tưới + bắt sâu mọi cây đang cần. Trả về số ô đã chăm.
-export function tendAll(actor: Actor) {
-  return mutate(actor, (g) => {
     const now = Date.now()
     let n = 0
-    g.plots.slice(0, g.unlocked).forEach((plot) => {
-      const st = plotState(plot, now)
-      if (!st || (!st.thirsty && !st.hasBug)) return
-      if (st.thirsty) plot.watered = true
-      if (st.hasBug) plot.bugCleared = true
+    for (const slot of slots) {
+      const key = slotKey(tier, slot)
+      if (!g.placed[key] || g.plants[key]) continue
+      if ((g.seeds[cropId] ?? 0) <= 0) break
+      g.seeds[cropId] -= 1
+      if (g.seeds[cropId] <= 0) delete g.seeds[cropId]
+      g.plants[key] = { crop: cropId, plantedAt: now, watered: false, caught: false }
       n++
-    })
+    }
+    if (!n) throw new Error((g.seeds[cropId] ?? 0) <= 0 ? `Hết hạt ${crop.name.toLowerCase()}` : 'Không có chậu trống để gieo')
     return n
   })
 }
 
-// Thu hoạch các ô (đã chín) trong `indexes`: nông sản vào kho, cộng kinh nghiệm. Trả về số nông sản + cấp trước / sau.
-function collect(g: Garden, indexes: number[]) {
-  const now = Date.now()
-  const before = levelOf(g.xp)
-  let count = 0
-  indexes.forEach((i) => {
-    const plot = g.plots[i]
-    const st = plotState(plot, now)
-    if (!st?.ripe || !st.crop) return
+// Tưới cây (trước khi chín: +1 nông sản)
+export function water(actor: Actor, tier: number, slot: number) {
+  return mutate(actor, (g) => {
+    const p = plantAt(g, tier, slot)
+    const st = plantState(p, Date.now())
+    if (!st?.thirsty) throw new Error(st?.ripe ? 'Cây đã chín' : 'Cây đã được tưới')
+    p.watered = true
+  })
+}
+
+// Bắt côn trùng đang ở trên cây → túi côn trùng. Trả về id côn trùng.
+export function catchInsect(actor: Actor, tier: number, slot: number) {
+  return mutate(actor, (g) => {
+    const p = plantAt(g, tier, slot)
+    const id = plantState(p, Date.now())?.insect
+    if (!id) throw new Error('Côn trùng đã bay mất')
+    p.caught = true
+    g.insects[id] = (g.insects[id] ?? 0) + 1
+    return id
+  })
+}
+
+// Thu hoạch cây đã chín: nông sản vào kho, cộng kinh nghiệm, chậu thành trống. Côn trùng chưa bắt thì bay mất.
+export function harvestPlant(actor: Actor, tier: number, slot: number) {
+  return mutate(actor, (g) => {
+    const p = plantAt(g, tier, slot)
+    const st = plantState(p, Date.now())
+    if (!st?.ripe || !st.crop) throw new Error('Cây chưa chín')
+    const before = levelOf(g.xp)
     g.barn[st.crop.id] = (g.barn[st.crop.id] ?? 0) + st.harvest
     g.xp += st.crop.xp
     g.harvested += st.harvest
-    count += st.harvest
-    g.plots[i] = { ...EMPTY_PLOT }
-  })
-  return { count, before, after: levelOf(g.xp) }
-}
-
-export function harvest(actor: Actor, index: number) {
-  return mutate(actor, (g) => {
-    usable(g, index)
-    return collect(g, [index])
+    delete g.plants[slotKey(tier, slot)]
+    return { crop: st.crop.id, count: st.harvest, xp: st.crop.xp, before, after: levelOf(g.xp) }
   })
 }
 
-export function harvestAll(actor: Actor) {
-  return mutate(actor, (g) => collect(g, Array.from({ length: g.unlocked }, (_, i) => i)))
-}
-
-// Bán nông sản trong kho (cropId = null: bán hết). Trả về số xu nhận được.
+// Bán nông sản trong kho (cropId = null: bán hết). Trả về số lông chim nhận được.
 export function sell(actor: Actor, cropId: string | null) {
   return mutate(actor, (g) => {
-    let coins = 0
+    let got = 0
     Object.entries(g.barn).forEach(([id, n]) => {
       if (cropId && id !== cropId) return
       const crop = cropById.get(id)
-      if (crop && n > 0) coins += n * crop.sellPrice
+      if (crop && n > 0) got += n * crop.sellPrice
       delete g.barn[id]
     })
-    g.coins += coins
-    return coins
+    g.feathers += got
+    return got
   })
 }
 
-// Mở thêm ô đất (theo thứ tự)
-export function buyPlot(actor: Actor) {
+// Cửa hàng: mua `n` hạt `cropId` bằng lông chim (chỉ hạt hạng B, đủ cấp mới mua được). Trả về số lông chim đã trả.
+export function buySeeds(actor: Actor, cropId: string, n: number) {
   return mutate(actor, (g) => {
-    if (g.unlocked >= MAX_PLOTS) throw new Error('Đã mở hết ô đất')
-    const price = plotPrice(g.unlocked)
-    if (g.coins < price) throw new Error(`Cần ${price} xu để mở ô đất`)
-    g.coins -= price
-    g.unlocked += 1
+    const crop = cropById.get(cropId)
+    if (!crop || crop.rank !== 'B') throw new Error('Cửa hàng không bán loại hạt này')
+    if (!Number.isInteger(n) || n < 1) throw new Error('Số hạt không hợp lệ')
+    if (levelOf(g.xp) < crop.level) throw new Error(`Cần đạt cấp ${crop.level} để mua hạt ${crop.name.toLowerCase()}`)
+    const cost = crop.seedPrice * n
+    if (g.feathers < cost) throw new Error(`Cần ${cost.toLocaleString('vi-VN')} lông chim, bạn đang có ${g.feathers.toLocaleString('vi-VN')}`)
+    g.feathers -= cost
+    g.seeds[cropId] = (g.seeds[cropId] ?? 0) + n
+    return cost
   })
 }
 
@@ -239,11 +252,11 @@ export function placePot(actor: Actor, tier: number, slot: number, potId: string
     const block = tierBlock(potSetById.get(potKindById.get(pot.kind)!.set)!, tier)
     if (block) throw new Error(block)
     g.placed[slotKey(tier, slot)] = potId
-    if (tier === 0) g.plots[slot] = { ...EMPTY_PLOT }
+    delete g.plants[slotKey(tier, slot)]
   })
 }
 
-// Dời chậu sang chỗ trống khác CÙNG TẦNG (tầng 1: cây trong chậu đi theo chậu)
+// Dời chậu sang chỗ trống khác CÙNG TẦNG (cây trong chậu đi theo chậu)
 export function movePot(actor: Actor, tier: number, from: number, to: number) {
   return mutate(actor, (g) => {
     checkSlot(g, tier, to)
@@ -252,7 +265,9 @@ export function movePot(actor: Actor, tier: number, from: number, to: number) {
     if (g.placed[slotKey(tier, to)]) throw new Error('Chỗ này đã có chậu')
     delete g.placed[slotKey(tier, from)]
     g.placed[slotKey(tier, to)] = id
-    if (tier === 0) { g.plots[to] = g.plots[from]; g.plots[from] = { ...EMPTY_PLOT } }
+    const plant = g.plants[slotKey(tier, from)]
+    delete g.plants[slotKey(tier, from)]
+    if (plant) g.plants[slotKey(tier, to)] = plant
   })
 }
 
@@ -261,7 +276,7 @@ export function storePot(actor: Actor, tier: number, slot: number) {
   return mutate(actor, (g) => {
     if (!g.placed[slotKey(tier, slot)]) throw new Error('Không có chậu để cất')
     delete g.placed[slotKey(tier, slot)]
-    if (tier === 0) g.plots[slot] = { ...EMPTY_PLOT }
+    delete g.plants[slotKey(tier, slot)]
   })
 }
 

@@ -45,10 +45,6 @@ import { ExecutePage } from './pages/fund/ExecutePage'
 import { SalaryPage } from './pages/fund/SalaryPage'
 import { StatsPage as FundStatsPage } from './pages/fund/StatsPage'
 import { GardenLayout } from './pages/garden/components'
-import { BarnPage } from './pages/garden/BarnPage'
-import { FarmPage } from './pages/garden/FarmPage'
-import { GardenHomePage } from './pages/garden/GardenHomePage'
-import { GuidePage } from './pages/garden/GuidePage'
 import { GamePage } from './pages/garden/game/GamePage'
 import { GiaiTriHomePage } from './pages/giaitri/GiaiTriHomePage'
 import { NoteLayout } from './pages/note/components'
@@ -162,13 +158,6 @@ function AppRoutes({ location }: { location?: string }) {
         <Route path="sent/:id" element={<NoteFormPage />} />
         <Route path="cards" element={<NoteCardsPage />} />
         <Route path="settings" element={<NoteSettingsPage />} />
-      </Route>
-      {/* App Vườn mây (game trồng cây) */}
-      <Route path="/garden" element={<GardenLayout />}>
-        <Route index element={<GardenHomePage />} />
-        <Route path="farm" element={<FarmPage />} />
-        <Route path="barn" element={<BarnPage />} />
-        <Route path="guide" element={<GuidePage />} />
       </Route>
       {/* App Giải trí: menu trò chơi; game Vườn mây toàn màn hình ngang (nút thoát về menu) */}
       <Route path="/giai-tri" element={<GardenLayout />}>

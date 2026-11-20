@@ -1,4 +1,4 @@
-import { CROPS } from './crops'
+import { CROPS, SEED_RANK_RATE } from './crops'
 import { POT_SETS, potKindById, type OwnedPot } from './pots'
 
 // Gacha của game Vườn mây (xem CLAUDE.md "Gacha"). Hiện có BANNER CHẬU (banner 2, dùng Vọng Tinh).
@@ -63,6 +63,18 @@ export type PullItem =
 export interface PullLog { at: number; item: PullItem }
 
 const pick = <T,>(arr: T[], rnd: () => number) => arr[Math.floor(rnd() * arr.length)]
+// Tỉ lệ thật của từng hạng hạt (đã chia lại phần của hạng chưa có cây)
+export function seedRankRates() {
+  const ranks = (['B', 'A', 'S'] as const).filter((r) => CROPS.some((c) => c.rank === r))
+  const sum = ranks.reduce((a, r) => a + SEED_RANK_RATE[r], 0)
+  return ranks.map((r) => ({ rank: r, rate: SEED_RANK_RATE[r] / sum, crops: CROPS.filter((c) => c.rank === r) }))
+}
+function pickSeed(rnd: () => number) {
+  const rates = seedRankRates()
+  let r = rnd()
+  for (const x of rates) { if (r < x.rate) return pick(x.crops, rnd).id; r -= x.rate }
+  return pick(rates[rates.length - 1].crops, rnd).id
+}
 const kindsOf = (pred: (rank: string, id: string) => boolean) => POT_SETS.filter((s) => pred(s.rank, s.id)).flatMap((s) => s.kinds)
 
 // Quay `count` lần, sửa trực tiếp `state` / `pots` (thêm chậu mới) / `seeds` / `insects`. Trả về các món theo thứ tự.
@@ -125,8 +137,8 @@ export function pullMany(
       addPot(kind)
       out.push({ type: 'pot', rarity: 'blue', kind, isNew })
     } else if (r < RATES.purple + RATES.potB + RATES.seeds) {
-      // 10 hạt giống cùng 1 loại (hiện chỉ có cây độ hiếm "Thường"; cây hiếm thêm vào khi có trong CROPS)
-      const crop = pick(CROPS, rnd).id
+      // 10 hạt giống cùng 1 loại: chọn hạng theo SEED_RANK_RATE (hạng chưa có cây thì bỏ), rồi chia đều trong hạng
+      const crop = pickSeed(rnd)
       seeds[crop] = (seeds[crop] ?? 0) + 10
       out.push({ type: 'seed', rarity: 'blue', crop, qty: 10 })
     } else {
@@ -146,7 +158,7 @@ export function rateRows() {
     { label: 'Chậu hạng S (vàng)', rate: RATES.gold, note: 'Tăng từ lần 60, chắc chắn ở lần 80' },
     { label: `Chậu hạng A (tím) — ${nA} loại`, rate: RATES.purple, note: '10 lần quay chắc chắn có ≥ 1 tím' },
     { label: `Chậu hạng B — ${nB} loại`, rate: RATES.potB },
-    { label: `10 hạt giống — ${CROPS.length} loại`, rate: RATES.seeds },
+    ...seedRankRates().map((x) => ({ label: `10 hạt giống hạng ${x.rank} — ${x.crops.length} loại`, rate: RATES.seeds * x.rate })),
     { label: `Côn trùng — ${INSECTS.length} loại`, rate: 1 - RATES.gold - RATES.purple - RATES.potB - RATES.seeds },
   ]
 }
