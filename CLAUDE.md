@@ -956,7 +956,7 @@ Game nông trại **tự thiết kế** (cùng thể loại game trồng trọt,
     B3–B8 **6 bộ chậu banner** (banner chậu 1 → 6, mỗi bộ cấp 1–6): **phải chăm chút kỹ, đẹp, tinh tế, thu hút người chơi quay**.
   - **Bươm bướm** = côn trùng mới (cần dựng mô hình), dùng để nâng cấp chậu như 4 loại kia.
   - **Quay chạy trên điện thoại rồi ghi vào Firestore** (không có máy chủ riêng; chấp nhận được với app gia đình, không nạp tiền thật).
-- [ ] **Thành tựu — popup kiểu màn hình ước nguyện (ĐÃ CHỐT 20/11/2026, CHƯA LÀM; còn vài điểm "Cần chốt" ở cuối)**:
+- [x] **Thành tựu — popup kiểu màn hình ước nguyện (ĐÃ CHỐT + ĐÃ LÀM 20/11/2026, trừ tab "Hôm nay" / nhóm Chế tạo; code xem "THỨ TỰ CODE" bước 2)**:
   - **Yêu cầu**: 1 popup giống popup ước nguyện (gacha) hiện các **thành tựu + tiến độ hiện tại**; xong thì **bấm nhận thưởng ở đây** (không tự cộng).
     **Thưởng lên cấp cũng nằm ở đây** (nhóm Thăng tiến). **Nhiệm vụ hằng ngày = tab "Hôm nay" đầu tiên** của popup này (không thêm nút riêng).
   - **Giao diện**: phủ kín khung game như `GachaScreen` (cùng nền trời, kiểu glass). Thanh trên: tiêu đề "Thành tựu", "đã xong n/m", nút **[Nhận tất cả]**, nút X.
@@ -1137,7 +1137,9 @@ Game nông trại **tự thiết kế** (cùng thể loại game trồng trọt,
      bộ đếm `stats` (`data/api.ts`: `bump`, `markPots`, `markTier`; khoá ghi trong chú thích `Stats`) cộng trong sow / water / catchInsect / harvestPlant / sell / buySeeds / placePot / movePot / pullPots,
      `pot_<loại>` + `fullTier` / `fullSetTier` cũng được ghi lại mỗi lần đọc vườn; menu ☰ (`GamePage.tsx`: `menuItems`, `RedDot`, `loadMenuOpen` / `saveMenuOpen` localStorage `vuon-may-menu:{uid}`, icon `menu` trong `ICON_PATHS`;
      chấm đỏ hiện có: quà chào mừng chưa nhận ở nút gacha). Chưa thử trên iPhone (máy làm không có `.env`).
-  2. Popup Thành tựu (Thăng tiến, Thu hoạch, Thu thập, Chăm sóc, Buôn bán, Ước nguyện) + chuyển quà chào mừng từ gacha sang.
+  2. **[x] ĐÃ LÀM (20/11/2026)**: popup Thành tựu — định nghĩa + tiến độ + thưởng ở `data/achievements.ts` (`ACHIEVEMENTS`, `achState`, `readyTotal`, `levelReward`, `TIER_REWARD`; thêm bậc mới CHỈ thêm vào cuối `goals`),
+     nhận thưởng `claimAchievement` / `claimAllAchievements` (`data/api.ts`, vườn có `claimed` = id → số bậc đã nhận), giao diện `game/AchievementsUi.tsx` (`AchievementsScreen`), nút 🏆 trong menu ☰ (chấm đỏ khi có bậc chờ nhận; icon nét 🏆 mới trong `GLYPHS`).
+     Quà chào mừng 20 Vọng Tinh chuyển sang thành tựu "Chào mừng" (đã bỏ nút ở màn hình gacha và `claimGift`; `gift` vẫn được bật khi nhận để tương thích). Thành tựu cây hạng A / S, chế tạo, nhiệm vụ ngày tự ẩn tới khi có.
   3. Hòm thư + `scripts/send-mail.mjs` + Firestore Rules; gỡ nút "+100 Vọng Tinh (test)".
   4. Hiệu ứng bộ chậu chạy thật: chụp `plant.buff` lúc gieo, bỏ Ít sâu, Hạt rẻ / Giá tốt kiểu mới, Mật ong Giá tốt, Băng Tinh không khát nước.
   5. Đập chậu (tỉ lệ, chậu bỏ vào, bùa may mắn B / A / S, bùa giữ cấp, nút ?) — icon bùa tạm.
@@ -1156,7 +1158,7 @@ Game nông trại **tự thiết kế** (cùng thể loại game trồng trọt,
 
 Dữ liệu Firestore, thuộc gia đình đang chọn:
 - `families/{familyId}/gardens/{uid}`: vườn của từng thành viên (`name`, `coins` (xu cũ, không dùng trong game), `feathers` (lông chim), `xp`, `plants` = map chỗ đặt `"<tầng>-<chỗ>"` → `{ crop, plantedAt (ms), watered, caught }`, `seeds`, `seedGift`, `insects`, `pots`, `placed`, gacha…; `unlocked` / `plots` của bản 2D cũ không còn dùng;
-  `barn` = map id cây -> số nông sản, `harvested`, `stats` = bộ đếm tích luỹ cho thành tựu (chỉ tăng)); cả gia đình đọc, mỗi người chỉ ghi vườn của mình
+  `barn` = map id cây -> số nông sản, `harvested`, `stats` = bộ đếm tích luỹ cho thành tựu (chỉ tăng), `claimed` = thành tựu đã nhận tới bậc nào); cả gia đình đọc, mỗi người chỉ ghi vườn của mình
 
 ## Cấu trúc code
 - `src/components/ui/sizes.ts`: kích thước dùng chung giữa giao diện thật và skeleton

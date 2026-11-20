@@ -4,8 +4,9 @@ import { requireDb, type Actor } from '../../../lib/firestore'
 import { CATCH_XP, cropById, levelOf, plantState, START_COINS, START_FEATHERS, type Plant } from './crops'
 import { potKindById, potSetById, setsOnTier, slotKey, STARTER_SETS, tierBlock, type OwnedPot } from './pots'
 import { SLOTS } from '../game/slots'
-import { bannerOf, EMPTY_GACHA, GIFT_ROLLS, TEST_GRANT, TESTER_UIDS, pullMany, ROLL_PRICE, START_STONES, type GachaState, type PullItem, type PullLog, type RollKind } from './gacha'
+import { bannerOf, EMPTY_GACHA, TEST_GRANT, TESTER_UIDS, pullMany, ROLL_PRICE, START_STONES, type GachaState, type PullItem, type PullLog, type RollKind } from './gacha'
 import { TIER_COUNT, TIER_UNLOCK_LEVEL } from '../game/constants'
+import { achievementById, achState, ACHIEVEMENTS, addReward, type Reward } from './achievements'
 
 // Vườn của mỗi thành viên: families/{familyId}/gardens/{uid}
 // Cả gia đình xem được (sau này ghé vườn nhau), mỗi người chỉ sửa vườn của mình (firestore.rules).
@@ -30,6 +31,7 @@ export interface Garden {
   gacha: GachaState // bộ đếm banner chậu
   pullLog: PullLog[] // lịch sử quay (mới nhất cuối, tối đa PULL_LOG_MAX)
   stats: Stats // bộ đếm tích luỹ cho thành tựu (KHÔNG BAO GIỜ giảm)
+  claimed: Record<string, number> // thành tựu: id -> số bậc đã nhận thưởng
 }
 
 // ---- Bộ đếm tích luỹ (thành tựu, xem CLAUDE.md "Thành tựu") ----
@@ -114,7 +116,9 @@ export function toGarden(d: DocumentData): Garden {
     pullLog: Array.isArray(d.pullLog) ? (d.pullLog as PullLog[]) : [],
     ...potData,
     stats: { ...(d.stats ?? {}) },
+    claimed: { ...(d.claimed ?? {}) },
   }
+  if (g.gift && !g.claimed.welcome) g.claimed.welcome = 1 // đã nhận quà chào mừng ở màn hình gacha cũ
   markPots(g)
   for (let t = 0; t < TIER_COUNT; t++) markTier(g, t)
   return g
@@ -139,6 +143,7 @@ export function createGarden(actor: Actor) {
     gacha: EMPTY_GACHA,
     pullLog: [],
     ...startPots(START_POTS),
+    claimed: {},
     stats: Object.fromEntries([...new Set(startPots(START_POTS).pots.map((p) => p.kind))].map((k) => [`pot_${k}`, 1])),
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
@@ -318,12 +323,43 @@ export function storePot(actor: Actor, tier: number, slot: number) {
 }
 
 // ---- Gacha ----
-// Quà chào mừng: 20 Vọng Tinh (tạm nhận ngay trong màn hình gacha, sau này chuyển vào hòm thư)
-export function claimGift(actor: Actor) {
+// ---- Thành tựu (xem data/achievements.ts) ----
+function giveReward(g: Garden, r: Reward) {
+  g.feathers += r.feathers ?? 0
+  g.stones += r.stones ?? 0
+  g.rolls.vong_tinh += r.vong_tinh ?? 0
+  g.rolls.sao_duyen += r.sao_duyen ?? 0
+}
+// Nhận 1 bậc (bậc kế tiếp chưa nhận) của 1 thành tựu nếu đã đạt; tính lại từ dữ liệu server nên 2 máy không nhận trùng
+function claimOne(g: Garden, id: string): Reward | null {
+  const a = achievementById.get(id)
+  if (!a) return null
+  const s = achState(a, g, g.claimed)
+  if (!s.ready) return null
+  const r = a.reward(s.tier)
+  giveReward(g, r)
+  g.claimed[id] = s.tier + 1
+  if (id === 'welcome') g.gift = true
+  return r
+}
+export function claimAchievement(actor: Actor, id: string) {
   return mutate(actor, (g) => {
-    if (g.gift) throw new Error('Bạn đã nhận quà chào mừng rồi')
-    g.gift = true
-    g.rolls.vong_tinh += GIFT_ROLLS
+    const r = claimOne(g, id)
+    if (!r) throw new Error('Chưa đạt thành tựu này hoặc đã nhận rồi')
+    return r
+  })
+}
+// Nhận mọi bậc đang chờ (của 1 nhóm, hoặc tất cả). Trả về tổng thưởng + số bậc đã nhận.
+export function claimAllAchievements(actor: Actor, group: string | null) {
+  return mutate(actor, (g) => {
+    let sum: Reward = {}
+    let n = 0
+    for (const a of ACHIEVEMENTS) {
+      if (group && a.group !== group) continue
+      for (let r = claimOne(g, a.id); r; r = claimOne(g, a.id)) { sum = addReward(sum, r); n++ }
+    }
+    if (!n) throw new Error('Không có phần thưởng nào để nhận')
+    return { sum, n }
   })
 }
 // TẠM để test: tài khoản trong TESTER_UIDS nhận thêm Vọng Tinh

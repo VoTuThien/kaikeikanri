@@ -17,6 +17,8 @@ import type { GameModels, SceneMode } from './TierScene'
 import { FEATHER_IMG, GachaScreen, ROLL_IMG, STONE_IMG } from './GachaUi'
 import { SeedList } from './SeedUi'
 import { BagPopup, GuidePopup, ShopPopup } from './GardenPopups'
+import { AchievementsScreen } from './AchievementsUi'
+import { readyTotal } from '../data/achievements'
 
 // Màn hình game Vườn mây: toàn màn hình, luôn nằm ngang (LandscapeFrame), màn hình tải → cảnh 3D xem từng tầng mây.
 // Nút thoát (góc trái trên) về menu app Giải trí. Bong bóng thông báo tự ẩn ở đường dẫn game (isGamePath).
@@ -71,7 +73,7 @@ function Game() {
   const [ui, setUi] = useState<Ui>({ kind: 'view' })
   const [busy, setBusy] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
-  const [popup, setPopupState] = useState<'gacha' | 'bag' | 'guide' | 'shop' | null>(null)
+  const [popup, setPopupState] = useState<'gacha' | 'bag' | 'guide' | 'shop' | 'ach' | null>(null)
   // Menu ☰: gom các nút bên phải HUD; nhớ đóng / mở; mở 1 popup thì tự đóng menu
   const [menuOpen, setMenuOpenState] = useState(() => loadMenuOpen(uid))
   const setMenuOpen = (open: boolean) => { setMenuOpenState(open); if (uid) saveMenuOpen(uid, open) }
@@ -104,11 +106,13 @@ function Game() {
 
   const level = garden ? levelOf(garden.xp) : 1
   const xpBar = levelProgress(garden?.xp ?? 0)
-  // Các nút trong menu ☰ (thứ tự: hàng 1 cẩm nang, cửa hàng; hàng 2 gacha, túi đồ); `dot` = có việc chờ (chấm đỏ)
+  // Các nút trong menu ☰ (2 nút / hàng: cẩm nang, cửa hàng / thành tựu, gacha / túi đồ); `dot` = có việc chờ (chấm đỏ)
+  const achReady = useMemo(() => (garden ? readyTotal(garden, garden.claimed) : 0), [garden])
   const menuItems: { label: string; popup: NonNullable<typeof popup>; color: string; icon: React.ReactNode; dot: boolean }[] = [
     { label: 'Cẩm nang', popup: 'guide', color: 'from-sky-400/70 to-indigo-600/70', icon: <Icon3D emoji="📖" className="h-6 w-6" />, dot: false },
     { label: 'Cửa hàng', popup: 'shop', color: 'from-rose-400/70 to-pink-600/70', icon: <Icon3D emoji="🛒" className="h-6 w-6" />, dot: false },
-    { label: 'Gacha (ước nguyện)', popup: 'gacha', color: 'from-amber-400/70 to-fuchsia-600/70', icon: <img src={ROLL_IMG.vong_tinh} alt="" className="h-9 w-9 object-contain" />, dot: !!garden && !garden.gift },
+    { label: 'Thành tựu', popup: 'ach', color: 'from-amber-400/70 to-orange-600/70', icon: <Icon3D emoji="🏆" className="h-6 w-6" />, dot: achReady > 0 },
+    { label: 'Gacha (ước nguyện)', popup: 'gacha', color: 'from-amber-400/70 to-fuchsia-600/70', icon: <img src={ROLL_IMG.vong_tinh} alt="" className="h-9 w-9 object-contain" />, dot: false },
     { label: 'Túi đồ', popup: 'bag', color: 'from-emerald-400/70 to-teal-600/70', icon: <Icon3D emoji="🧺" className="h-6 w-6" />, dot: false },
   ]
   const menuDots = menuItems.filter((m) => m.dot).length
@@ -452,6 +456,7 @@ function Game() {
       {popup === 'gacha' && <GachaScreen onClose={() => setPopup(null)} />}
       {popup === 'bag' && garden && <BagPopup garden={garden} actor={actor} onClose={() => setPopup(null)} say={say} />}
       {popup === 'guide' && garden && <GuidePopup garden={garden} onClose={() => setPopup(null)} />}
+      {popup === 'ach' && garden && <AchievementsScreen garden={garden} actor={actor} onClose={() => setPopup(null)} />}
       {popup === 'shop' && garden && <ShopPopup garden={garden} actor={actor} onClose={() => setPopup(null)} say={say} />}
 
       {phase !== 'ready' && <LoadingScreen progress={progress} error={error} fading={phase === 'fading'} />}

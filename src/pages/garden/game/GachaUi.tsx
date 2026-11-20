@@ -2,11 +2,10 @@ import { lazy, Suspense, useMemo, useState } from 'react'
 import { LineIcon } from '../../../components/ui/Fab'
 import { Icon3D } from '../../../components/ui/Icon3D'
 import { useGarden } from '../data/GardenContext'
-import { buyRolls, claimGift, errorText, grantTestRolls, pullPots, type Garden } from '../data/api'
+import { buyRolls, errorText, grantTestRolls, pullPots, type Garden } from '../data/api'
 import { CROPS } from '../data/crops'
 import {
   bannerOf,
-  GIFT_ROLLS,
   HARD_PITY,
   insectById,
   itemName,
@@ -230,11 +229,6 @@ export function GachaScreen({ onClose }: { onClose: () => void }) {
 
         {/* cột nút */}
         <div className="flex w-56 shrink-0 flex-col gap-2">
-          {!g.gift && (
-            <button type="button" disabled={busy} className={`${BTN} h-auto py-2 text-xs leading-4 from-amber-400/70 to-rose-500/70`} onClick={() => void job(() => claimGift(actor), `Đã nhận ${GIFT_ROLLS} Vọng Tinh`)}>
-              <Icon3D emoji="🎁" className="mr-1.5 h-5 w-5" /> Nhận quà chào mừng: {GIFT_ROLLS} Vọng Tinh
-            </button>
-          )}
           {TESTER_UIDS.includes(actor.uid) && (
             <button type="button" disabled={busy} className={`${BTN} h-8 text-xs from-emerald-500/60 to-teal-700/70`} onClick={() => void job(() => grantTestRolls(actor), `Đã thêm ${TEST_GRANT} Vọng Tinh (test)`)}>
               +{TEST_GRANT} Vọng Tinh (test)
