@@ -1045,7 +1045,7 @@ Game nông trại **tự thiết kế** (cùng thể loại game trồng trọt,
   - **Mật ong**: thưởng đủ bộ đổi thành **Giá tốt** (lv1 +4% → lv6 +10%) — ĐÃ CHỐT.
   - **Băng Tinh**: đặc quyền đổi thành **"Cây trên tầng không bao giờ khát nước"** — ĐÃ CHỐT.
   - Tỉ lệ côn trùng hiện ~1/2 số cây; Hút côn trùng cộng vào tỉ lệ này, trần 100%.
-- [ ] **Nâng cấp chậu có tỉ lệ ("đập chậu", GĐ5) — NGƯỜI DÙNG MÔ TẢ + ĐÃ CHỐT 20/11/2026 (mọi con số + mục 1–9 theo đề xuất; riêng Bùa giữ cấp còn vài điểm chờ chốt), CHƯA LÀM** (thay bảng giá cố định "côn trùng loại nào cũng được" ở mục Tiền trong game):
+- [ ] **Nâng cấp chậu có tỉ lệ ("đập chậu", GĐ5) — NGƯỜI DÙNG MÔ TẢ + ĐÃ CHỐT 20/11/2026 (mọi con số + mục 1–9 theo đề xuất, kể cả Bùa giữ cấp), CHƯA LÀM** (thay bảng giá cố định "côn trùng loại nào cũng được" ở mục Tiền trong game):
   - **Người dùng mô tả**: mỗi lần nâng cần **côn trùng (đúng loại, đủ số) + lông chim** (vd 3 sâu + 3 nhện + 30 lông chim). **Nâng có tỉ lệ thành công**, chậu A thấp hơn B, S thấp nhất.
     **Thất bại** chia tiếp: **10% về lv1, 70% giữ nguyên cấp, 20% tuột ngẫu nhiên 1 / 2 / 3 / 4 cấp**. Được bỏ thêm **tối đa 5 chậu khác** (chưa nâng / đã nâng đều được) để tăng tỉ lệ,
     và **tối đa 3 item tăng tỉ lệ** (3 loại B / A / S; icon dựng bằng Blender — làm sau). **Tỉ lệ thành công hiện trên màn hình** để người chơi điều chỉnh. Chậu đang trồng cây vẫn nâng được.
@@ -1076,10 +1076,10 @@ Game nông trại **tự thiết kế** (cùng thể loại game trồng trọt,
        Thành tựu Thu thập đếm "đã từng có" (`stats.potKinds`) nên không bị trừ; nhưng mất bản cuối thì "Trọn bộ" trên tầng mất hiệu ứng.
     4. **Tuột cấp ở cấp thấp trùng kết quả**: số cấp tuột ngẫu nhiên trong 1..min(4, cấp − 1); lv1 thất bại = giữ nguyên; lv2 thất bại "về lv1" và "tuột" giống nhau — chấp nhận.
     5. **Chậu S 5→6 rất khắc nghiệt** (12% gốc, thất bại 8,8% / lần về lv1) → **THÊM item "Bùa giữ cấp" ngay trong GĐ5 (người dùng chốt)**: nâng thất bại thì **luôn giữ nguyên cấp** (không về lv1, không tuột);
-       chậu bỏ vào, bùa may mắn, côn trùng, lông chim vẫn mất; không tăng tỉ lệ. Đề xuất (chờ chốt): **1 ô riêng, tối đa 1 bùa / lần**, không chiếm 3 ô bùa may mắn;
+       chậu bỏ vào, bùa may mắn, côn trùng, lông chim vẫn mất; không tăng tỉ lệ. ĐÃ CHỐT: **1 ô riêng, tối đa 1 bùa / lần**, không chiếm 3 ô bùa may mắn;
        nguồn như bùa A / S (gacha, thư, đổi ở cửa hàng bằng 2 item mới); gacha **0,5%** lấy từ suất côn trùng (côn trùng 44% → 43,5%). Icon dựng Blender (làm sau, cùng 3 bùa may mắn).
     6. **Nguồn Bùa may mắn (ĐÃ CHỐT)**: **Bùa B = mua ở cửa hàng (đề xuất 100 lông chim) + thư**. **Bùa A, S = rơi từ gacha + thư + đổi ở cửa hàng bằng 2 LOẠI ITEM MỚI**
-       (**người dùng sẽ đặc tả 2 item mới này sau**). Tỉ lệ gacha: suất côn trùng (~50%) chia thành **côn trùng 44% + bùa B 5% + bùa A 0,9% + bùa S 0,1%** (bùa B vẫn rơi ở gacha theo tỉ lệ này).
+       (**người dùng sẽ đặc tả 2 item mới này sau**). Tỉ lệ gacha: suất côn trùng (~50%) chia thành **côn trùng 43,5% + bùa B 5% + bùa A 0,9% + bùa S 0,1% + bùa giữ cấp 0,5%** (bùa B vẫn rơi ở gacha theo tỉ lệ này).
        Không thưởng bùa ở thành tựu / nhiệm vụ ngày / Thăng tiến (khác đề xuất đầu).
     7. **Bảng giá cũ** (2 / 4 / 6 / 8 / 10 côn trùng loại nào cũng được + 50 → 800 lông chim) **bị thay** bởi chi phí mỗi lần thử ở trên; côn trùng giờ có giá trị theo loại (nhiệm vụ "bắt loại chỉ định" có ý nghĩa hơn).
     8. **Chỗ nâng cấp**: thêm [Nâng cấp] vào menu chậu (nhấn giữ chậu đã đặt) + tab **"Chậu"** trong Túi đồ (nâng chậu trong kho). Popup kiểu gacha: giữa = chậu (ảnh cấp hiện tại → cấp kế), 5 ô chậu bỏ vào, 3 ô bùa,
