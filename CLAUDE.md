@@ -1029,6 +1029,35 @@ Game nông trại **tự thiết kế** (cùng thể loại game trồng trọt,
   ĐÃ CHỐT: **chấm đỏ trên ☰** = tổng các chấm đỏ bên trong (thư, thành tựu, quà) để lúc đóng vẫn biết; **nhớ trạng thái đóng / mở** (localStorage);
   khi mở thì **lưới nằm bên TRÁI cột ▲ ▼** để không đè nút chuyển tầng (nếu vẫn chật trên iPhone 12 ngang thì dời ▲ ▼ xuống góc phải dưới); mở 1 popup thì tự đóng menu.
 - [x] **Hòm thư — gửi thư kèm quà bằng SCRIPT (ĐÃ CHỐT + ĐÃ LÀM 20/11/2026, xem "THỨ TỰ CODE" bước 3; chưa có quà phân bón / bùa / mảnh sao — thêm khi làm các phần đó)**: người dùng (quản trị) chạy script trên máy để gửi thư; người chơi mở hòm thư trong game, **bấm nhận quà**.
+  - ⚠️ **CHƯA TEST chức năng gửi thư** (cả script lẫn hòm thư trong game): máy code lúc đó không có `.env` và khoá service account. Lần đầu dùng nên chạy `--dry-run` trước, gửi thử cho 1 người.
+  - **CÁCH DÙNG LỆNH GỬI THƯ (để tra lại khi quên)** — chạy ở thư mục gốc dự án, trong PowerShell:
+    1. **Chuẩn bị 1 lần**:
+       - Deploy Rules (chưa deploy thì hòm thư không đọc được): `npx firebase-tools deploy --only firestore:rules`
+       - Lấy khoá quản trị: Firebase Console → ⚙ Project settings → **Service accounts** → **Generate new private key** → lưu file tải về thành
+         **`scripts/.service-account.json`** (đã gitignore, **tuyệt đối không commit / không gửi ai**). Hoặc đặt đường dẫn file vào biến `GOOGLE_APPLICATION_CREDENTIALS`.
+       - Đã `npm install` (cần `firebase-admin`).
+    2. **Lệnh**: `npm run send-mail -- <tham số>` (có `--` ở giữa), hoặc `node scripts/send-mail.mjs <tham số>`.
+       Script in nội dung thư + danh sách người nhận rồi hỏi **"Gửi? (gõ "co" để gửi)"**; `--dry-run` = chỉ xem, không ghi; `--yes` = không hỏi.
+    3. **Tham số**:
+       | Tham số | Ý nghĩa |
+       |---|---|
+       | `--to all` / `--to <email>` / `--to <uid>` | thư RIÊNG: mọi vườn / vườn của người có email đó / theo uid (người đó phải đã mở game Vườn mây) |
+       | `--family <familyId>` | chỉ các vườn của 1 gia đình (dùng kèm `--to`) |
+       | `--broadcast` | 1 thư CHUNG (không dùng cùng `--to`); thêm `--new-players` để người chơi tạo vườn SAU này cũng nhận |
+       | `--title "…"` (bắt buộc), `--body "…"` (`\n` = xuống dòng), `--from "…"` (mặc định "Vườn mây") | nội dung thư |
+       | `--feathers N`, `--stones N`, `--vong N`, `--sao N` | lông chim, đá vũ trụ, Vọng Tinh, Sao Duyên |
+       | `--seed <id cây>:N`, `--insect <id>:N`, `--pot <id loại chậu>[:N]` | hạt, côn trùng, chậu cấp 1 — **lặp lại được** nhiều lần |
+       | `--expires 7d` / `12h` / `2026-12-31` | hạn nhận (bỏ trống = không hết hạn) |
+       Id cây: `cai`, `carot`, `cachua`, `ngo`, `dau`, `huongduong`, `duahau`, `bingo` (`CROPS` trong `data/crops.ts`).
+       Id côn trùng: `sau`, `bo_rua`, `dom_dom`, `nhen`, `buom`. Id chậu: `<bộ>_<1-6>`, vd `dat_nung_1`, `su_lam_3`, `phuong_hoang_6`, `thien_ha_4` (`POT_KINDS` trong `data/pots.ts`).
+    4. **Ví dụ**:
+       - Xem trước, không gửi: `npm run send-mail -- --to all --title "Thử" --vong 10 --dry-run`
+       - Tặng mọi người, hạn 7 ngày: `npm run send-mail -- --to all --title "Quà cuối tuần" --body "Chúc vui!" --feathers 500 --vong 10 --expires 7d`
+       - Tặng 1 người theo email: `npm run send-mail -- --to ten@email.com --title "Đền bù" --stones 160 --seed carot:10 --insect sau:5 --pot su_lam_1`
+       - Thư chung cho cả người chơi mới: `npm run send-mail -- --broadcast --new-players --title "Chào mừng" --body "Chào bạn tới Vườn mây" --vong 5`
+       - Thư thông báo không quà: `npm run send-mail -- --to all --title "Bảo trì" --body "Tối nay 22h bảo trì 10 phút"`
+    5. **Lỗi hay gặp**: "Không tìm thấy khoá service account" → thiếu `scripts/.service-account.json`; "Không tìm thấy vườn nào khớp" → người đó chưa mở game / sai email;
+       trong game không thấy thư → chưa deploy Rules, hoặc thư chung không có `--new-players` mà vườn tạo sau lúc gửi.
   - **Dữ liệu**: thư riêng `families/{familyId}/gardens/{uid}/mail/{mailId}` = `{ title, body, rewards: { feathers, stones, rolls: { vong_tinh, sao_duyen }, seeds: { id: n }, insects: { id: n }, pots: [kind] },
     from ("Vườn mây"), createdAt, expiresAt (null = không hết hạn), claimedAt (null = chưa nhận) }`.
     **Thư gửi tất cả** (kể cả người chơi mới sau này nếu muốn): `gardenBroadcasts/{id}` (cùng trường + `newPlayers: bool`), người chơi đọc được; đã nhận lưu ở `mailClaimed` (mảng id) của vườn.
@@ -1143,7 +1172,7 @@ Game nông trại **tự thiết kế** (cùng thể loại game trồng trọt,
   3. **[x] ĐÃ LÀM (20/11/2026)**: Hòm thư — dữ liệu + hook `data/mail.ts` (`useMailbox`, `mailView`, `toMail`), nhận quà `claimMails` (`data/api.ts`, 1 transaction; vườn có `mailClaimed`, `born` chỉ đọc từ `createdAt`, `writeGarden` bỏ `born` khi ghi),
      giao diện `game/MailUi.tsx` (`MailScreen`), nút 📬 trong menu ☰ (chấm đỏ = thư chưa nhận còn hạn), Rules (`mail` chỉ đọc + ghi `claimedAt` 1 lần; `gardenBroadcasts` chỉ đọc),
      script `scripts/send-mail.mjs` (`npm run send-mail -- …`, `firebase-admin` devDependency, khoá ở `scripts/.service-account.json` đã gitignore). Đã gỡ nút "+100 Vọng Tinh (test)" (`TESTER_UIDS`, `grantTestRolls`).
-     **Phải deploy Rules** (`npm run deploy` hoặc `npx firebase-tools deploy --only firestore:rules`) thì hòm thư mới đọc được. Chưa thử thật (máy làm không có `.env` / khoá service account).
+     **Phải deploy Rules** (`npm run deploy` hoặc `npx firebase-tools deploy --only firestore:rules`) thì hòm thư mới đọc được. **CHƯA TEST** (máy làm không có `.env` / khoá service account); cách dùng lệnh xem mục "Hòm thư".
   4. Hiệu ứng bộ chậu chạy thật: chụp `plant.buff` lúc gieo, bỏ Ít sâu, Hạt rẻ / Giá tốt kiểu mới, Mật ong Giá tốt, Băng Tinh không khát nước.
   5. Đập chậu (tỉ lệ, chậu bỏ vào, bùa may mắn B / A / S, bùa giữ cấp, nút ?) — icon bùa tạm.
   6. Mảnh vỡ sao sáng / sao (kèm khi quay, tỉ lệ gacha mới có bùa), cửa hàng 3 tab [Hạt giống] [Bùa] [Đổi sao], đổi mảnh → lông chim, đổi đá → lông chim (1 : 5).
