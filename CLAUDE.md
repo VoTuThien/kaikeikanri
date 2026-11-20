@@ -1191,7 +1191,7 @@ Game nông trại **tự thiết kế** (cùng thể loại game trồng trọt,
   Nút "Đập chậu" ở menu chậu và màn hình đập đổi chữ thành **"Đập"**.
   **Cẩm nang cũng toàn màn hình** (21/11/2026, `SideTabScreen`): tab Cách chơi / Các loại cây / Cập nhật; đã bỏ popup khung giữa cũ (`Popup`). **Màn hình popup mới có nhiều mục thì dùng `SideTabScreen`.**
 - [x] **Màn hình banner gacha làm lại (20/11/2026)** (`GachaScreen` trong `GachaUi.tsx`): **nền banner phủ kín khung game**, nút X tròn kính đè lên nền (trái trên) cạnh tên bộ + tháng;
-  **ảnh nền banner sẽ do người dùng gửi**: đặt ở `public/game/banner/…` rồi thêm vào `BANNER_IMAGE` (id bộ → đường dẫn; chưa có ảnh thì nền gradient).
+  **ảnh nền banner** (vẽ bằng AI, người dùng gửi): `public/game/banner/<id bộ>.webp` + thêm vào `BANNER_IMAGE` (đã có `phuong_hoang`; chưa có ảnh thì nền gradient), có lớp tối nhẹ mép trên / dưới. **Màn hình tải** dùng ảnh nền `public/game/nen/loading.webp` (`LOADING_BG` trong `LoadingScreen.tsx`) + lớp tối giữa cho chữ. Ảnh gốc 1672×941 PNG → webp chất lượng 80 (~100–150KB).
   Bỏ tiêu đề "ước nguyện", bỏ nút Đổi 1 / Đổi 10 (mua cục roll ở Cửa hàng → Gacha); số Vọng Tinh / Vọng Nguyệt / đá ở phải trên KHÔNG khung.
   Giữa = 6 chậu cấp 6 (đã BỎ dòng "Quay thêm n lần chắc chắn ra vàng"; hiện KHÔNG còn chỗ nào hiện số lần còn lại tới vàng). Nút **Bỏ qua** (lúc mở cục roll và lúc xem từng món) = nút tròn kính icon **tua** (`skip`);
   bảng kết quả bỏ dòng "Kết quả n lần quay", 2 nút [Xong] (xám) / [Quay tiếp ×n] (tím) rộng + cao bằng nhau. **Trái dưới = 2 nút tròn kính `GLASS_ROUND` cỡ bằng nút X (40px): [?] (`help`) Quy tắc & tỉ lệ, [đồng hồ] (`clock`) Lịch sử** (icon mới trong `ICON_PATHS`).

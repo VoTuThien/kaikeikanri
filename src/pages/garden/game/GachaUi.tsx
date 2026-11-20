@@ -111,7 +111,7 @@ export const ROLL_GOODS: Record<RollKind, { name: string; rank: ItemRank; desc: 
 const BTN_PLAIN = BTN.replace(/from-\S+ to-\S+/, '') // BTN đã bỏ màu gốc: thêm from-* to-* riêng mới có tác dụng
 const PULL_BTN = `${BTN_PLAIN} h-10 gap-1.5 text-base`
 // Ảnh nền banner theo bộ chậu (public/game/banner/…); chưa có ảnh thì dùng nền gradient
-const BANNER_IMAGE: Record<string, string> = {}
+const BANNER_IMAGE: Record<string, string> = { phuong_hoang: '/game/banner/phuong_hoang.webp' }
 
 type View =
   | { kind: 'banner'; panel: null | 'rates' | 'history' }
@@ -249,7 +249,7 @@ export function GachaScreen({ onClose }: { onClose: () => void }) {
       </div>
     )
 
-  // ---- Màn hình banner: nền banner phủ kín khung game (sau này thay bằng ảnh BANNER_IMAGE), nút X đè lên nền ----
+  // ---- Màn hình banner: nền banner phủ kín khung game (ảnh BANNER_IMAGE theo bộ, chưa có ảnh thì gradient), nút X đè lên nền ----
   const bgImg = BANNER_IMAGE[banner.setId]
   return (
     <div className="absolute inset-0 z-40 overflow-hidden bg-[#120a33]">
@@ -258,6 +258,8 @@ export function GachaScreen({ onClose }: { onClose: () => void }) {
         className="absolute inset-0 bg-gradient-to-br from-orange-500/35 via-rose-700/30 to-indigo-900/60 bg-cover bg-center"
         style={bgImg ? { backgroundImage: `url(${bgImg})` } : undefined}
       />
+      {/* tối nhẹ mép trên / dưới cho chữ + nút đè lên dễ đọc */}
+      {bgImg && <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/45 via-transparent to-black/50" />}
       {/* trái trên: đóng + tên banner */}
       <div className="absolute top-3 flex items-start gap-3" style={{ left: 'calc(var(--safe-l) + 12px)' }}>
         <button type="button" data-round aria-label="Đóng gacha" onClick={onClose} className={`${GLASS_ROUND} h-10 w-10`}>
