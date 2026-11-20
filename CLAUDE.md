@@ -1148,8 +1148,9 @@ Game nông trại **tự thiết kế** (cùng thể loại game trồng trọt,
   5. Đập chậu (tỉ lệ, chậu bỏ vào, bùa may mắn B / A / S, bùa giữ cấp, nút ?) — icon bùa tạm.
   6. Mảnh vỡ sao sáng / sao (kèm khi quay, tỉ lệ gacha mới có bùa), cửa hàng 3 tab [Hạt giống] [Bùa] [Đổi sao], đổi mảnh → lông chim, đổi đá → lông chim (1 : 5).
   7. Nhiệm vụ hằng ngày (tab "Hôm nay" trong Thành tựu).
+  8. Phân bón (đã duyệt): `plant.boost`, túi phân kiểu túi hạt, cửa hàng "Hạt & phân", gacha (côn trùng 35,5% + phân B 6% + phân A 2%), đổi sao, tab "Vật phẩm" trong Túi đồ, thành tựu + nhiệm vụ bón phân, quà thư `fertilizer` — icon tạm.
   CẦN Blender (làm riêng): icon 4 bùa + 2 mảnh sao, hoạt cảnh / xuất máy chế tạo, xuất 14 cây mới, bộ chậu banner mới. CHƯA đặc tả: máy chế tạo (GĐ6), số liệu 14 cây (GĐ8), banner Sao Duyên.
-- [ ] **Phân bón — rút ngắn thời gian trồng (NGƯỜI DÙNG MÔ TẢ 20/11/2026; con số là ĐỀ XUẤT, CHỜ DUYỆT, CHƯA LÀM)**:
+- [ ] **Phân bón — rút ngắn thời gian trồng (NGƯỜI DÙNG MÔ TẢ + ĐÃ DUYỆT 20/11/2026: mọi con số + mục 1–7 theo đề xuất; CHƯA LÀM)**:
   - **Người dùng mô tả**: 2 loại **Phân bón B** và **Phân bón A** (không có S). Nguồn: **mua ở cửa hàng, gacha, đổi bằng mảnh vỡ sao**. Dùng để **rút ngắn thời gian trồng cây theo %**.
   - **Cách giảm (đề xuất)**: mỗi lần bón **giảm % TỔNG thời gian lớn của cây** (dễ hiểu: bí ngô 12 giờ, phân B −20% = bớt 2 giờ 24 phút): **Phân B −20%, Phân A −40%**.
     **Mỗi cây bón tối đa 2 lần** (trộn B / A được), **tổng giảm tối đa 60%** (A + A = 80% → chặn còn 60%); chỉ bón cây **chưa chín**; bón quá phần còn lại thì cây chín ngay.
@@ -1163,7 +1164,7 @@ Game nông trại **tự thiết kế** (cùng thể loại game trồng trọt,
     | Gacha (lấy từ suất côn trùng: 43,5% → 35,5%) | 6%, mỗi lần rơi 5 túi | 2%, mỗi lần rơi 2 túi |
     | Đổi sao (tab Đổi sao) | 10 túi = 2 mảnh sao (5 lần / tháng) | 5 túi = 4 mảnh sao (5 lần / tháng) |
     Phân bón rơi từ gacha **không kèm mảnh vỡ sao** (giống bùa giữ cấp), để mảnh sao chỉ đến từ món hiếm thật.
-  - **Bất cập & giải pháp (đề xuất, chờ duyệt)**:
+  - **Bất cập & giải pháp (ĐÃ DUYỆT)**:
     1. **Bón cây ngắn ngày là phí** (rau cải 3 phút: −20% = 36 giây) → dải chọn phân hiện trước "bớt bao lâu"; cây < 10 phút thì mờ nút + nhắc "Cây này lớn nhanh, không cần bón".
     2. **Bón làm cây chín trước khi kịp TƯỚI** (mất +1 nông sản) → cây chưa tưới thì dải phân nhắc "Chưa tưới: tưới trước để được thêm 1 nông sản" (vẫn cho bón).
     3. **Côn trùng xuất hiện khi cây lớn 35%**: bón nhảy qua mốc này thì côn trùng vẫn hiện (tính theo tiến độ) — không mất cơ hội bắt.
