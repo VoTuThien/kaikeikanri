@@ -1020,7 +1020,7 @@ Game nông trại **tự thiết kế** (cùng thể loại game trồng trọt,
        | Sao Duyên | 25 | 30 | 35 | 40 | 45 | 50 | 55 | 70 |
     b. **Thêm nguồn kinh nghiệm** (ngoài thu hoạch; con số đề xuất, cân chỉnh được): mỗi nhiệm vụ ngày bậc 1 / 2 / 3 / 4 = **20 / 40 / 80 / 150 kinh nghiệm**; **bắt 1 côn trùng = 2 kinh nghiệm**;
        chế tạo: mỗi sản phẩm ≈ ½ tổng kinh nghiệm thu hoạch của nguyên liệu (định khi làm GĐ6); **14 cây mới (GĐ8) rải cấp mở từ cấp 9 tới ~cấp 40**, cây lớn lâu cho kinh nghiệm cao hơn (cây 24 giờ ≈ 200–300).
-    c. **GHI NHỚ khi cân banner**: Thăng tiến rất rộng tay (10 Vọng Tinh + 5 Sao Duyên mỗi cấp + các mốc → tới cấp 90 ≈ 1.200 Vọng Tinh + 700 Sao Duyên). Người dùng cố ý chấp nhận vì sẽ ra banner / bộ chậu mới liên tục.
+    c. **GHI NHỚ khi cân banner**: Thăng tiến rất rộng tay (10 Vọng Tinh + 5 Sao Duyên mỗi cấp + các mốc → tới cấp 90 ≈ 1.300 Vọng Tinh + 800 Sao Duyên). Người dùng cố ý chấp nhận vì sẽ ra banner / bộ chậu mới liên tục.
     d. **"Nhà sưu tầm"**: khi game có > 60 loại chậu thì thêm bậc 80 / 100 / 150…; dòng "Trọn bộ <bộ>" tự sinh từ `POT_SETS` (không phải thêm tay).
     e. **Bộ 5 / 4 chậu (dành riêng tầng 3 / 4)**: mốc hiệu ứng riêng — bộ 5 chậu **2 / 4 / 5**, bộ 4 chậu **2 / 3 / 4** (như Thiên hà); khai báo `tiers` trong `POT_SETS` như Thiên hà.
     f. **Menu ☰**: làm theo đề xuất (xem mục "HUD menu ☰").
