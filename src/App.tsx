@@ -15,6 +15,7 @@ import { SidePage, SidePageSkeleton } from './pages/SidePage'
 import { SideSwipe } from './components/SideSwipe'
 import { RefreshIndicator } from './components/RefreshIndicator'
 import { UnsavedGuard } from './components/UnsavedGuard'
+import { UpdateWatcher } from './components/UpdatePrompt'
 import { StarField } from './components/StarField'
 import { NotificationBubble } from './components/NotificationBubble'
 import { BabyHomePage } from './pages/baby/BabyHomePage'
@@ -201,6 +202,8 @@ function Shell() {
       <RefreshIndicator />
       {/* Bong bóng thông báo nổi trên mọi màn hình (kéo được, kéo vào X để ẩn khi không có thông báo) */}
       <NotificationBubble />
+      {/* Có bản cập nhật của app: thanh nhỏ "Có bản cập nhật · Tải lại" */}
+      <UpdateWatcher />
       {/* Hỏi lại khi rời màn hình mà còn thông tin chưa lưu */}
       <UnsavedGuard />
     </>

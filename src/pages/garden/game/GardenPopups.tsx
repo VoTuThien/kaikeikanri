@@ -11,6 +11,8 @@ import { CROPS, cropById, cropImage, formatCoins, formatGrow, levelOf, seedImage
 import { INSECTS, insectById } from '../data/gacha'
 import { FEATHER_IMG, STONE_IMG } from './GachaUi'
 import { DragScroll } from './DragScroll'
+import { CHANGELOG } from '../data/changelog'
+import { ChangelogList } from './NewsUi'
 import { BTN, RankBadge } from './PotUi'
 
 // Popup trong game: Túi đồ (nông sản / hạt giống / côn trùng, bán nông sản lấy lông chim), Cửa hàng (mua hạt hạng B bằng lông chim) và Cẩm nang.
@@ -426,6 +428,8 @@ export function GuidePopup({ garden, onClose }: { garden: Garden; onClose: () =>
       <ul className="list-disc space-y-1 py-3 pr-4 pl-8 text-sm leading-5 text-white/85">
         {RULES.map((r) => <li key={r}>{r}</li>)}
       </ul>
+      <p className="border-y border-white/15 bg-white/10 px-4 py-1.5 text-xs font-semibold text-white/75">Cập nhật</p>
+      <ChangelogList entries={CHANGELOG} />
       <p className="border-y border-white/15 bg-white/10 px-4 py-1.5 text-xs font-semibold text-white/75">Các loại cây</p>
       {CROPS.map((c) => (
         <div key={c.id} className={`${ROW} ${level < c.level ? 'opacity-50' : ''}`}>

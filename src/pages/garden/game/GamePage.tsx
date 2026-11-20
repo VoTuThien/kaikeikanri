@@ -23,6 +23,10 @@ import { mailView, useMailbox } from '../data/mail'
 import { MailScreen } from './MailUi'
 import { UpgradeScreen } from './UpgradeUi'
 import { DailyScreen } from './DailyUi'
+import { NewsScreen } from './NewsUi'
+import { unseenOf, type ChangelogEntry } from '../data/changelog'
+import { loadSeenVersion, saveSeenVersion } from '../data/news'
+import { UpdateBar } from '../../../components/UpdatePrompt'
 import { dailyView } from '../data/daily'
 import { fertById, FERTS, type FertId } from '../data/items'
 import { fertilize } from '../data/api'
@@ -78,6 +82,9 @@ function Game() {
   const [progress, setProgress] = useState(0)
   const [error, setError] = useState<string | null>(null)
   const [phase, setPhase] = useState<'loading' | 'fading' | 'ready'>('loading')
+  // "Có gì mới": sau màn hình tải, có bản cập nhật chưa xem (theo tài khoản) thì tự mở
+  const [news, setNews] = useState<ChangelogEntry[] | null>(null)
+  const newsChecked = useRef(false)
   const started = useRef(Date.now())
   const [ui, setUi] = useState<Ui>({ kind: 'view' })
   const [busy, setBusy] = useState(false)
@@ -117,6 +124,22 @@ function Game() {
 
   const level = garden ? levelOf(garden.xp) : 1
   const xpBar = levelProgress(garden?.xp ?? 0)
+  useEffect(() => {
+    if (phase !== 'ready' || !garden || !uid || newsChecked.current) return
+    newsChecked.current = true
+    loadSeenVersion(uid)
+      .then((seen) => {
+        if (seen === null && (!garden.born || garden.born > Date.now() - 3600_000)) { void saveSeenVersion(uid); return } // vườn vừa tạo: người chơi mới
+        const list = unseenOf(seen ?? '')
+        if (list.length) setNews(list)
+      })
+      .catch((err) => console.error('Không đọc được bản đã xem', err))
+  }, [phase, garden, uid])
+  function closeNews() {
+    setNews(null)
+    if (uid) saveSeenVersion(uid).catch((err) => console.error('Không lưu được bản đã xem', err))
+  }
+
   // Các nút trong menu ☰ (2 nút / hàng: cẩm nang, cửa hàng / thành tựu, gacha / túi đồ); `dot` = có việc chờ (chấm đỏ)
   const achReady = useMemo(() => (garden ? readyTotal(garden, garden.claimed) : 0), [garden])
   const dailyReady = useMemo(() => (garden && uid ? dailyView(uid, garden).ready : 0), [garden, uid, now]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -563,6 +586,8 @@ function Game() {
       {popup === 'bag' && garden && <BagPopup garden={garden} actor={actor} onClose={() => setPopup(null)} say={say} onUpgrade={openUpgrade} />}
       {popup === 'guide' && garden && <GuidePopup garden={garden} onClose={() => setPopup(null)} />}
       {popup === 'upgrade' && garden && upgradeId && <UpgradeScreen garden={garden} actor={actor} potId={upgradeId} onClose={() => setPopup(null)} />}
+      {news && <NewsScreen entries={news} onClose={closeNews} />}
+      {phase === 'ready' && <UpdateBar inGame />}
       {popup === 'daily' && garden && <DailyScreen garden={garden} actor={actor} onClose={() => setPopup(null)} />}
       {popup === 'mail' && <MailScreen list={mail.list} isOpen={mail.open} actor={actor} onClose={() => setPopup(null)} />}
       {popup === 'ach' && garden && <AchievementsScreen garden={garden} actor={actor} onClose={() => setPopup(null)} />}

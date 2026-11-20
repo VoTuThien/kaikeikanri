@@ -15,7 +15,8 @@ export default defineConfig({
     react(),
     tailwindcss(),
     VitePWA({
-      registerType: 'autoUpdate',
+      // 'prompt': có bản mới thì hiện thanh "Có bản cập nhật · Tải lại" (src/components/UpdatePrompt.tsx), không tự tải lại
+      registerType: 'prompt',
       workbox: {
         // Lưu sẵn cả ảnh (gồm icon 3D trong public/icons3d) để app dùng được khi mất mạng
         globPatterns: ['**/*.{js,css,html,svg,png,webp}'],

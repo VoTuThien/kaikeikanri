@@ -3,6 +3,7 @@ import { onSnapshot } from 'firebase/firestore'
 import type { Actor } from '../../../lib/firestore'
 import { familyKey, useLiveQuery } from '../../../lib/liveQuery'
 import { createGarden, gardenDoc, toGarden, type Garden } from './api'
+import { markSeenIfNew } from './news'
 
 interface GardenData {
   actor: Actor
@@ -28,6 +29,7 @@ export function GardenProvider({ actor, children }: { actor: Actor | null; child
     if (!missing || creating || !actor) return
     setCreating(true)
     createGarden(actor)
+      .then(() => markSeenIfNew(actor.uid)) // người chơi mới: không hiện danh sách cập nhật cũ
       .catch((err) => console.error('Tạo vườn thất bại', err))
       .finally(() => setCreating(false))
   }, [missing, creating, actor])

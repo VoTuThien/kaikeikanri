@@ -1199,7 +1199,12 @@ Game nông trại **tự thiết kế** (cùng thể loại game trồng trọt,
      vườn có `daily` = { day, base (ảnh chụp `stats` đầu ngày), claimed, quests (chốt lúc chụp: lên cấp giữa ngày không đổi nhiệm vụ) }; `mutate` gọi `rollDaily` TRƯỚC mỗi thao tác;
      tiến độ = `stats` − `base`; thêm bộ đếm `harvestTier_<tầng>`. Nhận: `claimDaily` (1 nhiệm vụ / "bonus" / tất cả): bậc 1–4 = 40 + 32 đá + 20 KN · 50 + 32 + 40 · 60 + 48 + 80 · 80 + 64 + 150; xong cả 5 = 2 Sao Duyên (`stats.fullDays`).
      Giao diện `game/DailyUi.tsx` (`DailyScreen`). Thành tựu "Chăm chỉ mỗi ngày" (1 / 7 / 30 / 100 ngày) ở nhóm Chăm sóc. Chưa thử trong game.
-  9. Màn hình "Có gì mới" (đã duyệt): `data/changelog.ts`, `seenVersion` ở `users/{uid}/settings/game` (+ Rules), popup sau màn hình tải, mục "Cập nhật" trong Cẩm nang, vườn mới không hiện;
+  9. **[x] ĐÃ LÀM (20/11/2026)**: nội dung `src/pages/garden/data/changelog.ts` (`CHANGELOG`, `unseenOf`), đã xem `data/news.ts` (`users/{uid}/settings/game` `seenVersion`; Rules sẵn có `settings/{doc}`),
+     popup `game/NewsUi.tsx` (`NewsScreen`, `ChangelogList`) mở trong `GamePage` sau màn hình tải; vườn mới tạo → `markSeenIfNew` (GardenContext) + vườn tạo < 1 giờ mà chưa có bản ghi thì coi là đã xem;
+     Cẩm nang có mục "Cập nhật". Thanh cập nhật app: `src/components/UpdatePrompt.tsx` (`UpdateWatcher` trong `App.tsx` Shell, `UpdateBar`; ngoài game cố định trên đầu màn hình, trong game vẽ trong khung ngang),
+     `vite.config.ts` đổi **`registerType: 'prompt'`** (service worker mới CHỜ tới khi bấm "Tải lại"; kiểm tra bản mới lúc mở, khi quay lại app, mỗi 30 phút), kiểu `src/pwa.d.ts`.
+     **Lần deploy ĐẦU TIÊN có thay đổi này**: máy đang chạy bản cũ (autoUpdate) chỉ nhận bản mới sau khi TẮT HẲN app rồi mở lại (từ đó trở đi mới có thanh "Tải lại"). Chưa thử thật (máy làm không có `.env`).
+     Ghi chú cũ (đề xuất): `data/changelog.ts`, `seenVersion` ở `users/{uid}/settings/game` (+ Rules), popup sau màn hình tải, mục "Cập nhật" trong Cẩm nang, vườn mới không hiện;
      kèm thanh "Có bản cập nhật · Tải lại" cho cả app (`useRegisterSW`).
   8. **[x] Gộp vào bước 6.** Phân bón (đã duyệt): `plant.boost`, túi phân kiểu túi hạt, cửa hàng "Hạt & phân", gacha (côn trùng 35,5% + phân B 6% + phân A 2%), đổi sao, tab "Vật phẩm" trong Túi đồ, thành tựu + nhiệm vụ bón phân, quà thư `fertilizer` — icon tạm.
   CẦN Blender (làm riêng): icon 4 bùa + 2 mảnh sao, hoạt cảnh / xuất máy chế tạo, xuất 14 cây mới, bộ chậu banner mới. CHƯA đặc tả: máy chế tạo (GĐ6), số liệu 14 cây (GĐ8), banner Sao Duyên.
@@ -1226,7 +1231,12 @@ Game nông trại **tự thiết kế** (cùng thể loại game trồng trọt,
     6. **Thêm vào**: Túi đồ (tab mới "Vật phẩm": phân bón, bùa, mảnh sao), thư (quà có `fertilizer`), bộ đếm `stats.fertilize` + thành tựu Chăm sóc **"Nhà nông chăm bón"** (bón 20 / 100 / 500 / 2.000 lần, I–IV) + nhiệm vụ ngày "Bón phân" (3 / 6 / 10 / 15).
     7. **Icon 2 túi phân bón** dựng bằng Blender (làm sau, cùng icon bùa / mảnh sao); trước đó dùng tạm icon nét. Có thể tái dùng mô hình **túi hạt** (`tui-hat.glb`) đổi màu + nhãn cho túi phân 3D lơ lửng.
 - Lưu ý nhiệm vụ ngày: bậc 1 có thể bốc "Bón phân 3 lần" dù người mới chưa có phân (phải mua phân B 40 lông chim ở Cửa hàng) — nếu thấy khó thì chỉ bốc khi đã có phân / từ bậc 2.
-- [ ] **Màn hình "Có gì mới" (What's new) — NGƯỜI DÙNG YÊU CẦU + ĐÃ DUYỆT 20/11/2026 (mọi đề xuất + bất cập 1–6 theo đề xuất; lưu "đã xem" ở `users/{uid}/settings/game`), CHƯA LÀM**:
+- [x] **Màn hình "Có gì mới" (What's new) — ĐÃ LÀM 20/11/2026 (xem "THỨ TỰ CODE" bước 9)**
+  - **⚠️ CÁCH DÙNG MỖI LẦN DEPLOY** (để tra lại khi quên): mở `src/pages/garden/data/changelog.ts`, thêm 1 mục vào **ĐẦU** mảng `CHANGELOG`:
+    `{ version: 'YYYY-MM-DD', title: 'Tiêu đề ngắn', items: ['Ý 1', 'Ý 2', …] }` (deploy 2 lần / ngày: `'YYYY-MM-DD.2'`; `version` phải lớn hơn bản trước; tuỳ chọn `image: '/game/news/ten.webp'`),
+    rồi `npm run deploy`. Có thể nhờ Claude: "soạn changelog cho lần deploy này" (đọc git log từ bản trước). Không thêm mục = người chơi không thấy màn hình (dùng cho bản sửa lỗi nhỏ).
+    Người chơi đang chơi sẽ thấy thanh "Có bản cập nhật · Tải lại" (trên đầu màn hình / trong game), bấm là chạy bản mới + màn hình "Có gì mới".
+- (Ghi chú lúc chốt) **Màn hình "Có gì mới" — NGƯỜI DÙNG YÊU CẦU + ĐÃ DUYỆT 20/11/2026 (mọi đề xuất + bất cập 1–6 theo đề xuất; lưu "đã xem" ở `users/{uid}/settings/game`), CHƯA LÀM**:
   - **Yêu cầu**: mỗi lần deploy, người dùng ghi nội dung cập nhật của game; người chơi **lần đầu mở game ở bản mới** thì **tự mở sẵn màn hình "Có gì mới"**.
   - **Khả thi: CÓ**, không cần máy chủ. Đề xuất:
     1. **Nội dung viết trong code**: file `src/pages/garden/data/changelog.ts`, mảng `CHANGELOG` (mới nhất trên cùng), mỗi bản
