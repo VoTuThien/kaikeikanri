@@ -1028,7 +1028,7 @@ Game nông trại **tự thiết kế** (cùng thể loại game trồng trọt,
   Bấm ☰ → **mở hết các nút, xếp lưới 2 nút / hàng** (3 hàng, nút bằng nhau) ngay dưới ☰; bấm lần nữa → chỉ còn ☰ (☰ đổi thành X khi đang mở).
   ĐÃ CHỐT: **chấm đỏ trên ☰** = tổng các chấm đỏ bên trong (thư, thành tựu, quà) để lúc đóng vẫn biết; **nhớ trạng thái đóng / mở** (localStorage);
   khi mở thì **lưới nằm bên TRÁI cột ▲ ▼** để không đè nút chuyển tầng (nếu vẫn chật trên iPhone 12 ngang thì dời ▲ ▼ xuống góc phải dưới); mở 1 popup thì tự đóng menu.
-- [ ] **Hòm thư — gửi thư kèm quà bằng SCRIPT (ĐÃ CHỐT 20/11/2026, CHƯA LÀM)**: người dùng (quản trị) chạy script trên máy để gửi thư; người chơi mở hòm thư trong game, **bấm nhận quà**.
+- [x] **Hòm thư — gửi thư kèm quà bằng SCRIPT (ĐÃ CHỐT + ĐÃ LÀM 20/11/2026, xem "THỨ TỰ CODE" bước 3; chưa có quà phân bón / bùa / mảnh sao — thêm khi làm các phần đó)**: người dùng (quản trị) chạy script trên máy để gửi thư; người chơi mở hòm thư trong game, **bấm nhận quà**.
   - **Dữ liệu**: thư riêng `families/{familyId}/gardens/{uid}/mail/{mailId}` = `{ title, body, rewards: { feathers, stones, rolls: { vong_tinh, sao_duyen }, seeds: { id: n }, insects: { id: n }, pots: [kind] },
     from ("Vườn mây"), createdAt, expiresAt (null = không hết hạn), claimedAt (null = chưa nhận) }`.
     **Thư gửi tất cả** (kể cả người chơi mới sau này nếu muốn): `gardenBroadcasts/{id}` (cùng trường + `newPlayers: bool`), người chơi đọc được; đã nhận lưu ở `mailClaimed` (mảng id) của vườn.
@@ -1140,7 +1140,10 @@ Game nông trại **tự thiết kế** (cùng thể loại game trồng trọt,
   2. **[x] ĐÃ LÀM (20/11/2026)**: popup Thành tựu — định nghĩa + tiến độ + thưởng ở `data/achievements.ts` (`ACHIEVEMENTS`, `achState`, `readyTotal`, `levelReward`, `TIER_REWARD`; thêm bậc mới CHỈ thêm vào cuối `goals`),
      nhận thưởng `claimAchievement` / `claimAllAchievements` (`data/api.ts`, vườn có `claimed` = id → số bậc đã nhận), giao diện `game/AchievementsUi.tsx` (`AchievementsScreen`), nút 🏆 trong menu ☰ (chấm đỏ khi có bậc chờ nhận; icon nét 🏆 mới trong `GLYPHS`).
      Quà chào mừng 20 Vọng Tinh chuyển sang thành tựu "Chào mừng" (đã bỏ nút ở màn hình gacha và `claimGift`; `gift` vẫn được bật khi nhận để tương thích). Thành tựu cây hạng A / S, chế tạo, nhiệm vụ ngày tự ẩn tới khi có.
-  3. Hòm thư + `scripts/send-mail.mjs` + Firestore Rules; gỡ nút "+100 Vọng Tinh (test)".
+  3. **[x] ĐÃ LÀM (20/11/2026)**: Hòm thư — dữ liệu + hook `data/mail.ts` (`useMailbox`, `mailView`, `toMail`), nhận quà `claimMails` (`data/api.ts`, 1 transaction; vườn có `mailClaimed`, `born` chỉ đọc từ `createdAt`, `writeGarden` bỏ `born` khi ghi),
+     giao diện `game/MailUi.tsx` (`MailScreen`), nút 📬 trong menu ☰ (chấm đỏ = thư chưa nhận còn hạn), Rules (`mail` chỉ đọc + ghi `claimedAt` 1 lần; `gardenBroadcasts` chỉ đọc),
+     script `scripts/send-mail.mjs` (`npm run send-mail -- …`, `firebase-admin` devDependency, khoá ở `scripts/.service-account.json` đã gitignore). Đã gỡ nút "+100 Vọng Tinh (test)" (`TESTER_UIDS`, `grantTestRolls`).
+     **Phải deploy Rules** (`npm run deploy` hoặc `npx firebase-tools deploy --only firestore:rules`) thì hòm thư mới đọc được. Chưa thử thật (máy làm không có `.env` / khoá service account).
   4. Hiệu ứng bộ chậu chạy thật: chụp `plant.buff` lúc gieo, bỏ Ít sâu, Hạt rẻ / Giá tốt kiểu mới, Mật ong Giá tốt, Băng Tinh không khát nước.
   5. Đập chậu (tỉ lệ, chậu bỏ vào, bùa may mắn B / A / S, bùa giữ cấp, nút ?) — icon bùa tạm.
   6. Mảnh vỡ sao sáng / sao (kèm khi quay, tỉ lệ gacha mới có bùa), cửa hàng 3 tab [Hạt giống] [Bùa] [Đổi sao], đổi mảnh → lông chim, đổi đá → lông chim (1 : 5).
@@ -1180,7 +1183,8 @@ Game nông trại **tự thiết kế** (cùng thể loại game trồng trọt,
 
 Dữ liệu Firestore, thuộc gia đình đang chọn:
 - `families/{familyId}/gardens/{uid}`: vườn của từng thành viên (`name`, `coins` (xu cũ, không dùng trong game), `feathers` (lông chim), `xp`, `plants` = map chỗ đặt `"<tầng>-<chỗ>"` → `{ crop, plantedAt (ms), watered, caught }`, `seeds`, `seedGift`, `insects`, `pots`, `placed`, gacha…; `unlocked` / `plots` của bản 2D cũ không còn dùng;
-  `barn` = map id cây -> số nông sản, `harvested`, `stats` = bộ đếm tích luỹ cho thành tựu (chỉ tăng), `claimed` = thành tựu đã nhận tới bậc nào); cả gia đình đọc, mỗi người chỉ ghi vườn của mình
+  `barn` = map id cây -> số nông sản, `harvested`, `stats` = bộ đếm tích luỹ cho thành tựu (chỉ tăng), `claimed` = thành tựu đã nhận tới bậc nào, `mailClaimed` = thư chung đã nhận: id → ms);
+  thư riêng `families/{familyId}/gardens/{uid}/mail/{id}` (`title`, `body`, `from`, `rewards`, `createdAt`, `expiresAt`, `claimedAt`), thư chung `gardenBroadcasts/{id}` (+ `newPlayers`); cả gia đình đọc, mỗi người chỉ ghi vườn của mình
 
 ## Cấu trúc code
 - `src/components/ui/sizes.ts`: kích thước dùng chung giữa giao diện thật và skeleton

@@ -18,6 +18,9 @@ service cloud.firestore {
     // Là chủ gia đình, tính cả gia đình vừa được tạo trong cùng 1 lần ghi (batch)
     function isOwnerAfter(fid) { return signedIn() && getAfter(familyPath(fid)).data.ownerUid == me(); }
 
+    // Thư chung của game Vườn mây: quản trị gửi bằng script, người đã đăng nhập chỉ đọc (đã nhận ghi trong vườn của mình)
+    match /gardenBroadcasts/{id} { allow read: if signedIn(); }
+
     match /families/{fid} {
       allow read: if isMember(fid);
       // Mỗi người chỉ tạo được 1 gia đình: chưa có dấu "đã tạo" và phải ghi dấu đó cùng lúc
@@ -78,6 +81,14 @@ service cloud.firestore {
       match /gardens/{uid} {
         allow read: if isMember(fid);
         allow write: if isMember(fid) && uid == me();
+        // Hòm thư riêng: CHỈ quản trị tạo (script Admin SDK, bỏ qua Rules); người chơi chỉ đọc thư của mình
+        // và chỉ ghi được `claimedAt` một lần (nhận quà)
+        match /mail/{mailId} {
+          allow read: if isMember(fid) && uid == me();
+          allow update: if isMember(fid) && uid == me()
+            && resource.data.get('claimedAt', null) == null
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['claimedAt']);
+        }
       }
       // Ai đang ở đâu: thành viên xem được, mỗi người chỉ sửa trạng thái của chính mình
       match /presence/{uid} {

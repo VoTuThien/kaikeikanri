@@ -10,9 +10,6 @@ export type Rarity = 'blue' | 'purple' | 'gold'
 export const ROLL_PRICE = 16 // đá vũ trụ / cục roll
 export const START_STONES = 32
 export const GIFT_ROLLS = 20 // quà chào mừng: 20 Vọng Tinh
-// Tài khoản được nút "tặng Vọng Tinh để test" trong màn hình gacha (chưa có cách kiếm đá / roll). Gỡ khi xong phần tiền tệ.
-export const TESTER_UIDS = ['drRPobZf0mOJMoAp4OFvpEuWQYw2']
-export const TEST_GRANT = 100
 export const HARD_PITY = 80
 export const SOFT_PITY = 60
 

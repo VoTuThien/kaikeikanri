@@ -12,3 +12,7 @@ public/tesseract
 
 # Blender tự sao lưu
 *.blend1
+
+# Khoá service account cho script quản trị (send-mail) — KHÔNG commit
+scripts/.service-account.json
+*service-account*.json

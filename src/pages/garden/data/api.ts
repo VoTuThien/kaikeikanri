@@ -1,12 +1,13 @@
-import { doc, runTransaction, serverTimestamp, setDoc, type DocumentData } from 'firebase/firestore'
+import { doc, runTransaction, serverTimestamp, setDoc, type DocumentData, type DocumentReference, type Transaction } from 'firebase/firestore'
 import { familyCol } from '../../../lib/family'
 import { requireDb, type Actor } from '../../../lib/firestore'
 import { CATCH_XP, cropById, levelOf, plantState, START_COINS, START_FEATHERS, type Plant } from './crops'
 import { potKindById, potSetById, setsOnTier, slotKey, STARTER_SETS, tierBlock, type OwnedPot } from './pots'
 import { SLOTS } from '../game/slots'
-import { bannerOf, EMPTY_GACHA, TEST_GRANT, TESTER_UIDS, pullMany, ROLL_PRICE, START_STONES, type GachaState, type PullItem, type PullLog, type RollKind } from './gacha'
+import { bannerOf, EMPTY_GACHA, insectById, pullMany, ROLL_PRICE, START_STONES, type GachaState, type PullItem, type PullLog, type RollKind } from './gacha'
 import { TIER_COUNT, TIER_UNLOCK_LEVEL } from '../game/constants'
 import { achievementById, achState, ACHIEVEMENTS, addReward, type Reward } from './achievements'
+import { broadcastFor, broadcastsCol, mailCol, toMail, type MailRewards } from './mail'
 
 // Vườn của mỗi thành viên: families/{familyId}/gardens/{uid}
 // Cả gia đình xem được (sau này ghé vườn nhau), mỗi người chỉ sửa vườn của mình (firestore.rules).
@@ -32,6 +33,8 @@ export interface Garden {
   pullLog: PullLog[] // lịch sử quay (mới nhất cuối, tối đa PULL_LOG_MAX)
   stats: Stats // bộ đếm tích luỹ cho thành tựu (KHÔNG BAO GIỜ giảm)
   claimed: Record<string, number> // thành tựu: id -> số bậc đã nhận thưởng
+  mailClaimed: Record<string, number> // thư chung (gardenBroadcasts) đã nhận: id -> lúc nhận (ms)
+  born: number // lúc tạo vườn (ms, từ createdAt; CHỈ ĐỌC, không ghi lại)
 }
 
 // ---- Bộ đếm tích luỹ (thành tựu, xem CLAUDE.md "Thành tựu") ----
@@ -117,6 +120,8 @@ export function toGarden(d: DocumentData): Garden {
     ...potData,
     stats: { ...(d.stats ?? {}) },
     claimed: { ...(d.claimed ?? {}) },
+    mailClaimed: { ...(d.mailClaimed ?? {}) },
+    born: typeof d.createdAt?.toMillis === 'function' ? d.createdAt.toMillis() : 0,
   }
   if (g.gift && !g.claimed.welcome) g.claimed.welcome = 1 // đã nhận quà chào mừng ở màn hình gacha cũ
   markPots(g)
@@ -144,6 +149,7 @@ export function createGarden(actor: Actor) {
     pullLog: [],
     ...startPots(START_POTS),
     claimed: {},
+    mailClaimed: {},
     stats: Object.fromEntries([...new Set(startPots(START_POTS).pots.map((p) => p.kind))].map((k) => [`pot_${k}`, 1])),
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
@@ -158,9 +164,14 @@ async function mutate<T>(actor: Actor, change: (g: Garden) => T): Promise<T> {
     if (!snap.exists()) throw new Error('Không tìm thấy vườn')
     const g = toGarden(snap.data())
     const result = change(g)
-    tx.update(ref, { ...g, name: actor.name, updatedAt: serverTimestamp() })
+    writeGarden(tx, ref, g, actor)
     return result
   })
+}
+function writeGarden(tx: Transaction, ref: DocumentReference, g: Garden, actor: Actor) {
+  const { born: _born, ...data } = g // `born` chỉ đọc từ createdAt
+  void _born
+  tx.update(ref, { ...data, name: actor.name, updatedAt: serverTimestamp() })
 }
 
 // ---- Cây trong chậu (GĐ4): gieo / tưới / thu hoạch / bắt côn trùng theo chỗ đặt chậu ----
@@ -362,13 +373,6 @@ export function claimAllAchievements(actor: Actor, group: string | null) {
     return { sum, n }
   })
 }
-// TẠM để test: tài khoản trong TESTER_UIDS nhận thêm Vọng Tinh
-export function grantTestRolls(actor: Actor) {
-  return mutate(actor, (g) => {
-    if (!TESTER_UIDS.includes(actor.uid)) throw new Error('Tài khoản này không dùng được chức năng test')
-    g.rolls.vong_tinh += TEST_GRANT
-  })
-}
 // Đổi đá vũ trụ lấy cục roll (16 đá / cục)
 export function buyRolls(actor: Actor, kind: RollKind, n: number) {
   return mutate(actor, (g) => {
@@ -390,6 +394,46 @@ export function pullPots(actor: Actor, count: 1 | 10) {
     bump(g, 'gold', items.filter((i) => i.type === 'pot' && i.rarity === 'gold').length)
     markPots(g)
     return items
+  })
+}
+
+// ---- Hòm thư (xem data/mail.ts) ----
+// Cộng quà của 1 thư vào vườn (bỏ qua cây / côn trùng / chậu không còn trong game)
+function giveMail(g: Garden, r: MailRewards, mailId: string) {
+  giveReward(g, r)
+  for (const [k, n] of Object.entries(r.seeds ?? {})) if (cropById.has(k) && n > 0) g.seeds[k] = (g.seeds[k] ?? 0) + n
+  for (const [k, n] of Object.entries(r.insects ?? {})) if (insectById.has(k) && n > 0) g.insects[k] = (g.insects[k] ?? 0) + n
+  ;(r.pots ?? []).forEach((kind, i) => { if (potKindById.has(kind)) g.pots.push({ id: `m${mailId}_${i}`, kind, level: 1 }) })
+  markPots(g)
+}
+// Nhận quà các thư (1 transaction): thư riêng ghi `claimedAt`, thư chung ghi `mailClaimed` của vườn.
+// Thư đã nhận / hết hạn / không dành cho vườn này thì bỏ qua. Trả về số thư đã nhận.
+export function claimMails(actor: Actor, mails: { id: string; broadcast: boolean }[]) {
+  const ref = gardenDoc(actor.uid)
+  return runTransaction(requireDb(), async (tx) => {
+    const snap = await tx.get(ref)
+    if (!snap.exists()) throw new Error('Không tìm thấy vườn')
+    const g = toGarden(snap.data())
+    const snaps = await Promise.all(mails.map((m) => tx.get(doc(m.broadcast ? broadcastsCol() : mailCol(actor.uid), m.id))))
+    const now = Date.now()
+    let n = 0
+    snaps.forEach((s, i) => {
+      if (!s.exists()) return
+      const m = toMail(s.id, s.data(), mails[i].broadcast)
+      if (m.expiresAt && m.expiresAt <= now) return
+      if (m.broadcast) {
+        if (g.mailClaimed[m.id] || !broadcastFor(m, g.born)) return
+        g.mailClaimed[m.id] = now
+      } else {
+        if (m.claimedAt) return
+        tx.update(s.ref, { claimedAt: serverTimestamp() })
+      }
+      giveMail(g, m.rewards, m.id)
+      n++
+    })
+    if (!n) throw new Error('Thư đã nhận rồi hoặc đã hết hạn')
+    writeGarden(tx, ref, g, actor)
+    return n
   })
 }
 

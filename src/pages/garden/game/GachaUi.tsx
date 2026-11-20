@@ -2,7 +2,7 @@ import { lazy, Suspense, useMemo, useState } from 'react'
 import { LineIcon } from '../../../components/ui/Fab'
 import { Icon3D } from '../../../components/ui/Icon3D'
 import { useGarden } from '../data/GardenContext'
-import { buyRolls, errorText, grantTestRolls, pullPots, type Garden } from '../data/api'
+import { buyRolls, errorText, pullPots, type Garden } from '../data/api'
 import { CROPS } from '../data/crops'
 import {
   bannerOf,
@@ -12,8 +12,6 @@ import {
   rateRows,
   ROLL_PRICE,
   SOFT_PITY,
-  TEST_GRANT,
-  TESTER_UIDS,
   type PullItem,
   type Rarity,
 } from '../data/gacha'
@@ -229,11 +227,6 @@ export function GachaScreen({ onClose }: { onClose: () => void }) {
 
         {/* cột nút */}
         <div className="flex w-56 shrink-0 flex-col gap-2">
-          {TESTER_UIDS.includes(actor.uid) && (
-            <button type="button" disabled={busy} className={`${BTN} h-8 text-xs from-emerald-500/60 to-teal-700/70`} onClick={() => void job(() => grantTestRolls(actor), `Đã thêm ${TEST_GRANT} Vọng Tinh (test)`)}>
-              +{TEST_GRANT} Vọng Tinh (test)
-            </button>
-          )}
           <p className="text-[11px] leading-4 text-white/70">Đổi đá vũ trụ lấy Vọng Tinh ({ROLL_PRICE} đá / cục)</p>
           <div className="grid grid-cols-2 gap-2">
             <button type="button" disabled={busy || g.stones < ROLL_PRICE} className={`${BTN} text-xs from-sky-500/60 to-blue-700/70`} onClick={() => void job(() => buyRolls(actor, 'vong_tinh', 1), 'Đã đổi 1 Vọng Tinh')}>
