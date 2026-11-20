@@ -1133,7 +1133,10 @@ Game nông trại **tự thiết kế** (cùng thể loại game trồng trọt,
     8. **Icon Blender phải phân biệt bằng HÌNH, không chỉ màu** (đã có đá vũ trụ xanh-tím-hồng, Vọng Tinh vàng trắng, Sao Duyên xanh biển trắng): đề xuất **sao sáng = mảnh sao 5 cánh vỡ vàng kim, lõi trắng phát sáng + quầng**;
        **mảnh sao = vài mảnh vỡ nhọn nhỏ màu bạc ánh hồng**, sáng nhẹ. Xuất ảnh như icon tiền (`public/game/tien/`, 128px, ghép 2 lần giữ quầng sáng).
 - **THỨ TỰ CODE ĐỀ XUẤT (20/11/2026) — các phần ĐÃ ĐẶC TẢ, KHÔNG cần Blender** (icon chưa có thì dùng tạm icon nét `GLYPHS`, có Blender thì thay ảnh):
-  1. Kinh nghiệm: cấp tối đa 90 + đường cong sau cấp 40; +2 kinh nghiệm / côn trùng. Bộ đếm `stats` + cộng trong các transaction hiện có. Menu ☰ trên HUD.
+  1. **[x] ĐÃ LÀM (20/11/2026)**: kinh nghiệm cấp tối đa 90 + đường cong sau cấp 40 (`MAX_LEVEL`, `XP_TABLE` trong `data/crops.ts`, `levelProgress().max`); bắt côn trùng +`CATCH_XP` (2);
+     bộ đếm `stats` (`data/api.ts`: `bump`, `markPots`, `markTier`; khoá ghi trong chú thích `Stats`) cộng trong sow / water / catchInsect / harvestPlant / sell / buySeeds / placePot / movePot / pullPots,
+     `pot_<loại>` + `fullTier` / `fullSetTier` cũng được ghi lại mỗi lần đọc vườn; menu ☰ (`GamePage.tsx`: `menuItems`, `RedDot`, `loadMenuOpen` / `saveMenuOpen` localStorage `vuon-may-menu:{uid}`, icon `menu` trong `ICON_PATHS`;
+     chấm đỏ hiện có: quà chào mừng chưa nhận ở nút gacha). Chưa thử trên iPhone (máy làm không có `.env`).
   2. Popup Thành tựu (Thăng tiến, Thu hoạch, Thu thập, Chăm sóc, Buôn bán, Ước nguyện) + chuyển quà chào mừng từ gacha sang.
   3. Hòm thư + `scripts/send-mail.mjs` + Firestore Rules; gỡ nút "+100 Vọng Tinh (test)".
   4. Hiệu ứng bộ chậu chạy thật: chụp `plant.buff` lúc gieo, bỏ Ít sâu, Hạt rẻ / Giá tốt kiểu mới, Mật ong Giá tốt, Băng Tinh không khát nước.
@@ -1153,7 +1156,7 @@ Game nông trại **tự thiết kế** (cùng thể loại game trồng trọt,
 
 Dữ liệu Firestore, thuộc gia đình đang chọn:
 - `families/{familyId}/gardens/{uid}`: vườn của từng thành viên (`name`, `coins` (xu cũ, không dùng trong game), `feathers` (lông chim), `xp`, `plants` = map chỗ đặt `"<tầng>-<chỗ>"` → `{ crop, plantedAt (ms), watered, caught }`, `seeds`, `seedGift`, `insects`, `pots`, `placed`, gacha…; `unlocked` / `plots` của bản 2D cũ không còn dùng;
-  `barn` = map id cây -> số nông sản, `harvested`); cả gia đình đọc, mỗi người chỉ ghi vườn của mình
+  `barn` = map id cây -> số nông sản, `harvested`, `stats` = bộ đếm tích luỹ cho thành tựu (chỉ tăng)); cả gia đình đọc, mỗi người chỉ ghi vườn của mình
 
 ## Cấu trúc code
 - `src/components/ui/sizes.ts`: kích thước dùng chung giữa giao diện thật và skeleton

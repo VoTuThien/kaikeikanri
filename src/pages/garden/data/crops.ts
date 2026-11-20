@@ -46,19 +46,35 @@ export interface Plant {
   caught: boolean // đã bắt côn trùng xuất hiện trên cây
 }
 
-// ---- Cấp độ: lên cấp L cần tổng 25·L·(L−1) kinh nghiệm (cấp 2: 50, cấp 3: 150, cấp 4: 300…) ----
-export const xpForLevel = (level: number) => 25 * level * (level - 1)
+// ---- Cấp độ (tối đa MAX_LEVEL) ----
+// Tới cấp 40: lên cấp L cần tổng 25·L·(L−1) kinh nghiệm (cấp 2: 50, cấp 3: 150, cấp 40: 39.000).
+// Sau cấp 40 rất khó lên: từ cấp k lên k+1 cần 50·k·XP_GROWTH^(k−39) (tổng cấp 50 ≈ 70 nghìn, cấp 90 ≈ 1,2 triệu).
+export const MAX_LEVEL = 90
+const HARD_FROM = 40
+const XP_GROWTH = 1.06
+const XP_TABLE: number[] = (() => {
+  const t = [0, 0] // t[L] = tổng kinh nghiệm để đạt cấp L
+  for (let L = 2; L <= MAX_LEVEL; L++) {
+    const k = L - 1
+    t[L] = L <= HARD_FROM ? 25 * L * (L - 1) : t[L - 1] + Math.round(50 * k * Math.pow(XP_GROWTH, k - (HARD_FROM - 1)))
+  }
+  return t
+})()
+export const xpForLevel = (level: number) => XP_TABLE[Math.max(1, Math.min(MAX_LEVEL, level))]
 export function levelOf(xp: number) {
   let level = 1
-  while (xp >= xpForLevel(level + 1)) level++
+  while (level < MAX_LEVEL && xp >= XP_TABLE[level + 1]) level++
   return level
 }
-// Tiến độ trong cấp hiện tại: { have, need } để vẽ thanh kinh nghiệm
+// Tiến độ trong cấp hiện tại: { have, need } để vẽ thanh kinh nghiệm (cấp tối đa: max = true, thanh đầy)
 export function levelProgress(xp: number) {
   const level = levelOf(xp)
-  const from = xpForLevel(level)
-  return { level, have: xp - from, need: xpForLevel(level + 1) - from }
+  if (level >= MAX_LEVEL) return { level, have: 1, need: 1, max: true }
+  const from = XP_TABLE[level]
+  return { level, have: xp - from, need: XP_TABLE[level + 1] - from, max: false }
 }
+// Kinh nghiệm khi bắt 1 côn trùng
+export const CATCH_XP = 2
 
 // ---- Trạng thái của cây theo thời gian ----
 // Giai đoạn: 0 hạt mới gieo, 1 nảy mầm, 2 đang lớn, 3 chín

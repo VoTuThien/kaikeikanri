@@ -10,7 +10,7 @@ import { isPlaced, potsOnTier } from './potInfo'
 import { BTN, InfoPanel, LIST_H, PotList, PotMenu } from './PotUi'
 import { cropById, formatLeft, levelOf, levelProgress, plantState, seedImage, type Crop, type Plant } from '../data/crops'
 import { insectById } from '../data/gacha'
-import { loadTier, MENU_PATH, saveTier, TIER_COUNT, TIER_UNLOCK_LEVEL } from './constants'
+import { loadMenuOpen, loadTier, MENU_PATH, saveMenuOpen, saveTier, TIER_COUNT, TIER_UNLOCK_LEVEL } from './constants'
 import { LandscapeFrame, useLandscape } from './LandscapeFrame'
 import { LoadingScreen } from './LoadingScreen'
 import type { GameModels, SceneMode } from './TierScene'
@@ -47,6 +47,11 @@ export function GamePage() {
 }
 
 // Nút tròn kiểu kính (giống FAB) dùng cho các nút trong game
+// Chấm đỏ ở góc phải trên của nút tròn (có việc chờ: quà chưa nhận…)
+function RedDot() {
+  return <span data-round aria-hidden className="absolute top-0 right-0 h-3 w-3 rounded-full border-2 border-white/80 bg-rose-500 shadow" />
+}
+
 const ROUND_BTN =
   'flex h-12 w-12 items-center justify-center rounded-full border border-white/30 bg-gradient-to-br from-fuchsia-500/70 to-indigo-500/70 shadow-lg shadow-black/40 backdrop-blur-xl transition active:scale-90 disabled:opacity-35 disabled:active:scale-100'
 
@@ -66,7 +71,11 @@ function Game() {
   const [ui, setUi] = useState<Ui>({ kind: 'view' })
   const [busy, setBusy] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
-  const [popup, setPopup] = useState<'gacha' | 'bag' | 'guide' | 'shop' | null>(null)
+  const [popup, setPopupState] = useState<'gacha' | 'bag' | 'guide' | 'shop' | null>(null)
+  // Menu ☰: gom các nút bên phải HUD; nhớ đóng / mở; mở 1 popup thì tự đóng menu
+  const [menuOpen, setMenuOpenState] = useState(() => loadMenuOpen(uid))
+  const setMenuOpen = (open: boolean) => { setMenuOpenState(open); if (uid) saveMenuOpen(uid, open) }
+  const setPopup = (p: typeof popup) => { setPopupState(p); if (p) setMenuOpen(false) }
   // Chậu vừa gieo, chưa ghi xong (hiện ngay trên cảnh): key chỗ đặt -> cây
   const [pending, setPendingState] = useState<Record<string, Plant>>({})
   const pendRef = useRef<Record<string, Plant>>({}) // bản đồng bộ của `pending` (kéo túi nhanh hơn React vẽ lại)
@@ -95,6 +104,14 @@ function Game() {
 
   const level = garden ? levelOf(garden.xp) : 1
   const xpBar = levelProgress(garden?.xp ?? 0)
+  // Các nút trong menu ☰ (thứ tự: hàng 1 cẩm nang, cửa hàng; hàng 2 gacha, túi đồ); `dot` = có việc chờ (chấm đỏ)
+  const menuItems: { label: string; popup: NonNullable<typeof popup>; color: string; icon: React.ReactNode; dot: boolean }[] = [
+    { label: 'Cẩm nang', popup: 'guide', color: 'from-sky-400/70 to-indigo-600/70', icon: <Icon3D emoji="📖" className="h-6 w-6" />, dot: false },
+    { label: 'Cửa hàng', popup: 'shop', color: 'from-rose-400/70 to-pink-600/70', icon: <Icon3D emoji="🛒" className="h-6 w-6" />, dot: false },
+    { label: 'Gacha (ước nguyện)', popup: 'gacha', color: 'from-amber-400/70 to-fuchsia-600/70', icon: <img src={ROLL_IMG.vong_tinh} alt="" className="h-9 w-9 object-contain" />, dot: !!garden && !garden.gift },
+    { label: 'Túi đồ', popup: 'bag', color: 'from-emerald-400/70 to-teal-600/70', icon: <Icon3D emoji="🧺" className="h-6 w-6" />, dot: false },
+  ]
+  const menuDots = menuItems.filter((m) => m.dot).length
   const need = TIER_UNLOCK_LEVEL[tier]
   const locked = level < need
   function go(d: number) {
@@ -210,7 +227,11 @@ function Game() {
     if (!st?.crop) return
     const name = st.crop.name.toLowerCase()
     if (insect && st.insect) {
-      void act(async () => { const id = await catchInsect(actor, tier, slot); return `Bắt được ${insectById.get(id)?.name.toLowerCase() ?? 'côn trùng'}!` })
+      void act(async () => {
+        const r = await catchInsect(actor, tier, slot)
+        const what = `Bắt được ${insectById.get(r.id)?.name.toLowerCase() ?? 'côn trùng'}!`
+        return r.after > r.before ? `${what} · lên cấp ${r.after}!` : `${what} · +${r.xp} kinh nghiệm`
+      })
     } else if (st.ripe) {
       void act(async () => {
         const r = await harvestPlant(actor, tier, slot)
@@ -279,7 +300,7 @@ function Game() {
           </button>
           {garden && phase !== 'loading' && (
             <div className="pointer-events-none flex h-10 w-32 flex-col justify-center border border-white/25 bg-black/30 px-2 shadow-lg shadow-black/30 backdrop-blur-md">
-              <span className="text-xs leading-4 font-bold">Cấp {xpBar.level}</span>
+              <span className="text-xs leading-4 font-bold">Cấp {xpBar.level}{xpBar.max && ' · tối đa'}</span>
               <span className="mt-0.5 h-1.5 w-full bg-white/20">
                 <span className="block h-full bg-gradient-to-r from-lime-300 to-emerald-500" style={{ width: `${Math.min(100, (xpBar.have / xpBar.need) * 100)}%` }} />
               </span>
@@ -301,21 +322,30 @@ function Game() {
               ))}
             </div>
           )}
-          {/* Phải trên: các nút chỉ có icon — cẩm nang, cửa hàng, gacha, túi đồ */}
-          <div className="absolute top-3 z-20 flex gap-2" style={{ right: 'calc(var(--safe-r) + 12px)' }}>
-            <button type="button" data-round aria-label="Cẩm nang" onClick={() => setPopup('guide')} className={`${ROUND_BTN} from-sky-400/70 to-indigo-600/70`}>
-              <Icon3D emoji="📖" className="h-6 w-6" />
-            </button>
-            <button type="button" data-round aria-label="Cửa hàng" onClick={() => setPopup('shop')} className={`${ROUND_BTN} from-rose-400/70 to-pink-600/70`}>
-              <Icon3D emoji="🛒" className="h-6 w-6" />
-            </button>
-            <button type="button" data-round aria-label="Gacha (ước nguyện)" onClick={() => setPopup('gacha')} className={`${ROUND_BTN} from-amber-400/70 to-fuchsia-600/70`}>
-              <img src={ROLL_IMG.vong_tinh} alt="" className="h-9 w-9 object-contain" />
-            </button>
-            <button type="button" data-round aria-label="Túi đồ" onClick={() => setPopup('bag')} className={`${ROUND_BTN} from-emerald-400/70 to-teal-600/70`}>
-              <Icon3D emoji="🧺" className="h-6 w-6" />
-            </button>
-          </div>
+          {/* Phải trên: nút menu ☰ (mở / đóng các nút: cẩm nang, cửa hàng, gacha, túi đồ); chấm đỏ = tổng chấm đỏ bên trong */}
+          <button
+            type="button"
+            data-round
+            aria-label={menuOpen ? 'Đóng menu' : 'Mở menu'}
+            aria-expanded={menuOpen}
+            onClick={() => setMenuOpen(!menuOpen)}
+            className={`${ROUND_BTN} absolute top-3 z-20 from-violet-500/70 to-indigo-600/70`}
+            style={{ right: 'calc(var(--safe-r) + 12px)' }}
+          >
+            <LineIcon icon={menuOpen ? 'cancel' : 'menu'} className="h-6 w-6" />
+            {!menuOpen && menuDots > 0 && <RedDot />}
+          </button>
+          {/* Menu đang mở: lưới 2 nút / hàng ngay dưới ☰, nằm BÊN TRÁI cột ▲ ▼ để không đè nút chuyển tầng */}
+          {menuOpen && (
+            <div className="absolute z-20 grid grid-cols-2 gap-2" style={{ top: 'calc(0.75rem + 56px)', right: 'calc(var(--safe-r) + 12px + 72px)' }}>
+              {menuItems.map((m) => (
+                <button key={m.label} type="button" data-round aria-label={m.label} onClick={() => setPopup(m.popup)} className={`${ROUND_BTN} relative ${m.color}`}>
+                  {m.icon}
+                  {m.dot && <RedDot />}
+                </button>
+              ))}
+            </div>
+          )}
           {/* Chuyển tầng: ▲ ▼ xếp dọc ở mép phải, giữa ghi "Tầng n/4" */}
           <div className="absolute top-1/2 z-20 flex -translate-y-1/2 flex-col items-center gap-2" style={{ right: 'calc(var(--safe-r) + 12px)' }}>
             <button type="button" data-round aria-label="Lên tầng trên" disabled={tier >= TIER_COUNT - 1} onClick={() => go(1)} className={`${ROUND_BTN} text-xl`}>

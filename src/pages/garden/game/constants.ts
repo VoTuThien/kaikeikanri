@@ -26,6 +26,23 @@ export function saveTier(uid: string, tier: number) {
   }
 }
 
+// Menu ☰ trên HUD đang mở hay đóng (riêng từng tài khoản, trong máy; mặc định đóng)
+const menuKey = (uid: string) => `vuon-may-menu:${uid}`
+export function loadMenuOpen(uid: string): boolean {
+  try {
+    return localStorage.getItem(menuKey(uid)) === '1'
+  } catch {
+    return false
+  }
+}
+export function saveMenuOpen(uid: string, open: boolean) {
+  try {
+    localStorage.setItem(menuKey(uid), open ? '1' : '0')
+  } catch {
+    // trình duyệt chặn lưu: bỏ qua
+  }
+}
+
 // Mẹo chơi hiện lần lượt ở màn hình tải
 export const TIPS = [
   'Chạm mũi tên ▲ ▼ ở mép phải để chuyển giữa các tầng mây.',

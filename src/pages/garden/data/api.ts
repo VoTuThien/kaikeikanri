@@ -1,8 +1,8 @@
 import { doc, runTransaction, serverTimestamp, setDoc, type DocumentData } from 'firebase/firestore'
 import { familyCol } from '../../../lib/family'
 import { requireDb, type Actor } from '../../../lib/firestore'
-import { cropById, levelOf, plantState, START_COINS, START_FEATHERS, type Plant } from './crops'
-import { potKindById, potSetById, slotKey, STARTER_SETS, tierBlock, type OwnedPot } from './pots'
+import { CATCH_XP, cropById, levelOf, plantState, START_COINS, START_FEATHERS, type Plant } from './crops'
+import { potKindById, potSetById, setsOnTier, slotKey, STARTER_SETS, tierBlock, type OwnedPot } from './pots'
 import { SLOTS } from '../game/slots'
 import { bannerOf, EMPTY_GACHA, GIFT_ROLLS, TEST_GRANT, TESTER_UIDS, pullMany, ROLL_PRICE, START_STONES, type GachaState, type PullItem, type PullLog, type RollKind } from './gacha'
 import { TIER_COUNT, TIER_UNLOCK_LEVEL } from '../game/constants'
@@ -29,6 +29,26 @@ export interface Garden {
   insects: Record<string, number> // côn trùng: id -> số con
   gacha: GachaState // bộ đếm banner chậu
   pullLog: PullLog[] // lịch sử quay (mới nhất cuối, tối đa PULL_LOG_MAX)
+  stats: Stats // bộ đếm tích luỹ cho thành tựu (KHÔNG BAO GIỜ giảm)
+}
+
+// ---- Bộ đếm tích luỹ (thành tựu, xem CLAUDE.md "Thành tựu") ----
+// Mọi số chỉ tăng, cộng trong CÙNG transaction với thao tác. Khoá:
+//   sow, water, harvestItems (số nông sản), harvest_<cây> (số LẦN thu hoạch loại đó), catch, catch_<loại>,
+//   sold (số nông sản đã bán), soldFeathers, boughtSeeds, pulls, gold (số chậu S ra từ gacha),
+//   pot_<loại chậu> = 1 (đã từng có), fullTier = 1 (từng đặt kín 1 tầng), fullSetTier = 1 (từng đặt đủ 1 bộ trên 1 tầng)
+export type Stats = Record<string, number>
+export const bump = (g: Garden, key: string, n = 1) => { g.stats[key] = (g.stats[key] ?? 0) + n }
+const flag = (g: Garden, key: string) => { g.stats[key] = 1 }
+// Ghi "đã từng có" cho mọi loại chậu đang có
+function markPots(g: Garden) { for (const p of g.pots) if (potKindById.has(p.kind)) flag(g, `pot_${p.kind}`) }
+// Sau khi đặt / dời chậu ở tầng: từng đặt kín tầng? từng đủ 1 bộ trên tầng?
+function markTier(g: Garden, tier: number) {
+  const keys = Object.keys(g.placed).filter((k) => k.startsWith(`${tier}-`))
+  if (keys.length >= SLOTS[tier].length) flag(g, 'fullTier')
+  const byId = new Map(g.pots.map((p) => [p.id, p]))
+  const onTier = keys.map((k) => byId.get(g.placed[k])).filter((p): p is OwnedPot => !!p)
+  if (setsOnTier(onTier).some((s) => s.full)) flag(g, 'fullSetTier')
 }
 const PULL_LOG_MAX = 100
 // Hạt tặng lúc bắt đầu (chưa có cửa hàng): vườn nào chưa nhận thì được cộng 1 lần
@@ -76,7 +96,7 @@ export function toGarden(d: DocumentData): Garden {
     ? { pots: withStarterSets((d.pots as OwnedPot[]).map((p) => ({ id: p.id, kind: p.kind, level: p.level ?? 1 }))), placed: { ...(d.placed ?? {}) } as Record<string, string> }
     : startPots(Math.min(SLOTS[0].length, d.unlocked ?? START_POTS))
   for (const k of Object.keys(plants)) if (!potData.placed[k]) delete plants[k] // cây chỉ sống trong chậu
-  return {
+  const g: Garden = {
     name: d.name ?? '',
     coins: d.coins ?? START_COINS,
     feathers: d.feathers ?? START_FEATHERS,
@@ -93,7 +113,11 @@ export function toGarden(d: DocumentData): Garden {
     gacha: { ...EMPTY_GACHA, ...(d.gacha ?? {}) },
     pullLog: Array.isArray(d.pullLog) ? (d.pullLog as PullLog[]) : [],
     ...potData,
+    stats: { ...(d.stats ?? {}) },
   }
+  markPots(g)
+  for (let t = 0; t < TIER_COUNT; t++) markTier(g, t)
+  return g
 }
 
 // Lần đầu mở game: tạo vườn mới (6 chậu đất nung ở tầng 1, 100 xu, hạt tặng)
@@ -115,6 +139,7 @@ export function createGarden(actor: Actor) {
     gacha: EMPTY_GACHA,
     pullLog: [],
     ...startPots(START_POTS),
+    stats: Object.fromEntries([...new Set(startPots(START_POTS).pots.map((p) => p.kind))].map((k) => [`pot_${k}`, 1])),
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   })
@@ -162,6 +187,7 @@ export function sow(actor: Actor, tier: number, slots: number[], cropId: string)
       g.plants[key] = { crop: cropId, plantedAt: now, watered: false, caught: false }
       n++
     }
+    bump(g, 'sow', n)
     if (!n) throw new Error((g.seeds[cropId] ?? 0) <= 0 ? `Hết hạt ${crop.name.toLowerCase()}` : 'Không có chậu trống để gieo')
     return n
   })
@@ -174,10 +200,11 @@ export function water(actor: Actor, tier: number, slot: number) {
     const st = plantState(p, Date.now())
     if (!st?.thirsty) throw new Error(st?.ripe ? 'Cây đã chín' : 'Cây đã được tưới')
     p.watered = true
+    bump(g, 'water')
   })
 }
 
-// Bắt côn trùng đang ở trên cây → túi côn trùng. Trả về id côn trùng.
+// Bắt côn trùng đang ở trên cây → túi côn trùng, +CATCH_XP kinh nghiệm. Trả về id côn trùng + cấp trước / sau.
 export function catchInsect(actor: Actor, tier: number, slot: number) {
   return mutate(actor, (g) => {
     const p = plantAt(g, tier, slot)
@@ -185,7 +212,11 @@ export function catchInsect(actor: Actor, tier: number, slot: number) {
     if (!id) throw new Error('Côn trùng đã bay mất')
     p.caught = true
     g.insects[id] = (g.insects[id] ?? 0) + 1
-    return id
+    const before = levelOf(g.xp)
+    g.xp += CATCH_XP
+    bump(g, 'catch')
+    bump(g, `catch_${id}`)
+    return { id, xp: CATCH_XP, before, after: levelOf(g.xp) }
   })
 }
 
@@ -199,6 +230,8 @@ export function harvestPlant(actor: Actor, tier: number, slot: number) {
     g.barn[st.crop.id] = (g.barn[st.crop.id] ?? 0) + st.harvest
     g.xp += st.crop.xp
     g.harvested += st.harvest
+    bump(g, 'harvestItems', st.harvest)
+    bump(g, `harvest_${st.crop.id}`)
     delete g.plants[slotKey(tier, slot)]
     return { crop: st.crop.id, count: st.harvest, xp: st.crop.xp, before, after: levelOf(g.xp) }
   })
@@ -211,10 +244,11 @@ export function sell(actor: Actor, cropId: string | null) {
     Object.entries(g.barn).forEach(([id, n]) => {
       if (cropId && id !== cropId) return
       const crop = cropById.get(id)
-      if (crop && n > 0) got += n * crop.sellPrice
+      if (crop && n > 0) { got += n * crop.sellPrice; bump(g, 'sold', n) }
       delete g.barn[id]
     })
     g.feathers += got
+    bump(g, 'soldFeathers', got)
     return got
   })
 }
@@ -230,6 +264,7 @@ export function buySeeds(actor: Actor, cropId: string, n: number) {
     if (g.feathers < cost) throw new Error(`Cần ${cost.toLocaleString('vi-VN')} lông chim, bạn đang có ${g.feathers.toLocaleString('vi-VN')}`)
     g.feathers -= cost
     g.seeds[cropId] = (g.seeds[cropId] ?? 0) + n
+    bump(g, 'boughtSeeds', n)
     return cost
   })
 }
@@ -253,6 +288,7 @@ export function placePot(actor: Actor, tier: number, slot: number, potId: string
     if (block) throw new Error(block)
     g.placed[slotKey(tier, slot)] = potId
     delete g.plants[slotKey(tier, slot)]
+    markTier(g, tier)
   })
 }
 
@@ -268,6 +304,7 @@ export function movePot(actor: Actor, tier: number, from: number, to: number) {
     const plant = g.plants[slotKey(tier, from)]
     delete g.plants[slotKey(tier, from)]
     if (plant) g.plants[slotKey(tier, to)] = plant
+    markTier(g, tier)
   })
 }
 
@@ -313,6 +350,9 @@ export function pullPots(actor: Actor, count: 1 | 10) {
     const items = pullMany(count, g.gacha, g.pots, g.seeds, g.insects, bannerOf().setId)
     const at = Date.now()
     g.pullLog = [...g.pullLog, ...items.map((item) => ({ at, item }))].slice(-PULL_LOG_MAX)
+    bump(g, 'pulls', count)
+    bump(g, 'gold', items.filter((i) => i.type === 'pot' && i.rarity === 'gold').length)
+    markPots(g)
     return items
   })
 }

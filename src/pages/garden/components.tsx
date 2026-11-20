@@ -32,7 +32,7 @@ export function CropBlock({ icon, color, size = 'h-11 w-11', iconSize = 'h-7 w-7
 const STATS = 'h-14'
 
 export function GardenStats({ garden }: { garden: Garden }) {
-  const { level, have, need } = levelProgress(garden.xp)
+  const { level, have, need, max } = levelProgress(garden.xp)
   return (
     <GlassPanel className="grid grid-cols-[1fr_auto] items-center gap-4 !px-4 !py-3">
       <div className={`${STATS} flex min-w-0 flex-col justify-center gap-1.5`}>
@@ -40,7 +40,7 @@ export function GardenStats({ garden }: { garden: Garden }) {
           <Icon3D emoji="⭐" className="h-5 w-5 text-yellow-200" />
           Cấp {level}
           <span className="truncate text-xs font-normal text-white/60">
-            {have}/{need} kinh nghiệm
+            {max ? 'Cấp tối đa' : `${have}/${need} kinh nghiệm`}
           </span>
         </p>
         <div className="h-2.5 w-full overflow-hidden border border-white/20 bg-white/10">
