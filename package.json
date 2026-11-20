@@ -11,7 +11,7 @@
     "preview": "vite preview --host",
     "icons3d": "node scripts/fetch-icons3d.mjs",
     "send-mail": "node scripts/send-mail.mjs",
-    "deploy": "npm run build && npx -y firebase-tools deploy --only hosting,firestore:rules"
+    "deploy": "npm run build && npx -y firebase-tools deploy --only hosting,firestore:rules && node scripts/publish-version.mjs"
   },
   "dependencies": {
     "@react-three/fiber": "^9.8.2",

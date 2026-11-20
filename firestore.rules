@@ -18,6 +18,9 @@ service cloud.firestore {
     // Là chủ gia đình, tính cả gia đình vừa được tạo trong cùng 1 lần ghi (batch)
     function isOwnerAfter(fid) { return signedIn() && getAfter(familyPath(fid)).data.ownerUid == me(); }
 
+    // Phiên bản app mới nhất (deploy xong thì scripts/publish-version.mjs ghi bằng Admin SDK): ai cũng đọc được, không ai ghi từ app
+    match /appMeta/version { allow read: if true; }
+
     // Thư chung của game Vườn mây: quản trị gửi bằng script, người đã đăng nhập chỉ đọc (đã nhận ghi trong vườn của mình)
     match /gardenBroadcasts/{id} { allow read: if signedIn(); }
 

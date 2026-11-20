@@ -7,6 +7,18 @@ export interface ChangelogEntry { version: string; title: string; items: string[
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '2026-11-21',
+    title: 'Giao diện mới: cửa hàng, túi đồ, ước nguyện',
+    items: [
+      'Cửa hàng và Túi đồ toàn màn hình, vật phẩm hiển thị dạng ô vuông có chữ hạng B / A / S, xếp theo S → A → B.',
+      'Chạm vào vật phẩm ở Cửa hàng để xem mô tả và kéo chọn số lượng; Túi đồ có khung thông tin chi tiết, bán / đập chậu ngay tại đó.',
+      'Màn hình ước nguyện làm mới; thiếu Vọng Tinh khi quay thì có thể đổi bằng đá vũ trụ ngay.',
+      'Đổi tên Sao Duyên thành Vọng Nguyệt. Xong cả 5 nhiệm vụ ngày được 2 Vọng Tinh + 2 Vọng Nguyệt.',
+      'Chọn hạt / chậu có bộ lọc S, A, B; cây chín chỉ cần chạm vào cây để thu hoạch.',
+      'Icon mới cho côn trùng, bùa, phân bón, mảnh vỡ sao.',
+    ],
+  },
+  {
     version: '2026-11-20',
     title: 'Thành tựu, nhiệm vụ ngày, đập chậu & phân bón',
     items: [

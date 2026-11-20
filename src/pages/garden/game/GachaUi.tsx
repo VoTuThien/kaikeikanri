@@ -334,9 +334,11 @@ export function GachaScreen({ onClose }: { onClose: () => void }) {
       {view.panel && (
         <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/45" onClick={() => setView({ kind: 'banner', panel: null })}>
           <div className="flex max-h-[86%] w-[30rem] flex-col border border-white/25 bg-indigo-950/85 shadow-2xl shadow-black/60 backdrop-blur-xl" onClick={(e) => e.stopPropagation()}>
-            <div className="flex h-11 shrink-0 items-center justify-between border-b border-white/15 px-4">
+            <div className="flex h-11 shrink-0 items-center justify-between border-b border-white/15 pr-2 pl-4">
               <p className="font-semibold">{view.panel === 'rates' ? 'Quy tắc & tỉ lệ' : 'Lịch sử quay'}</p>
-              <button type="button" className="text-sm text-white/75" onClick={() => setView({ kind: 'banner', panel: null })}>Đóng</button>
+              <button type="button" data-round aria-label="Đóng" onClick={() => setView({ kind: 'banner', panel: null })} className={`${GLASS_ROUND} h-8 w-8`}>
+                <LineIcon icon="cancel" className="h-4 w-4" />
+              </button>
             </div>
             <DragScroll axis="y" className="min-h-0 flex-1">
               {view.panel === 'rates' ? <Rates /> : <History g={g} />}

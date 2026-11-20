@@ -3,7 +3,12 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
+// Mã phiên bản của lần build (thời điểm build): app so với `appMeta/version` trên Firestore để biết có bản mới (src/components/UpdatePrompt.tsx);
+// ghi ra dist/version.json để `npm run deploy` đẩy lên Firestore sau khi deploy (scripts/publish-version.mjs)
+const APP_VERSION = new Date().toISOString()
+
 export default defineConfig({
+  define: { __APP_VERSION__: JSON.stringify(APP_VERSION) },
   build: {
     // Hạ cú pháp JS cho Safari / iPhone cũ: three.js dùng "static {}" trong class (chỉ có từ iOS 16.4),
     // máy iOS 15 gặp lỗi cú pháp nên không tải được các trang mô hình 3D của app Trạng thái
@@ -12,6 +17,11 @@ export default defineConfig({
     cssTarget: ['safari14', 'ios14'],
   },
   plugins: [
+    {
+      name: 'app-version',
+      apply: 'build',
+      generateBundle() { this.emitFile({ type: 'asset', fileName: 'version.json', source: JSON.stringify({ version: APP_VERSION }) }) },
+    },
     react(),
     tailwindcss(),
     VitePWA({

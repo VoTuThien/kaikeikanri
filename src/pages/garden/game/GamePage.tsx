@@ -618,7 +618,7 @@ function Game() {
       {popup === 'guide' && garden && <GuidePopup garden={garden} onClose={() => setPopup(null)} />}
       {popup === 'upgrade' && garden && upgradeId && <UpgradeScreen garden={garden} actor={actor} potId={upgradeId} onClose={() => setPopup(null)} />}
       {news && <NewsScreen entries={news} onClose={closeNews} />}
-      {phase === 'ready' && <UpdateBar inGame />}
+      <UpdateBar inGame />
       {popup === 'daily' && garden && <DailyScreen garden={garden} actor={actor} onClose={() => setPopup(null)} />}
       {popup === 'mail' && <MailScreen list={mail.list} isOpen={mail.open} actor={actor} onClose={() => setPopup(null)} />}
       {popup === 'ach' && garden && <AchievementsScreen garden={garden} actor={actor} onClose={() => setPopup(null)} />}
