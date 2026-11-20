@@ -1090,7 +1090,7 @@ Game nông trại **tự thiết kế** (cùng thể loại game trồng trọt,
        bùa giữ cấp; trần tỉ lệ (B / A 100%, S 95%); "cấp mới áp dụng cho cây từ lần gieo sau"; hiệu ứng tính theo cấp trung bình của bộ trên tầng. Bảng cuộn dọc bằng `DragScroll`.
     9. **Ghi dữ liệu**: `upgradePot(potId, fodderIds[], charms{B,A,S}, keepCharm: boolean)` 1 transaction (kiểm tra đủ đồ, tính tỉ lệ lại từ dữ liệu server, quay ngẫu nhiên, trừ đồ, xoá chậu bỏ vào khỏi `pots` + `placed`, đổi cấp, cộng `stats` `upgradeTry` / `upgradeOk` / `maxPotLevel`).
        Ngẫu nhiên chạy trên điện thoại như gacha (chấp nhận với app gia đình).
-- [ ] **Mảnh vỡ sao sáng / Mảnh vỡ sao — tiền đổi đồ đặc biệt ở cửa hàng (NGƯỜI DÙNG MÔ TẢ 20/11/2026; con số là ĐỀ XUẤT, CHỜ DUYỆT, CHƯA LÀM)**:
+- [ ] **Mảnh vỡ sao sáng / Mảnh vỡ sao — tiền đổi đồ đặc biệt ở cửa hàng (NGƯỜI DÙNG MÔ TẢ + ĐÃ CHỐT 20/11/2026: mọi bảng + mục 1–8 theo đề xuất, riêng mục 3 CHO ĐỔI NGƯỢC ra lông chim; CHƯA LÀM)**:
   - **Người dùng mô tả**: 2 loại tiền mới, **Mảnh vỡ sao sáng** (quý hơn) và **Mảnh vỡ sao**; dùng **đổi vật phẩm đặc biệt trong cửa hàng** (gồm bùa A / S, bùa giữ cấp — xem "Đập chậu").
     **Nguồn: gacha, nhưng KHÔNG phải 1 món rơi riêng** — là **thưởng ĐI KÈM** khi rơi vật phẩm hiếm: **vật phẩm hạng S → kèm Mảnh vỡ sao sáng**, **hạng A → kèm Mảnh vỡ sao**.
     **Icon dựng bằng Blender** (làm sau).
@@ -1118,10 +1118,12 @@ Game nông trại **tự thiết kế** (cùng thể loại game trồng trọt,
     | Mảnh sao | 10 hạt hạng A (chọn loại, khi đã có cây A) | 30 | 3 |
     | Mảnh sao | Chọn 1 chậu A (bộ A bất kỳ) | 80 | 1 |
     | Mảnh sao | 5 côn trùng (chọn loại) | 10 | 5 |
-  - **Bất cập & giải pháp (đề xuất, chờ duyệt)**:
+  - **Bất cập & giải pháp (ĐÃ CHỐT)**:
     1. **"Hạng S / A" có ở chậu, bùa, hạt với tần suất rất khác** (hạt S ~1,5% / lần, nhiều hơn chậu S) → nếu cùng số lượng thì hạt S thành nguồn sao sáng chính → **số lượng theo độ hiếm thật** (bảng trên).
     2. **Chậu S trùng / lệch banner gây hụt hẫng** → chậu trùng kèm nhiều mảnh hơn (15 / 8) để bù (chậu trùng vẫn giữ lại như đã chốt).
-    3. **Đổi được quá nhiều thì gacha mất ý nghĩa** → giới hạn số lần mỗi tháng; **không đổi ngược** mảnh → đá / lông chim; không đổi Vọng Tinh → mảnh.
+    3. **Đổi được quá nhiều thì gacha mất ý nghĩa** → giới hạn số lần mỗi tháng; không đổi mảnh → đá, không đổi Vọng Tinh → mảnh.
+       **Người dùng chốt: CHO ĐỔI NGƯỢC mảnh → lông chim** (1 chiều, không giới hạn): đề xuất **1 mảnh sao = 4 lông chim, 1 sao sáng = 15 lông chim**
+       (thấp hơn giá trị qua Vọng Tinh ≈ 5 / 16 để mảnh vẫn nên dùng đổi đồ), dòng cuối tab "Đổi sao", nhập số bằng nút −/+ (không ô nhập chữ).
     4. **Chậu S đổi bằng sao sáng KHÔNG cho chọn chậu của banner đang chạy** (giữ giá trị banner); 120 sao sáng ≈ 8–12 chậu vàng.
     5. **Hiển thị**: thẻ kết quả gacha ghi "+10 ✦" dưới món; bảng tổng kết + lịch sử quay ghi số mảnh; bảng "Tỉ lệ" ghi quy tắc thưởng kèm.
        Số mảnh hiện ở **tab "Đổi sao" của cửa hàng + Túi đồ** (không thêm lên HUD cho đỡ chật).
@@ -1130,6 +1132,15 @@ Game nông trại **tự thiết kế** (cùng thể loại game trồng trọt,
        Thư (script) thêm được `shards` vào quà; bộ đếm `stats` thêm `shardsEarned`.
     8. **Icon Blender phải phân biệt bằng HÌNH, không chỉ màu** (đã có đá vũ trụ xanh-tím-hồng, Vọng Tinh vàng trắng, Sao Duyên xanh biển trắng): đề xuất **sao sáng = mảnh sao 5 cánh vỡ vàng kim, lõi trắng phát sáng + quầng**;
        **mảnh sao = vài mảnh vỡ nhọn nhỏ màu bạc ánh hồng**, sáng nhẹ. Xuất ảnh như icon tiền (`public/game/tien/`, 128px, ghép 2 lần giữ quầng sáng).
+- **THỨ TỰ CODE ĐỀ XUẤT (20/11/2026) — các phần ĐÃ ĐẶC TẢ, KHÔNG cần Blender** (icon chưa có thì dùng tạm icon nét `GLYPHS`, có Blender thì thay ảnh):
+  1. Kinh nghiệm: cấp tối đa 90 + đường cong sau cấp 40; +2 kinh nghiệm / côn trùng. Bộ đếm `stats` + cộng trong các transaction hiện có. Menu ☰ trên HUD.
+  2. Popup Thành tựu (Thăng tiến, Thu hoạch, Thu thập, Chăm sóc, Buôn bán, Ước nguyện) + chuyển quà chào mừng từ gacha sang.
+  3. Hòm thư + `scripts/send-mail.mjs` + Firestore Rules; gỡ nút "+100 Vọng Tinh (test)".
+  4. Hiệu ứng bộ chậu chạy thật: chụp `plant.buff` lúc gieo, bỏ Ít sâu, Hạt rẻ / Giá tốt kiểu mới, Mật ong Giá tốt, Băng Tinh không khát nước.
+  5. Đập chậu (tỉ lệ, chậu bỏ vào, bùa may mắn B / A / S, bùa giữ cấp, nút ?) — icon bùa tạm.
+  6. Mảnh vỡ sao sáng / sao (kèm khi quay, tỉ lệ gacha mới có bùa), cửa hàng 3 tab [Hạt giống] [Bùa] [Đổi sao], đổi mảnh → lông chim, đổi đá → lông chim (1 : 5).
+  7. Nhiệm vụ hằng ngày (tab "Hôm nay" trong Thành tựu).
+  CẦN Blender (làm riêng): icon 4 bùa + 2 mảnh sao, hoạt cảnh / xuất máy chế tạo, xuất 14 cây mới, bộ chậu banner mới. CHƯA đặc tả: máy chế tạo (GĐ6), số liệu 14 cây (GĐ8), banner Sao Duyên.
 - **Các phần Vườn mây CÒN CẦN NGƯỜI DÙNG ĐẶC TẢ** (rà ngày 20/11/2026; session hiện tại chủ yếu đặc tả trước, code sau):
   1. GĐ5 hiệu ứng bộ chậu + nâng cấp chậu (cơ chế nâng có tỉ lệ đã mô tả + đề xuất số, chờ duyệt; "Ít sâu" đã chốt bỏ → Hút côn trùng; Mật ong thưởng Giá tốt, Băng Tinh không khát nước).
   2. Banner 1 Sao Duyên = đồ trang trí (chưa có gì). 3. Chủ đề + hiệu ứng 5 bộ banner S còn lại (B4–B8).
