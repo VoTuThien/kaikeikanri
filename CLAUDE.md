@@ -1146,6 +1146,28 @@ Game nông trại **tự thiết kế** (cùng thể loại game trồng trọt,
   6. Mảnh vỡ sao sáng / sao (kèm khi quay, tỉ lệ gacha mới có bùa), cửa hàng 3 tab [Hạt giống] [Bùa] [Đổi sao], đổi mảnh → lông chim, đổi đá → lông chim (1 : 5).
   7. Nhiệm vụ hằng ngày (tab "Hôm nay" trong Thành tựu).
   CẦN Blender (làm riêng): icon 4 bùa + 2 mảnh sao, hoạt cảnh / xuất máy chế tạo, xuất 14 cây mới, bộ chậu banner mới. CHƯA đặc tả: máy chế tạo (GĐ6), số liệu 14 cây (GĐ8), banner Sao Duyên.
+- [ ] **Phân bón — rút ngắn thời gian trồng (NGƯỜI DÙNG MÔ TẢ 20/11/2026; con số là ĐỀ XUẤT, CHỜ DUYỆT, CHƯA LÀM)**:
+  - **Người dùng mô tả**: 2 loại **Phân bón B** và **Phân bón A** (không có S). Nguồn: **mua ở cửa hàng, gacha, đổi bằng mảnh vỡ sao**. Dùng để **rút ngắn thời gian trồng cây theo %**.
+  - **Cách giảm (đề xuất)**: mỗi lần bón **giảm % TỔNG thời gian lớn của cây** (dễ hiểu: bí ngô 12 giờ, phân B −20% = bớt 2 giờ 24 phút): **Phân B −20%, Phân A −40%**.
+    **Mỗi cây bón tối đa 2 lần** (trộn B / A được), **tổng giảm tối đa 60%** (A + A = 80% → chặn còn 60%); chỉ bón cây **chưa chín**; bón quá phần còn lại thì cây chín ngay.
+    Ghi dữ liệu: cây thêm `boost` (phần thời gian đã được rút, 0–0,6) → thời gian đã lớn = (bây giờ − `plantedAt`) + `boost` × tổng thời gian (giai đoạn / côn trùng / huy hiệu tính theo đó, không đổi `plantedAt`).
+  - **Cách bón (đề xuất, giống túi hạt)**: chạm cây đang lớn (đã tưới) → dải chọn phân ở đáy [Phân B ×n] [Phân A ×n] → **túi phân nổi trên cây, lướt qua cây khác là bón tiếp** (gom 1 transaction lúc thả tay);
+    mỗi lần bón hiện "−2 giờ 24 phút". Đang cầm túi phân thì chạm cây = bón (không tưới); túi biến mất khi hết phân / chạm chỗ trống / nút X / chuyển tầng.
+  - **Nguồn + giá (đề xuất)**:
+    | Nguồn | Phân B | Phân A |
+    |---|---|---|
+    | Cửa hàng (lông chim, tab Hạt giống → đổi tên "Hạt & phân") | 40 / túi | 150 / túi, tối đa 5 túi / ngày |
+    | Gacha (lấy từ suất côn trùng: 43,5% → 35,5%) | 6%, mỗi lần rơi 5 túi | 2%, mỗi lần rơi 2 túi |
+    | Đổi sao (tab Đổi sao) | 10 túi = 2 mảnh sao (5 lần / tháng) | 5 túi = 4 mảnh sao (5 lần / tháng) |
+    Phân bón rơi từ gacha **không kèm mảnh vỡ sao** (giống bùa giữ cấp), để mảnh sao chỉ đến từ món hiếm thật.
+  - **Bất cập & giải pháp (đề xuất, chờ duyệt)**:
+    1. **Bón cây ngắn ngày là phí** (rau cải 3 phút: −20% = 36 giây) → dải chọn phân hiện trước "bớt bao lâu"; cây < 10 phút thì mờ nút + nhắc "Cây này lớn nhanh, không cần bón".
+    2. **Bón làm cây chín trước khi kịp TƯỚI** (mất +1 nông sản) → cây chưa tưới thì dải phân nhắc "Chưa tưới: tưới trước để được thêm 1 nông sản" (vẫn cho bón).
+    3. **Côn trùng xuất hiện khi cây lớn 35%**: bón nhảy qua mốc này thì côn trùng vẫn hiện (tính theo tiến độ) — không mất cơ hội bắt.
+    4. **Cộng dồn với hiệu ứng "Lớn nhanh" của bộ chậu**: phân bón tính trên thời gian ĐÃ giảm bởi Lớn nhanh (chụp lúc gieo), không cộng % với nhau → không bao giờ về 0.
+    5. **Phân bón không có hạng S** nhưng bảng gacha / thư / thành tựu đều xử lý được 2 loại; bón không đổi `plantedAt` nên dời chậu / cất chậu vẫn đúng (cất chậu thì mất cây + phân đã bón).
+    6. **Thêm vào**: Túi đồ (tab mới "Vật phẩm": phân bón, bùa, mảnh sao), thư (quà có `fertilizer`), bộ đếm `stats.fertilize` + thành tựu Chăm sóc **"Nhà nông chăm bón"** (bón 20 / 100 / 500 / 2.000 lần, I–IV) + nhiệm vụ ngày "Bón phân" (3 / 6 / 10 / 15).
+    7. **Icon 2 túi phân bón** dựng bằng Blender (làm sau, cùng icon bùa / mảnh sao); trước đó dùng tạm icon nét. Có thể tái dùng mô hình **túi hạt** (`tui-hat.glb`) đổi màu + nhãn cho túi phân 3D lơ lửng.
 - **Các phần Vườn mây CÒN CẦN NGƯỜI DÙNG ĐẶC TẢ** (rà ngày 20/11/2026; session hiện tại chủ yếu đặc tả trước, code sau):
   1. GĐ5 hiệu ứng bộ chậu + nâng cấp chậu (cơ chế nâng có tỉ lệ đã mô tả + đề xuất số, chờ duyệt; "Ít sâu" đã chốt bỏ → Hút côn trùng; Mật ong thưởng Giá tốt, Băng Tinh không khát nước).
   2. Banner 1 Sao Duyên = đồ trang trí (chưa có gì). 3. Chủ đề + hiệu ứng 5 bộ banner S còn lại (B4–B8).
