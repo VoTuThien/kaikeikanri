@@ -854,7 +854,7 @@ Game nông trại **tự thiết kế** (cùng thể loại game trồng trọt,
   - **Giá hạt / giá bán nông sản**: giữ đúng các con số hiện có trong `CROPS`, chỉ đổi đơn vị xu → **lông chim**.
   - **Vốn ban đầu**: **100 lông chim + 32 đá vũ trụ**, và **tặng 20 Vọng Tinh qua HÒM THƯ** (thư quà chào mừng, bấm nhận).
   - **Đổi đá → lông chim: 1 đá = 5 lông chim**, chỉ 1 chiều.
-  - **Đá tặng khi lên cấp: 16 đá / cấp; cấp 5 / 10 / 15 (mốc mở tầng) tặng 160 đá.**
+  - **Đá tặng khi lên cấp: 16 đá / cấp; cấp 5 / 10 / 15 (mốc mở tầng) tặng 160 đá.** → **Đổi (20/11/2026): thưởng lên cấp (đá + lông chim) NHẬN Ở POPUP THÀNH TỰU**, không tự cộng (xem mục "Thành tựu" bên dưới).
   - **Nâng cấp chậu** (côn trùng loại nào cũng được + lông chim), hạng A giá ×1,5, hạng S ×2:
     | Lên cấp | Côn trùng | Lông chim |
     |---|---|---|
@@ -867,6 +867,7 @@ Game nông trại **tự thiết kế** (cùng thể loại game trồng trọt,
   - **Nhiệm vụ hằng ngày: mỗi ngày 5 nhiệm vụ NGẪU NHIÊN**, độ khó tăng theo **số tầng đã mở** (đề xuất, xem danh sách dưới).
   - **HUD trong game**: **trái** = nút thoát + **cấp + thanh kinh nghiệm**; **giữa** = **đá vũ trụ + lông chim**;
     **phải** = các nút CHỈ CÓ ICON: **cửa hàng, hòm thư, gacha, túi đồ**. Số Sao Duyên / Vọng Tinh hiện trong màn hình gacha.
+    (Đề xuất 20/11/2026, chờ duyệt: thêm nút **🏆 Thành tựu**, bỏ hòm thư — xem mục "Thành tựu".)
   - **Icon tiền (ĐÃ LÀM, dựng trong Blender, CHỈ xuất ảnh — không đưa mô hình 3D vào game)**: collection `TienTe` (`Tien_LongChim`, `Tien_DaVuTru`; ảnh xem `design/vuon-may/tien-te.png`).
     **Lông chim** = lông vũ cong, phiến trắng ngà chuyển tím nhạt ở đầu lông (màu chuyển theo trục cục bộ bằng ColorRamp), 2 khe tách tơ mỗi bên, cọng vàng nhạt, lông tơ ở gốc, 3 ngôi sao lấp lánh 4 cánh.
     **Đá vũ trụ** = tinh thể 2 chóp nhiều mặt cắt tam giác (vòng 8 cạnh lệch góc), màu tinh vân xanh dương → tím → hồng, trong mờ, lõi sáng + quầng + đốm sao li ti bên trong, 3 ngôi sao lấp lánh.
@@ -953,6 +954,52 @@ Game nông trại **tự thiết kế** (cùng thể loại game trồng trọt,
     B3–B8 **6 bộ chậu banner** (banner chậu 1 → 6, mỗi bộ cấp 1–6): **phải chăm chút kỹ, đẹp, tinh tế, thu hút người chơi quay**.
   - **Bươm bướm** = côn trùng mới (cần dựng mô hình), dùng để nâng cấp chậu như 4 loại kia.
   - **Quay chạy trên điện thoại rồi ghi vào Firestore** (không có máy chủ riêng; chấp nhận được với app gia đình, không nạp tiền thật).
+- [ ] **Thành tựu — popup kiểu màn hình ước nguyện (YÊU CẦU 20/11/2026; ĐỀ XUẤT dưới đây CHỜ NGƯỜI DÙNG DUYỆT, CHƯA LÀM)**:
+  - **Người dùng yêu cầu**: 1 popup giống popup ước nguyện (gacha) hiện các **thành tựu + tiến độ hiện tại**; xong thành tựu thì **bấm nhận thưởng ở đây**.
+    Thành tựu chia **nhiều nhóm** (vd **[Thu thập]** = chậu đang sở hữu, **[Thu hoạch]** = số lần thu hoạch cây). **Thưởng lên cấp (đá vũ trụ + lông chim) cũng nằm trong popup này.**
+    Người dùng nhờ đề xuất nội dung các thành tựu → nội dung dưới là ĐỀ XUẤT. **Việc tiếp theo: hỏi người dùng duyệt / sửa các điểm "Cần chốt", rồi mới code.**
+  - **Giao diện (đề xuất)**: phủ kín khung game như `GachaScreen` (cùng nền trời, cùng kiểu glass). Thanh trên: tiêu đề "Thành tựu", "đã xong n/m", nút **[Nhận tất cả]**, nút X.
+    **Cột trái = các tab nhóm** (dọc, mỗi tab có chấm đỏ + số thưởng đang chờ nhận); **bên phải = danh sách thành tựu** cuộn dọc bằng `DragScroll` (không dùng cuộn gốc).
+    **Thành tựu nhiều bậc gộp thành 1 dòng** (vd "Nông dân chăm chỉ III": thanh tiến độ 87/200, thưởng [lông chim] [đá], nút **[Nhận]** khi đủ;
+    nhận xong thì dòng đó chuyển lên bậc kế tiếp; hết bậc thì "Hoàn thành ✓" mờ). Thứ tự: **có thể nhận → đang làm → đã xong**. Nhận thì có hiệu ứng số tiền bay lên ô tiền ở HUD.
+    **Nút 🏆 trên HUD có chấm đỏ + số thưởng đang chờ**; xong 1 thành tựu đang chơi thì hiện dòng nhắc ngắn "Đạt thành tựu: …".
+  - **Thưởng theo bậc (công thức chung, dễ cân chỉnh)**: bậc I 20 lông chim + 8 đá · II 40 + 16 · III 80 + 24 · IV 150 + 32 · V 300 + 48 · VI 500 + 64 · VII 800 + 80.
+  - **Nhóm & nội dung (đề xuất)**:
+    | Nhóm | Thành tựu (các bậc) |
+    |---|---|
+    | **Cấp độ** | **"Chào mừng tới Vườn mây"** (nhận 20 Vọng Tinh — thay cho thư chào mừng / nút nhận quà ở gacha); **Lên cấp L** (mỗi cấp 1 lần nhận): **16 đá + 10·L lông chim**; **cấp 5 / 10 / 15 (mở tầng): 160 đá + 200 lông chim**; sau cấp 15: mỗi cấp 16 đá + 10·L lông chim, mốc 20 / 25 / 30 thêm 1 Vọng Tinh |
+    | **Thu hoạch** | Tổng nông sản thu hoạch 50 / 200 / 500 / 1.000 / 2.500 / 5.000 / 10.000 (bậc I–VII); **"Bậc thầy <cây>"** mỗi loại cây: thu hoạch 10 / 50 / 200 lần (I–III); "Vườn đa dạng": đã thu hoạch 4 / 8 / 16 / 22 loại cây khác nhau; thu hoạch cây hạng A đầu tiên, hạng S đầu tiên (bậc III / V) |
+    | **Thu thập** (chậu) | Số loại chậu khác nhau đang có 6 / 12 / 24 / 36 / 48 / 60 (I–VI); **"Trọn bộ <tên bộ>"** mỗi bộ 1 thành tựu: hạng B 80 đá, hạng A 160 đá, hạng S 320 đá (+ lông chim theo bậc V); chậu hạng A đầu tiên (III), hạng S đầu tiên (V); đặt kín chậu 1 tầng (II); đạt **thưởng đủ bộ** trên 1 tầng (IV). Sau GĐ5: 1 chậu lên lv6, cả 1 bộ lên lv6 |
+    | **Chăm sóc** | Gieo hạt 20 / 100 / 500 / 2.000 (I–IV); tưới cây 20 / 100 / 500 / 2.000 (I–IV) |
+    | **Côn trùng** | Bắt tổng 10 / 50 / 200 / 500 / 1.000 con (I–V); mỗi loại (sâu, bọ rùa, đom đóm, nhện, bướm) 10 / 50 / 150 (I–III); "Nhà côn trùng học": đã bắt đủ 5 loại (II) |
+    | **Buôn bán** | Lông chim kiếm từ bán nông sản 500 / 2.000 / 10.000 / 50.000 (I–IV); mua hạt ở cửa hàng 50 / 200 / 1.000 hạt (I–III) |
+    | **Ước nguyện** | Quay tổng 10 / 50 / 100 / 300 / 500 lần (I–V); ra vàng lần đầu (III) |
+    | **Chế tạo** (khi có GĐ6) | Chế tạo 10 / 50 / 200 sản phẩm; làm đủ mọi công thức của 1 máy — **ẩn nhóm cho tới khi có máy**, đặc tả khi làm GĐ6 |
+    | **Hằng ngày** (khi có nhiệm vụ ngày) | Xong đủ 5 nhiệm vụ trong ngày: 1 / 7 / 30 / 100 ngày (I–IV) |
+    Ước lượng tổng đá từ thành tựu (không tính cấp độ) ≈ **3.600 đá ≈ 225 lần quay** cả đời chơi; cấp 2 → 30 ≈ 900 đá. Thành tựu chỉ nhận 1 lần, nguồn đá đều đặn vẫn là nhiệm vụ ngày + bán sản phẩm máy.
+  - **Bất cập & giải pháp (đề xuất)**:
+    1. **Đếm tích luỹ**: côn trùng / lông chim / hạt bị tiêu đi nên không đếm được từ số đang có → vườn thêm **`stats`** = map bộ đếm tích luỹ
+       (`harvest`, `harvest_<cây>`, `sow`, `water`, `catch`, `catch_<loại>`, `soldFeathers`, `boughtSeeds`, `pulls`, `fullDays`…), **cộng trong CÙNG transaction** của `sow` / `water` / `harvestPlant` / `catchInsect` / `sell` / `buySeeds` / `pullPots`.
+       Thành tựu về chậu (Thu thập) tính thẳng từ `pots` / `placed` (chậu không bao giờ mất, chỉ cất kho). Đã nhận tới đâu: **`claimed`** = map id thành tựu → số bậc đã nhận (cấp độ: cấp cao nhất đã nhận).
+       Nhận = `claimAchievement(id)` / `claimAll()` (transaction: tính lại tiến độ từ dữ liệu server, cộng thưởng, tăng `claimed`). Định nghĩa thành tựu ở `data/achievements.ts` (`{ id, group, name, icon, tiers: [{ goal, reward }], progress(g) }`).
+    2. **Vườn đang chơi dở**: chưa có `stats` → khởi tạo `harvest` = `harvested` hiện có, `pulls` = `gacha.total`, còn lại từ 0 (chấp nhận được). Người đã lên cấp cao sẽ nhận dồn thưởng các cấp cũ 1 lần — chấp nhận được (app gia đình).
+    3. **Kinh nghiệm**: đã chốt "kinh nghiệm game riêng, bắt đầu từ 0" nhưng game hiện vẫn dùng `xp` cũ (cũng là cấp ở menu Giải trí). **Cần chốt**: (a) giữ `xp` hiện tại làm kinh nghiệm game (đề xuất, vì trang 2D đã bỏ, đỡ mất cấp) hay (b) thêm trường mới từ 0.
+    4. **Hòm thư thừa**: quà chào mừng + thưởng cấp đều vào Thành tựu → **đề xuất bỏ hòm thư** (HUD phải: Cẩm nang, Cửa hàng, **🏆 Thành tựu**, Gacha, Túi đồ = 5 nút; kiểm tra vừa iPhone 12 ngang).
+       **Cần chốt**: nhiệm vụ hằng ngày đặt thành **tab "Hôm nay" đầu tiên trong popup Thành tựu** (đề xuất, đỡ thêm nút) hay nút riêng.
+    5. **Đã chốt trước "xong cả 5 nhiệm vụ ngày → 1 Sao Duyên"**: giữ nguyên, nhận trong tab nhiệm vụ.
+    6. **Thành tựu của chức năng chưa có** (máy chế tạo, nâng cấp chậu, đồ trang trí): ẩn nhóm / dòng tới khi có chức năng, không hiện thành tựu không làm được.
+    7. **Gian lận**: tính + ghi ở điện thoại (không có máy chủ) như gacha; chấp nhận với app gia đình. `claim` luôn tính lại từ dữ liệu trong transaction để không nhận trùng giữa 2 máy.
+    8. **Hiệu ứng "Ít sâu" / "Tầng không bao giờ bị sâu"** sẽ làm giảm tiến độ thành tựu Côn trùng (sâu là côn trùng để bắt) → thêm lý do phải đổi các hiệu ứng này khi đặc tả GĐ5.
+    9. Màn hình ngang thấp (~390px): mỗi dòng thành tựu cao cố định ~64px, tab trái ~96px rộng, chữ không xuống quá 2 dòng.
+  - **Cần chốt với người dùng**: danh sách nhóm / con số / mức thưởng ở trên; mục 3 (kinh nghiệm), mục 4 (bỏ hòm thư, vị trí nhiệm vụ ngày); có thưởng cục roll ở thành tựu lớn (vd Trọn bộ S) không.
+- **Các phần Vườn mây CÒN CẦN NGƯỜI DÙNG ĐẶC TẢ** (rà ngày 20/11/2026; session hiện tại chủ yếu đặc tả trước, code sau):
+  1. GĐ5 hiệu ứng bộ chậu + nâng cấp chậu (nâng ở đâu, cách từng hiệu ứng chạy; **"Ít sâu" / "Tầng không bao giờ bị sâu" mâu thuẫn** vì sâu giờ là côn trùng để bắt).
+  2. Banner 1 Sao Duyên = đồ trang trí (chưa có gì). 3. Chủ đề + hiệu ứng 5 bộ banner S còn lại (B4–B8).
+  4. Máy chế tạo GĐ6: số nguyên liệu, thời gian, số mẻ, **giá bán sản phẩm bằng đá**, tầng 4 có máy không.
+  5. Kinh nghiệm game (nguồn kinh nghiệm ngoài thu hoạch, cấp tối đa, giữ `xp` cũ hay làm mới). 6. Hòm thư (đề xuất bỏ, xem Thành tựu).
+  7. Nhiệm vụ hằng ngày: giao diện + chỗ mở. 8. Đổi đá → lông chim: đổi ở đâu, theo gói hay nhập số.
+  9. 14 cây mới (GĐ8): cấp mở, thời gian, sản lượng, giá bán, kinh nghiệm; giá hạt mía. 10. Côn trùng: 5 loại có giá trị khác nhau khi nâng cấp không.
+  Để sau: ghé vườn người thân, âm thanh / nhạc nền, gỡ nút "+100 Vọng Tinh (test)".
 - [ ] Ghé vườn người thân (tưới giúp / hái trộm) + thông báo trong bong bóng — làm sau (dữ liệu vườn đã cho cả gia đình đọc).
 
 Dữ liệu Firestore, thuộc gia đình đang chọn:
