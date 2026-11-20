@@ -1079,7 +1079,7 @@ Game nông trại **tự thiết kế** (cùng thể loại game trồng trọt,
        chậu bỏ vào, bùa may mắn, côn trùng, lông chim vẫn mất; không tăng tỉ lệ. ĐÃ CHỐT: **1 ô riêng, tối đa 1 bùa / lần**, không chiếm 3 ô bùa may mắn;
        nguồn như bùa A / S (gacha, thư, đổi ở cửa hàng bằng 2 item mới); gacha **0,5%** lấy từ suất côn trùng (côn trùng 44% → 43,5%). Icon dựng Blender (làm sau, cùng 3 bùa may mắn).
     6. **Nguồn Bùa may mắn (ĐÃ CHỐT)**: **Bùa B = mua ở cửa hàng (đề xuất 100 lông chim) + thư**. **Bùa A, S = rơi từ gacha + thư + đổi ở cửa hàng bằng 2 LOẠI ITEM MỚI**
-       (**người dùng sẽ đặc tả 2 item mới này sau**). Tỉ lệ gacha: suất côn trùng (~50%) chia thành **côn trùng 43,5% + bùa B 5% + bùa A 0,9% + bùa S 0,1% + bùa giữ cấp 0,5%** (bùa B vẫn rơi ở gacha theo tỉ lệ này).
+       (= **Mảnh vỡ sao sáng / Mảnh vỡ sao**, xem mục riêng). Tỉ lệ gacha: suất côn trùng (~50%) chia thành **côn trùng 43,5% + bùa B 5% + bùa A 0,9% + bùa S 0,1% + bùa giữ cấp 0,5%** (bùa B vẫn rơi ở gacha theo tỉ lệ này).
        Không thưởng bùa ở thành tựu / nhiệm vụ ngày / Thăng tiến (khác đề xuất đầu).
     7. **Bảng giá cũ** (2 / 4 / 6 / 8 / 10 côn trùng loại nào cũng được + 50 → 800 lông chim) **bị thay** bởi chi phí mỗi lần thử ở trên; côn trùng giờ có giá trị theo loại (nhiệm vụ "bắt loại chỉ định" có ý nghĩa hơn).
     8. **Chỗ nâng cấp**: thêm [Nâng cấp] vào menu chậu (nhấn giữ chậu đã đặt) + tab **"Chậu"** trong Túi đồ (nâng chậu trong kho). Popup kiểu gacha: giữa = chậu (ảnh cấp hiện tại → cấp kế), 5 ô chậu bỏ vào, 3 ô bùa,
@@ -1090,6 +1090,46 @@ Game nông trại **tự thiết kế** (cùng thể loại game trồng trọt,
        bùa giữ cấp; trần tỉ lệ (B / A 100%, S 95%); "cấp mới áp dụng cho cây từ lần gieo sau"; hiệu ứng tính theo cấp trung bình của bộ trên tầng. Bảng cuộn dọc bằng `DragScroll`.
     9. **Ghi dữ liệu**: `upgradePot(potId, fodderIds[], charms{B,A,S}, keepCharm: boolean)` 1 transaction (kiểm tra đủ đồ, tính tỉ lệ lại từ dữ liệu server, quay ngẫu nhiên, trừ đồ, xoá chậu bỏ vào khỏi `pots` + `placed`, đổi cấp, cộng `stats` `upgradeTry` / `upgradeOk` / `maxPotLevel`).
        Ngẫu nhiên chạy trên điện thoại như gacha (chấp nhận với app gia đình).
+- [ ] **Mảnh vỡ sao sáng / Mảnh vỡ sao — tiền đổi đồ đặc biệt ở cửa hàng (NGƯỜI DÙNG MÔ TẢ 20/11/2026; con số là ĐỀ XUẤT, CHỜ DUYỆT, CHƯA LÀM)**:
+  - **Người dùng mô tả**: 2 loại tiền mới, **Mảnh vỡ sao sáng** (quý hơn) và **Mảnh vỡ sao**; dùng **đổi vật phẩm đặc biệt trong cửa hàng** (gồm bùa A / S, bùa giữ cấp — xem "Đập chậu").
+    **Nguồn: gacha, nhưng KHÔNG phải 1 món rơi riêng** — là **thưởng ĐI KÈM** khi rơi vật phẩm hiếm: **vật phẩm hạng S → kèm Mảnh vỡ sao sáng**, **hạng A → kèm Mảnh vỡ sao**.
+    **Icon dựng bằng Blender** (làm sau).
+  - **Số lượng đi kèm (đề xuất; theo độ hiếm THẬT của món, vì "hạng S / A" có ở nhiều loại món với tần suất rất khác nhau)**:
+    | Món rơi ra | Tần suất / lần quay | Thưởng kèm |
+    |---|---|---|
+    | Chậu S (vàng) | ~1/63 | **10 sao sáng** (chậu S đã có loại đó = trùng: **15**) |
+    | Bùa S | 0,1% | 3 sao sáng |
+    | 10 hạt hạng S | ~1,5% | 1 sao sáng |
+    | Chậu A (tím) | 6% | **5 mảnh sao** (trùng: 8) |
+    | Bùa A | 0,9% | 2 mảnh sao |
+    | 10 hạt hạng A | ~7,5% | 1 mảnh sao |
+    Trung bình ≈ **3,7 mảnh sao + 0,2 sao sáng / 10 lần quay**; 1 chậu vàng ≈ 10–15 sao sáng. Bùa giữ cấp không kèm mảnh. Banner 1 (Sao Duyên, đồ trang trí) sau này dùng cùng quy tắc.
+  - **Đổi ở cửa hàng — tab "Đổi sao" (đề xuất; giới hạn số lần mỗi THÁNG, làm mới cùng lúc đổi banner)**:
+    | Đổi bằng | Món | Giá | Giới hạn / tháng |
+    |---|---|---|---|
+    | Sao sáng | Bùa S | 10 | 2 |
+    | Sao sáng | Bùa giữ cấp | 8 | 2 |
+    | Sao sáng | 10 hạt hạng S (chọn loại, khi đã có cây S) | 5 | 2 |
+    | Sao sáng | 1 Vọng Tinh | 5 | 5 |
+    | Sao sáng | **Chọn 1 chậu S của bộ KHÔNG đang chạy banner** (bộ lệch / banner đã qua) | 120 | 1 |
+    | Mảnh sao | Bùa A | 20 | 5 |
+    | Mảnh sao | 1 Vọng Tinh | 15 | 5 |
+    | Mảnh sao | 1 Sao Duyên | 15 | 5 |
+    | Mảnh sao | 10 hạt hạng A (chọn loại, khi đã có cây A) | 30 | 3 |
+    | Mảnh sao | Chọn 1 chậu A (bộ A bất kỳ) | 80 | 1 |
+    | Mảnh sao | 5 côn trùng (chọn loại) | 10 | 5 |
+  - **Bất cập & giải pháp (đề xuất, chờ duyệt)**:
+    1. **"Hạng S / A" có ở chậu, bùa, hạt với tần suất rất khác** (hạt S ~1,5% / lần, nhiều hơn chậu S) → nếu cùng số lượng thì hạt S thành nguồn sao sáng chính → **số lượng theo độ hiếm thật** (bảng trên).
+    2. **Chậu S trùng / lệch banner gây hụt hẫng** → chậu trùng kèm nhiều mảnh hơn (15 / 8) để bù (chậu trùng vẫn giữ lại như đã chốt).
+    3. **Đổi được quá nhiều thì gacha mất ý nghĩa** → giới hạn số lần mỗi tháng; **không đổi ngược** mảnh → đá / lông chim; không đổi Vọng Tinh → mảnh.
+    4. **Chậu S đổi bằng sao sáng KHÔNG cho chọn chậu của banner đang chạy** (giữ giá trị banner); 120 sao sáng ≈ 8–12 chậu vàng.
+    5. **Hiển thị**: thẻ kết quả gacha ghi "+10 ✦" dưới món; bảng tổng kết + lịch sử quay ghi số mảnh; bảng "Tỉ lệ" ghi quy tắc thưởng kèm.
+       Số mảnh hiện ở **tab "Đổi sao" của cửa hàng + Túi đồ** (không thêm lên HUD cho đỡ chật).
+    6. **Cửa hàng chia tab**: [Hạt giống] [Bùa] (bùa B mua bằng lông chim) [Đổi sao].
+    7. **Dữ liệu**: vườn thêm `shards: { sao_sang, sao }` + `shopLimit: { thang: "YYYY-MM", bought: { id: n } }`; cộng mảnh trong CÙNG transaction `pullPots`; đổi = `exchange(id, n)` (transaction, kiểm tra giới hạn tháng).
+       Thư (script) thêm được `shards` vào quà; bộ đếm `stats` thêm `shardsEarned`.
+    8. **Icon Blender phải phân biệt bằng HÌNH, không chỉ màu** (đã có đá vũ trụ xanh-tím-hồng, Vọng Tinh vàng trắng, Sao Duyên xanh biển trắng): đề xuất **sao sáng = mảnh sao 5 cánh vỡ vàng kim, lõi trắng phát sáng + quầng**;
+       **mảnh sao = vài mảnh vỡ nhọn nhỏ màu bạc ánh hồng**, sáng nhẹ. Xuất ảnh như icon tiền (`public/game/tien/`, 128px, ghép 2 lần giữ quầng sáng).
 - **Các phần Vườn mây CÒN CẦN NGƯỜI DÙNG ĐẶC TẢ** (rà ngày 20/11/2026; session hiện tại chủ yếu đặc tả trước, code sau):
   1. GĐ5 hiệu ứng bộ chậu + nâng cấp chậu (cơ chế nâng có tỉ lệ đã mô tả + đề xuất số, chờ duyệt; "Ít sâu" đã chốt bỏ → Hút côn trùng; Mật ong thưởng Giá tốt, Băng Tinh không khát nước).
   2. Banner 1 Sao Duyên = đồ trang trí (chưa có gì). 3. Chủ đề + hiệu ứng 5 bộ banner S còn lại (B4–B8).
