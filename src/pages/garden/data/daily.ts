@@ -21,7 +21,7 @@ export const DAILY_REWARD = [
   { feathers: 60, stones: 48, xp: 80 },
   { feathers: 80, stones: 64, xp: 150 },
 ]
-export const DAILY_BONUS = { sao_duyen: 2 } // xong cả 5 nhiệm vụ trong ngày
+export const DAILY_BONUS = { sao_duyen: 2, vong_tinh: 2 } // xong cả 5 nhiệm vụ trong ngày: cố định 2 Vọng Nguyệt + 2 Vọng Tinh
 export const DAILY_COUNT = 5
 
 type Src = { xp: number; stats: Record<string, number> }

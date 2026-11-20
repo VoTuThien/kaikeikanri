@@ -1,11 +1,11 @@
 import { useMemo, useState } from 'react'
 import { LineIcon } from '../../../components/ui/Fab'
-import { Icon3D } from '../../../components/ui/Icon3D'
 import type { Actor } from '../../../lib/firestore'
 import { errorText, placedIds, upgradePot, type Garden } from '../data/api'
 import { insectById } from '../data/gacha'
 import { potImage, potKindById, potSetById, type OwnedPot } from '../data/pots'
 import {
+  charmById,
   FAIL_SPLIT,
   fodderBonus,
   MAX_FODDER,
@@ -21,6 +21,9 @@ import {
 import { DragScroll } from './DragScroll'
 import { FEATHER_IMG } from './GachaUi'
 import { BTN, RankBadge } from './PotUi'
+import { ItemTile, TileFooter } from './ItemTile'
+import { ItemImg } from './ItemImg'
+import { GLASS_ROUND } from './glass'
 
 // Màn hình ĐẬP CHẬU (nâng cấp chậu có tỉ lệ, xem CLAUDE.md "Nâng cấp chậu có tỉ lệ"): phủ kín khung game.
 // Trái = chậu đang nâng; giữa = tỉ lệ thành công (to) + các phần cộng, khả năng thất bại, chi phí, 5 ô chậu bỏ vào, bùa; nút ? = giải thích.
@@ -98,15 +101,15 @@ export function UpgradeScreen({ garden, actor, potId, onClose }: { garden: Garde
     <div className="absolute inset-0 z-40 flex flex-col bg-gradient-to-br from-[#120a33]/95 via-[#22124a]/95 to-[#3a1546]/95 backdrop-blur-xl">
       {/* thanh trên */}
       <div className="flex h-14 shrink-0 items-center gap-2 border-b border-white/15" style={{ paddingLeft: 'calc(var(--safe-l) + 12px)', paddingRight: 'calc(var(--safe-r) + 12px)' }}>
-        <button type="button" data-round aria-label="Đóng" onClick={onClose} className="flex h-10 w-10 items-center justify-center rounded-full border border-white/30 bg-white/10">
+        <button type="button" data-round aria-label="Đóng" onClick={onClose} className={`${GLASS_ROUND} h-10 w-10`}>
           <LineIcon icon="cancel" className="h-5 w-5" />
         </button>
         <div className="ml-1 min-w-0 flex-1">
           <p className="text-lg leading-6 font-light lowercase">đập chậu</p>
           <p className="truncate text-xs leading-4 text-white/65">Áp dụng cho cây từ lần gieo sau · đang có <img src={FEATHER_IMG} alt="" className="inline h-3.5 w-3.5" /> {garden.feathers.toLocaleString('vi-VN')}</p>
         </div>
-        <button type="button" data-round aria-label="Cách đập chậu" onClick={() => setHelp(true)} className="flex h-10 w-10 items-center justify-center rounded-full border border-white/30 bg-gradient-to-br from-sky-500/70 to-blue-600/70 text-lg font-bold">
-          ?
+        <button type="button" data-round aria-label="Cách đập chậu" onClick={() => setHelp(true)} className={`${GLASS_ROUND} h-10 w-10`}>
+          <LineIcon icon="help" className="h-6 w-6" />
         </button>
       </div>
 
@@ -141,7 +144,7 @@ export function UpgradeScreen({ garden, actor, potId, onClose }: { garden: Garde
               const have = garden.insects[id] ?? 0
               return (
                 <span key={id} className={`flex items-center gap-1 border px-1.5 py-0.5 ${have < n ? 'border-rose-400/70 text-rose-200' : 'border-white/20'}`}>
-                  <Icon3D emoji={insectById.get(id)?.icon ?? '🐛'} className="h-4 w-4" /> {insectById.get(id)?.name} {have}/{n}
+                  <ItemImg img={insectById.get(id)?.img} emoji={insectById.get(id)?.icon ?? '🐛'} className="h-5 w-5" /> {insectById.get(id)?.name} {have}/{n}
                 </span>
               )
             })}
@@ -175,7 +178,7 @@ export function UpgradeScreen({ garden, actor, potId, onClose }: { garden: Garde
               <div key={k} className="flex h-10 items-center justify-between border border-white/15 bg-white/5 px-1 text-xs">
                 <button type="button" aria-label={`Bớt bùa ${k}`} disabled={luck[k] <= 0} onClick={() => stepLuck(k, -1)} className="h-8 w-6 text-base disabled:opacity-30">−</button>
                 <span className="flex flex-col items-center leading-3">
-                  <span className="flex items-center gap-0.5 font-semibold"><Icon3D emoji="🍀" className="h-3.5 w-3.5" />{k} ×{luck[k]}</span>
+                  <span className="flex items-center gap-0.5 font-semibold"><ItemImg img={charmById.get(k)!.img} emoji="🍀" className="h-5 w-5" />{k} ×{luck[k]}</span>
                   <span className="text-[10px] text-white/55">có {garden.charms[k]}</span>
                 </span>
                 <button type="button" aria-label={`Thêm bùa ${k}`} disabled={luck[k] >= garden.charms[k] || luckUsed >= MAX_LUCK} onClick={() => stepLuck(k, 1)} className="h-8 w-6 text-base disabled:opacity-30">+</button>
@@ -183,7 +186,7 @@ export function UpgradeScreen({ garden, actor, potId, onClose }: { garden: Garde
             ))}
             <button type="button" disabled={!keep && garden.charms.keep < 1} onClick={() => { setKeep(!keep); setConfirm(false) }}
               className={`flex h-10 flex-col items-center justify-center border text-[11px] leading-3 disabled:opacity-35 ${keep ? 'border-sky-200/80 bg-sky-400/30' : 'border-white/15 bg-white/5'}`}>
-              <span className="flex items-center gap-1 font-semibold"><Icon3D emoji="🔒" className="h-3.5 w-3.5" />Giữ cấp {keep ? '✓' : ''}</span>
+              <span className="flex items-center gap-1 font-semibold"><ItemImg img={charmById.get('keep')!.img} emoji="🔒" className="h-5 w-5" />Giữ cấp {keep ? '✓' : ''}</span>
               <span className="text-[10px] text-white/55">có {garden.charms.keep}</span>
             </button>
           </div>
@@ -195,7 +198,7 @@ export function UpgradeScreen({ garden, actor, potId, onClose }: { garden: Garde
             </p>
             <button type="button" disabled={busy || maxed || lacking} onClick={() => void go()}
               className={`${BTN} h-11 w-44 ${confirm ? 'from-rose-500/80 to-red-700/80' : 'from-amber-400/80 to-fuchsia-600/80'}`}>
-              {busy ? '…' : confirm ? 'Đập luôn' : 'Đập chậu'}
+              {busy ? '…' : confirm ? 'Đập luôn' : 'Đập'}
             </button>
           </div>
         </div>
@@ -206,18 +209,12 @@ export function UpgradeScreen({ garden, actor, potId, onClose }: { garden: Garde
         <div className="absolute inset-0 z-10 flex flex-col justify-end bg-black/45" onClick={() => setPicking(false)}>
           <div className="border-t border-white/20 bg-indigo-950/90 pt-2 pb-3" onClick={(e) => e.stopPropagation()}>
             <p className="px-4 pb-1 text-xs text-white/70">Chọn chậu trong kho để bỏ vào (sẽ MẤT dù thành công hay thất bại; cùng loại ×{String(SAME_KIND_MULT).replace('.', ',')})</p>
-            <DragScroll axis="x" className="h-28">
-              <div className="flex h-full gap-2 px-4">
+            <DragScroll axis="x" className="h-[124px]">
+              <div className="flex h-full items-start gap-2 px-4">
                 {sorted.map((p) => (
-                  <button key={p.id} type="button" disabled={fodder.length >= MAX_FODDER}
-                    onClick={() => { setFodderIds([...fodderIds, p.id]); setConfirm(false); if (fodder.length + 1 >= MAX_FODDER) setPicking(false) }}
-                    className="relative flex h-full w-24 shrink-0 flex-col items-center justify-center border border-white/20 bg-white/10 px-1 text-center">
-                    <RankBadge rank={potRank(p.kind)} className="absolute top-1 left-1" />
-                    <span className="absolute top-0.5 right-1 text-[10px] text-white/70">Lv{p.level}</span>
-                    <img src={potImage(p.kind, p.level)} alt="" className="h-12 w-12 object-contain" />
-                    <span className="line-clamp-1 text-[10px] leading-3">{potName(p)}</span>
-                    <span className="text-xs font-bold text-amber-200">+{pct(fodderBonus(p, pot))}</span>
-                  </button>
+                  <ItemTile key={p.id} className="w-[88px] shrink-0" img={potImage(p.kind, p.level)} emoji="🪴" name={potName(p)} rank={potRank(p.kind)} tr={`Lv${p.level}`}
+                    disabled={fodder.length >= MAX_FODDER} onClick={() => { setFodderIds([...fodderIds, p.id]); setConfirm(false); if (fodder.length + 1 >= MAX_FODDER) setPicking(false) }}
+                    footer={<TileFooter className="h-6 text-xs text-amber-200">+{pct(fodderBonus(p, pot))}</TileFooter>} />
                 ))}
                 {!sorted.length && <p className="self-center text-sm text-white/60">Kho không còn chậu nào để bỏ vào.</p>}
               </div>

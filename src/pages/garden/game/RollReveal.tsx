@@ -29,6 +29,8 @@ import {
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js'
 import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js'
+import { LineIcon } from '../../../components/ui/Fab'
+import { GLASS_ROUND } from './glass'
 
 // Hiệu ứng LÚC VỪA BẤM QUAY (xem "Hiệu ứng lúc vừa bấm quay" trong CLAUDE.md):
 // 1. Màn hình tối, mặt trăng hiện dần, từ ngoài khung trôi vào.
@@ -756,10 +758,12 @@ export function RollReveal({ kind, items, onDone }: { kind: RollKind; items: Rar
             onDone()
           }
         }}
-        className="absolute top-3 border border-white/25 bg-white/10 px-3 py-1.5 text-xs text-white/85 backdrop-blur"
+        data-round
+        aria-label="Bỏ qua"
+        className={`${GLASS_ROUND} absolute top-3 h-10 w-10`}
         style={{ right: 'calc(var(--safe-r, 0px) + 12px)' }}
       >
-        Bỏ qua ›
+        <LineIcon icon="skip" className="h-5 w-5" />
       </button>
     </div>
   )

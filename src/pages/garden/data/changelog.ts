@@ -11,8 +11,8 @@ export const CHANGELOG: ChangelogEntry[] = [
     title: 'Thành tựu, nhiệm vụ ngày, đập chậu & phân bón',
     items: [
       'Menu ☰ ở góc phải trên gom các nút: Cẩm nang, Cửa hàng, Nhiệm vụ, Thành tựu, Gacha, Hòm thư, Túi đồ.',
-      'Thành tựu: 6 nhóm (Thăng tiến, Thu hoạch, Thu thập, Chăm sóc, Buôn bán, Ước nguyện), lên cấp nhận đá, lông chim, Vọng Tinh, Sao Duyên. Cấp tối đa 90.',
-      'Nhiệm vụ hằng ngày: 5 nhiệm vụ mỗi ngày, xong cả 5 được thêm Sao Duyên.',
+      'Thành tựu: 6 nhóm (Thăng tiến, Thu hoạch, Thu thập, Chăm sóc, Buôn bán, Ước nguyện), lên cấp nhận đá, lông chim, Vọng Tinh, Vọng Nguyệt. Cấp tối đa 90.',
+      'Nhiệm vụ hằng ngày: 5 nhiệm vụ mỗi ngày, xong cả 5 được thêm Vọng Nguyệt.',
       'Đập chậu: nâng cấp chậu có tỉ lệ thành công, bỏ thêm chậu trong kho hoặc dùng bùa may mắn để tăng tỉ lệ.',
       'Phân bón: rút ngắn thời gian lớn của cây. Cửa hàng có thêm tab Bùa và Đổi sao (mảnh vỡ sao nhận kèm khi gacha ra món hiếm).',
       'Hòm thư: nhận quà do quản trị gửi.',

@@ -24,7 +24,7 @@ export const OFFERS: Offer[] = [
   { id: 'ss_potS', pay: 'sao_sang', price: 120, limit: 1, name: 'Chọn 1 chậu S (không thuộc banner đang chạy)', icon: '🪴', give: { pot: true }, choose: 'potS' },
   { id: 's_charmA', pay: 'sao', price: 20, limit: 5, name: 'Bùa may mắn A', icon: '🍀', give: { charm: 'A' } },
   { id: 's_vong', pay: 'sao', price: 15, limit: 5, name: '1 Vọng Tinh', icon: '⭐', give: { vong_tinh: 1 } },
-  { id: 's_sao', pay: 'sao', price: 15, limit: 5, name: '1 Sao Duyên', icon: '⭐', give: { sao_duyen: 1 } },
+  { id: 's_sao', pay: 'sao', price: 15, limit: 5, name: '1 Vọng Nguyệt', icon: '⭐', give: { sao_duyen: 1 } },
   { id: 's_seedA', pay: 'sao', price: 30, limit: 3, name: '10 hạt hạng A (chọn loại)', icon: '🌱', give: { seeds: 10 }, choose: 'seedA' },
   { id: 's_potA', pay: 'sao', price: 80, limit: 1, name: 'Chọn 1 chậu A', icon: '🪴', give: { pot: true }, choose: 'potA' },
   { id: 's_insect', pay: 'sao', price: 10, limit: 5, name: '5 côn trùng (chọn loại)', icon: '🐞', give: { insects: 5 }, choose: 'insect' },

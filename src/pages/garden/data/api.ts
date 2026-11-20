@@ -585,7 +585,7 @@ export function stonesToFeathers(actor: Actor, n: number) {
 export function claimDaily(actor: Actor, id: string | null) {
   return mutate(actor, (g) => {
     const v = dailyView(actor.uid, g)
-    const sum = { feathers: 0, stones: 0, xp: 0, sao_duyen: 0 }
+    const sum = { feathers: 0, stones: 0, xp: 0, sao_duyen: 0, vong_tinh: 0 }
     const before = levelOf(g.xp)
     let n = 0
     for (const r of v.rows) {
@@ -599,7 +599,9 @@ export function claimDaily(actor: Actor, id: string | null) {
     const allNow = v.rows.length > 0 && v.rows.every((r) => g.daily.claimed.includes(r.q.id))
     if ((id === null || id === 'bonus') && allNow && !g.daily.claimed.includes('bonus')) {
       g.rolls.sao_duyen += DAILY_BONUS.sao_duyen
+      g.rolls.vong_tinh += DAILY_BONUS.vong_tinh
       sum.sao_duyen += DAILY_BONUS.sao_duyen
+      sum.vong_tinh += DAILY_BONUS.vong_tinh
       g.daily.claimed.push('bonus')
       bump(g, 'fullDays')
       n++

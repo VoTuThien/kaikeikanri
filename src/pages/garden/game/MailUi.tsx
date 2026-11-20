@@ -12,6 +12,7 @@ import { FEATHER_IMG, ROLL_IMG, STONE_IMG } from './GachaUi'
 import { BTN } from './PotUi'
 import { charmById, type CharmId } from '../data/upgrade'
 import { fertById, shardById, type FertId, type ShardId } from '../data/items'
+import { GLASS_ROUND } from './glass'
 
 // Popup Hòm thư (xem CLAUDE.md "Hòm thư"): trái = danh sách thư (mới nhất trước, chưa nhận đậm + chấm đỏ, hết hạn mờ),
 // phải = nội dung thư đang chọn + các ô quà + nút [Nhận]; thanh trên có [Nhận tất cả]. Thư do quản trị gửi bằng script.
@@ -33,12 +34,12 @@ export function mailGifts(r: MailRewards): Gift[] {
   if (r.feathers) out.push({ key: 'f', label: 'Lông chim', n: r.feathers, img: FEATHER_IMG })
   if (r.stones) out.push({ key: 's', label: 'Đá vũ trụ', n: r.stones, img: STONE_IMG })
   if (r.vong_tinh) out.push({ key: 'v', label: 'Vọng Tinh', n: r.vong_tinh, img: ROLL_IMG.vong_tinh })
-  if (r.sao_duyen) out.push({ key: 'd', label: 'Sao Duyên', n: r.sao_duyen, img: ROLL_IMG.sao_duyen })
+  if (r.sao_duyen) out.push({ key: 'd', label: 'Vọng Nguyệt', n: r.sao_duyen, img: ROLL_IMG.sao_duyen })
   for (const [k, n] of Object.entries(r.seeds ?? {})) { const c = cropById.get(k); if (c && n > 0) out.push({ key: `seed_${k}`, label: `Hạt ${c.name.toLowerCase()}`, n, img: cropImage(k) }) }
-  for (const [k, n] of Object.entries(r.insects ?? {})) { const i = insectById.get(k); if (i && n > 0) out.push({ key: `ins_${k}`, label: i.name, n, emoji: i.icon }) }
-  for (const [k, n] of Object.entries(r.charms ?? {})) { const c = charmById.get(k as CharmId); if (c && n > 0) out.push({ key: `charm_${k}`, label: c.name, n, emoji: c.icon }) }
-  for (const [k, n] of Object.entries(r.ferts ?? {})) { const f = fertById.get(k as FertId); if (f && n > 0) out.push({ key: `fert_${k}`, label: f.name, n, emoji: f.icon }) }
-  for (const [k, n] of Object.entries(r.shards ?? {})) { const x = shardById.get(k as ShardId); if (x && n > 0) out.push({ key: `shard_${k}`, label: x.name, n, emoji: x.icon }) }
+  for (const [k, n] of Object.entries(r.insects ?? {})) { const i = insectById.get(k); if (i && n > 0) out.push({ key: `ins_${k}`, label: i.name, n, emoji: i.icon, img: i.img }) }
+  for (const [k, n] of Object.entries(r.charms ?? {})) { const c = charmById.get(k as CharmId); if (c && n > 0) out.push({ key: `charm_${k}`, label: c.name, n, emoji: c.icon, img: c.img }) }
+  for (const [k, n] of Object.entries(r.ferts ?? {})) { const f = fertById.get(k as FertId); if (f && n > 0) out.push({ key: `fert_${k}`, label: f.name, n, emoji: f.icon, img: f.img }) }
+  for (const [k, n] of Object.entries(r.shards ?? {})) { const x = shardById.get(k as ShardId); if (x && n > 0) out.push({ key: `shard_${k}`, label: x.name, n, emoji: x.icon, img: x.img }) }
   const pots = new Map<string, number>()
   for (const k of r.pots ?? []) if (potKindById.has(k)) pots.set(k, (pots.get(k) ?? 0) + 1)
   for (const [k, n] of pots) out.push({ key: `pot_${k}`, label: potKindById.get(k)!.name, n, img: potImage(k, 1) })
@@ -77,11 +78,11 @@ export function MailScreen({ list, isOpen, actor, onClose }: { list: Mail[]; isO
     <div className="absolute inset-0 z-40 flex flex-col bg-gradient-to-br from-[#0d1438]/95 via-[#1b1650]/95 to-[#2d1450]/95 backdrop-blur-xl">
       {/* thanh trên: đóng, tiêu đề, số thư chưa nhận, nhận tất cả */}
       <div className="flex h-14 shrink-0 items-center gap-2 border-b border-white/15" style={{ paddingLeft: 'calc(var(--safe-l) + 12px)', paddingRight: 'calc(var(--safe-r) + 12px)' }}>
-        <button type="button" data-round aria-label="Đóng hòm thư" onClick={onClose} className="flex h-10 w-10 items-center justify-center rounded-full border border-white/30 bg-white/10">
+        <button type="button" data-round aria-label="Đóng hòm thư" onClick={onClose} className={`${GLASS_ROUND} h-10 w-10`}>
           <LineIcon icon="cancel" className="h-5 w-5" />
         </button>
         <div className="ml-1 min-w-0">
-          <p className="text-lg leading-6 font-light lowercase">hòm thư</p>
+          <p className="text-lg leading-6 font-light">Hòm thư</p>
           <p className="text-xs leading-4 text-white/65">{openList.length ? `${openList.length} thư chưa nhận quà` : 'Không có thư mới'}</p>
         </div>
         <button type="button" disabled={busy || !openList.length} onClick={() => void claim(openList)} className={`${BTN} ml-auto w-40 from-amber-400/80 to-rose-500/80`}>

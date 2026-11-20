@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { potImage, potKindById, potSetById, RANK_STYLE, type OwnedPot, type Rank } from '../data/pots'
+import { byRank, potImage, potKindById, potSetById, RANK_STYLE, type OwnedPot, type Rank } from '../data/pots'
 import { DragScroll } from './DragScroll'
 import { potCard, tierInfo } from './potInfo'
 
@@ -19,6 +19,27 @@ export function RankBadge({ rank, className = '' }: { rank: Rank; className?: st
   )
 }
 
+// ---- Cột lọc hạng ở đầu (bên trái) dải danh sách cuộn ngang (chọn hạt / chọn chậu): S, A, B, ALL xếp dọc, ĐỨNG YÊN khi cuộn danh sách ----
+export type RankFilterValue = Rank | 'ALL'
+const FILTERS: RankFilterValue[] = ['S', 'A', 'B', 'ALL']
+export function RankFilter({ value, onChange }: { value: RankFilterValue; onChange: (v: RankFilterValue) => void }) {
+  return (
+    <div className="flex w-14 shrink-0 flex-col gap-1" role="radiogroup" aria-label="Lọc theo hạng">
+      {FILTERS.map((f) => {
+        const on = f === value
+        return (
+          <button key={f} type="button" role="radio" aria-checked={on} onClick={() => onChange(f)}
+            className={`flex min-h-0 flex-1 items-center justify-center border text-xs font-bold transition active:scale-95 ${
+              on ? (f === 'ALL' ? 'border-white/80 bg-white/30' : `border-white/80 bg-gradient-to-br ${RANK_STYLE[f]}`) : 'border-white/15 bg-white/5 text-white/70'
+            }`}>
+            {f}
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
 // ---- Danh sách chậu trong kho (cuộn ngang) ----
 export function PotList({ pots, onTier, tier, selected, onSelect }: {
   pots: OwnedPot[] // chậu trong kho (chưa đặt)
@@ -27,18 +48,22 @@ export function PotList({ pots, onTier, tier, selected, onSelect }: {
   selected: string | null
   onSelect: (id: string) => void
 }) {
+  const [filter, setFilter] = useState<RankFilterValue>('ALL') // mở danh sách: mặc định ALL
+  const rankOf = (p: OwnedPot) => potSetById.get(potKindById.get(p.kind)?.set ?? '')?.rank ?? 'B'
+  const shown = byRank(pots, rankOf).filter((p) => filter === 'ALL' || rankOf(p) === filter)
   return (
     <div
-      className="absolute bottom-0 z-30 border-t border-white/20 bg-indigo-950/55 pt-2 pb-2 shadow-2xl shadow-black/50 backdrop-blur-xl"
+      className="absolute bottom-0 z-30 flex gap-2 border-t border-white/20 bg-indigo-950/55 pt-2 pb-2 shadow-2xl shadow-black/50 backdrop-blur-xl"
       style={{ height: LIST_H, left: 0, right: 0, paddingLeft: 'calc(var(--safe-l) + 10px)', paddingRight: 'calc(var(--safe-r) + 10px)' }}
     >
-      {pots.length === 0 ? (
-        <p className="flex h-full items-center justify-center px-6 text-center text-sm text-white/75">
-          Kho không còn chậu nào. Cất bớt chậu ở chỗ khác, hoặc chờ tính năng nhận chậu mới (sắp có).
+      {pots.length > 0 && <RankFilter value={filter} onChange={setFilter} />}
+      {shown.length === 0 ? (
+        <p className="flex h-full min-w-0 flex-1 items-center justify-center px-6 text-center text-sm text-white/75">
+          {pots.length === 0 ? 'Kho không còn chậu nào. Cất bớt chậu ở chỗ khác, hoặc chờ tính năng nhận chậu mới (sắp có).' : `Không có chậu hạng ${filter} trong kho.`}
         </p>
       ) : (
-        <DragScroll axis="x" className="h-full">
-          {pots.map((p) => {
+        <DragScroll key={filter} axis="x" className="h-full min-w-0 flex-1">
+          {shown.map((p) => {
             const c = potCard(onTier, p, tier)
             const on = p.id === selected
             return (
@@ -124,7 +149,7 @@ export function PotMenu({ pot, confirm, busy, onMove, onStore, onUpgrade, onClos
         {confirm && <p className="mb-2 text-sm leading-5 font-semibold text-rose-200">Cất chậu? Cây đang trồng sẽ mất</p>}
         <div className="grid grid-cols-2 gap-2">
           <button type="button" className={`${BTN} from-slate-400/40 to-slate-600/50`} onClick={onClose}>Đóng</button>
-          <button type="button" className={`${BTN} from-amber-400/70 to-fuchsia-600/70`} disabled={busy} onClick={onUpgrade}>Đập chậu</button>
+          <button type="button" className={`${BTN} from-amber-400/70 to-fuchsia-600/70`} disabled={busy} onClick={onUpgrade}>Đập</button>
           <button type="button" className={BTN} disabled={busy} onClick={onMove}>Dời chỗ</button>
           <button type="button" className={`${BTN} ${confirm ? 'from-rose-500/80 to-red-700/80' : ''}`} disabled={busy} onClick={onStore}>
             {confirm ? 'Cất luôn' : 'Cất vào kho'}

@@ -715,7 +715,7 @@ Game nông trại **tự thiết kế** (cùng thể loại game trồng trọt,
   - **Camera chỉ nhìn 1 tầng mây mỗi lúc** (không cố hiện hết các tầng trong khung ngang). **Nút mũi tên** để chuyển sang tầng khác.
     Đang xem 1 tầng: **xoay vòng quanh tầng** để xem các góc, **phóng to / thu nhỏ** để đưa tầm nhìn lại gần / ra xa tầng đó.
     Chi tiết ĐÃ CHỐT:
-    1. **Nút ▲ ▼ xếp dọc ở mép phải** màn hình ngang, giữa 2 nút ghi "Tầng n/4"; ở tầng 1 nút ▼ mờ, ở tầng 4 nút ▲ mờ (không quay vòng).
+    1. **Nút ▲ ▼ xếp dọc ở mép phải** màn hình ngang, giữa 2 nút là **4 ô vuông nhỏ rời nhau xếp thành ô lớn 2×2 (32px, nhỏ hơn nút ▲ cho đỡ chiếm chỗ)** (sửa 21/11/2026, thay chữ "Tầng n/4"): đang ở tầng n thì n ô đầu sáng vàng (trái → phải, trên → dưới), còn lại mờ; tầng khoá thì ô hiện tại có ổ khoá; ở tầng 1 nút ▼ mờ, ở tầng 4 nút ▲ mờ (không quay vòng).
     2. **Chuyển tầng: camera bay lên / xuống mượt ~0,8 giây**, giữ nguyên góc xoay hiện tại (vẫn nhìn từ cùng một phía).
     3. **Giới hạn camera theo từng tầng**: không cho chui xuống dưới mây (chỉ nhìn từ trên cao tới gần ngang mặt mây); khoảng phóng to / thu nhỏ
        tính theo cỡ tầng (tầng 1 rộng nhất, tầng 4 nhỏ nhất), thu nhỏ tối đa vẫn chỉ vừa khung 1 tầng.
@@ -795,7 +795,7 @@ Game nông trại **tự thiết kế** (cùng thể loại game trồng trọt,
     cây chưa đủ cấp mờ + "Cần cấp n"; chỉ hiện hạt đang có. Chọn hạt → gieo luôn chậu đó + **túi hạt 3D lơ lửng trên chậu** (tô màu `Crop.bag`, nhãn canvas vẽ icon cây to tràn mép).
     **Nhấn vào túi rồi kéo**: túi đi theo ngón tay (cao hơn 70px), **lướt qua chậu trống nào (trong 60px) là gieo chậu đó** (hiện ngay — `pending`, thả tay mới ghi 1 transaction).
     Chạm chậu trống khác khi đang cầm túi cũng gieo. Thanh dưới "Cà rốt · còn n hạt" + nút X. Túi biến mất khi: hết hạt, chạm chỗ trống / chậu có cây, bấm X, chuyển tầng.
-  - **Chạm cây**: chín → thu hoạch (vào kho, +kinh nghiệm, báo lên cấp); chưa tưới → tưới; còn lại → "… chín sau …". **Huy hiệu nổi trên cây** của tầng đang xem: 🧺 (chín, nhảy nhảy), 💧 (cần tưới, từ giai đoạn mầm).
+  - **Chạm cây**: chín → thu hoạch (vào kho, +kinh nghiệm, báo lên cấp); chưa tưới → tưới; còn lại → "… chín sau …". **Huy hiệu nổi trên cây** của tầng đang xem: chỉ 💧 (cần tưới, từ giai đoạn mầm); **cây chín KHÔNG có huy hiệu** (bỏ 🧺 ngày 21/11/2026), chạm cây là thu hoạch.
   - **Côn trùng** (`con-trung.glb`, ~0,33MB, xuất KHÔNG UV): ~1/2 số cây (cố định theo `plantedAt`) có 1 con (sâu / bọ rùa / đom đóm / nhện / bướm) từ khi cây lớn 35%; bọ rùa + đom đóm + bướm bay vòng quanh ngọn (vỗ cánh, bướm vỗ chậm và rộng: `INSECT_NODE.flap`),
     sâu + nhện bò trên miệng chậu (nhện bỏ mạng, nằm bò). **Chạm để bắt → túi côn trùng** (`insects`). **Không còn trừ nông sản vì sâu.** Thu hoạch thì con chưa bắt bay mất.
     Kích thước chuẩn hoá theo phần đang hiện (`INSECT_SIZE` 0,42). **Phần bắt côn trùng người dùng sẽ tự thử lại.**
@@ -841,7 +841,7 @@ Game nông trại **tự thiết kế** (cùng thể loại game trồng trọt,
   - **Cửa hàng** (popup `ShopPopup` trong `game/GardenPopups.tsx`, nút 🛒 ở HUD): liệt kê hạt **hạng B** (`CROPS` có `rank === 'B'`), mỗi dòng: ảnh túi, tag hạng, tên,
     giá / hạt (`seedPrice` lông chim), số hạt đang có, 2 nút bằng nhau **[Mua 1] [Mua 10]** (ghi giá); cây chưa đủ cấp mờ + "Cần cấp n", không đủ lông chim thì nút mờ.
     Mua = `buySeeds(actor, crop, n)` (transaction: chỉ hạng B, đủ cấp, đủ lông chim → trừ lông chim, cộng `seeds`).
-  - HUD: **giữa = 2 ô bằng nhau [đá vũ trụ] [lông chim]** (`STONE_IMG`, `FEATHER_IMG` trong `GachaUi.tsx`); **phải = [📖 Cẩm nang] [🛒 Cửa hàng] [gacha] [🧺 Túi đồ]** (hòm thư chưa có).
+  - HUD (sửa 20/11/2026): **đá vũ trụ + lông chim KHÔNG khung, nằm góc phải trên sát bên trái nút ☰** (icon + số có bóng chữ; `STONE_IMG`, `FEATHER_IMG` trong `GachaUi.tsx`); **cấp độ = số nằm giữa cỏ 4 lá** (`LevelClover` trong `GamePage.tsx`, không có chữ "Cấp") + thanh kinh nghiệm mảnh bên phải, không khung; **phải = [📖 Cẩm nang] [🛒 Cửa hàng] [gacha] [🧺 Túi đồ]** (hòm thư chưa có).
     Số lông chim trong chữ dùng `Feathers` (số + icon lông chim).
 - [ ] **Tiền trong game + cục roll (ĐÃ CHỐT phần dưới, phần lông chim + cửa hàng ĐÃ LÀM ở trên, còn lại CHƯA LÀM)**:
   - **Bỏ xu trong game Vườn mây, chỉ còn 2 loại tiền**: **Lông chim** và **Đá vũ trụ**. **Mua hạt và bán nông sản dùng LÔNG CHIM.**
@@ -849,7 +849,7 @@ Game nông trại **tự thiết kế** (cùng thể loại game trồng trọt,
   - **Lông chim**: nâng cấp chậu (**côn trùng + lông chim**, lông chim thay chỗ xu), mua hạt. Kiếm từ: **bán nông sản**, **nhiệm vụ hằng ngày**, **đổi từ đá vũ trụ**.
   - **Đá vũ trụ**: mua cục roll. Kiếm từ: **tặng khi lên cấp**, **bán sản phẩm của máy chế tạo**, **nhiệm vụ hằng ngày**.
   - Nhiệm vụ hằng ngày, vd 1 nhiệm vụ thưởng **20 lông chim + 16 đá vũ trụ**. **Không nạp tiền thật.**
-  - **Cục roll** (vật phẩm quay gacha), 2 loại **làm giống hệt nhau, chỉ khác màu**: **"Sao Duyên"** = banner 1, ánh sáng **xanh biển trắng**;
+  - **Cục roll** (vật phẩm quay gacha), 2 loại **làm giống hệt nhau, chỉ khác màu**: **"Vọng Nguyệt"** = banner 1, ánh sáng **xanh biển trắng**;
     **"Vọng Tinh"** = banner 2, ánh sáng **vàng trắng**. Hình **khối chữ nhật, bên trong có ngôi sao phát sáng**. **Giá 16 đá vũ trụ / cục, 2 loại bằng giá.** **Cho quay 10 lần 1 lượt.**
   - **Chậu tặng sẵn khi bắt đầu: chỉ bộ Đất nung** (bỏ các bộ khác khỏi `STARTER_SETS` khi làm phần này; các bộ khác lấy qua gacha).
   - **Kinh nghiệm game mới** (riêng, bắt đầu từ 0): **mở tầng theo cấp game mới** (tầng 2 / 3 / 4 ở cấp 5 / 10 / 15), công thức lên cấp giữ như `levelOf`.
@@ -867,8 +867,8 @@ Game nông trại **tự thiết kế** (cùng thể loại game trồng trọt,
     | 5→6 | 10 | 800 |
   - **Quay 10 lần = 160 đá** (không giảm giá). Tỉ lệ / đảm bảo trong banner: chờ người dùng mô tả gacha.
   - **Nhiệm vụ hằng ngày: mỗi ngày 5 nhiệm vụ NGẪU NHIÊN**, độ khó tăng theo **số tầng đã mở** (đề xuất, xem danh sách dưới).
-  - **HUD trong game**: **trái** = nút thoát + **cấp + thanh kinh nghiệm**; **giữa** = **đá vũ trụ + lông chim**;
-    **phải** = các nút CHỈ CÓ ICON: **cửa hàng, hòm thư, gacha, túi đồ**. Số Sao Duyên / Vọng Tinh hiện trong màn hình gacha.
+  - **HUD trong game**: **trái** = nút thoát + **cấp (số trong cỏ 4 lá) + thanh kinh nghiệm**; **đá vũ trụ + lông chim** ở góc phải, sát bên trái nút ☰ (xem trên);
+    **phải** = các nút CHỈ CÓ ICON: **cửa hàng, hòm thư, gacha, túi đồ**. Số Vọng Nguyệt / Vọng Tinh hiện trong màn hình gacha.
     (Chốt 20/11/2026: thêm nút **🏆 Thành tựu**, GIỮ hòm thư (gửi bằng script); các nút gom vào **menu ☰** — xem mục "HUD menu ☰".)
   - **Icon tiền (ĐÃ LÀM, dựng trong Blender, CHỈ xuất ảnh — không đưa mô hình 3D vào game)**: collection `TienTe` (`Tien_LongChim`, `Tien_DaVuTru`; ảnh xem `design/vuon-may/tien-te.png`).
     **Lông chim** = lông vũ cong, phiến trắng ngà chuyển tím nhạt ở đầu lông (màu chuyển theo trục cục bộ bằng ColorRamp), 2 khe tách tơ mỗi bên, cọng vàng nhạt, lông tơ ở gốc, 3 ngôi sao lấp lánh 4 cánh.
@@ -898,22 +898,22 @@ Game nông trại **tự thiết kế** (cùng thể loại game trồng trọt,
     | Chế tạo sản phẩm ở máy | 1 | 3 | 5 | 8 |
     | Nâng cấp chậu | — | 1 | 1 | 2 |
     | Thu hoạch cây hạng cao (cây mở ở cấp ≥ 5) | — | 2 | 4 | 6 |
-    Thưởng mỗi nhiệm vụ (**×2, chốt 20/11/2026**): bậc 1 **40 lông chim + 32 đá**, bậc 2 50 + 32, bậc 3 60 + 48, bậc 4 80 + 64. **Xong cả 5 nhiệm vụ trong ngày: thưởng thêm 2 Sao Duyên** (×2; chờ người dùng xác nhận có nhân đôi Sao Duyên không).
+    Thưởng mỗi nhiệm vụ (**×2, chốt 20/11/2026**): bậc 1 **40 lông chim + 32 đá**, bậc 2 50 + 32, bậc 3 60 + 48, bậc 4 80 + 64. **Xong cả 5 nhiệm vụ trong ngày: thưởng CỐ ĐỊNH 2 Vọng Tinh + 2 Vọng Nguyệt** (chốt 21/11/2026, `DAILY_BONUS`).
     Xong nhiệm vụ thì bấm nhận thưởng (không tự cộng), ngày qua thì nhiệm vụ cũ mất.
 - [ ] **Gacha (ĐÃ CHỐT, CHƯA LÀM — làm SAU khi có các bộ chậu hạng S)**:
   - **ĐÃ LÀM (bản đầu — banner CHẬU, dùng Vọng Tinh)**: nút tròn có hình Vọng Tinh ở góc phải trên HUD + ô đá vũ trụ ở giữa trên → `GachaScreen` (`game/GachaUi.tsx`, phủ kín khung game):
-    banner (tên bộ S, tháng, 6 chậu cấp 6, số lần còn tới vàng chắc chắn, bảo hiểm), số Vọng Tinh / Sao Duyên / đá, **nhận quà chào mừng 20 Vọng Tinh** (tạm nhận tại đây, chưa có hòm thư),
+    banner (tên bộ S, tháng, 6 chậu cấp 6, số lần còn tới vàng chắc chắn, bảo hiểm), số Vọng Tinh / Vọng Nguyệt / đá, **nhận quà chào mừng 20 Vọng Tinh** (tạm nhận tại đây, chưa có hòm thư),
     **đổi 1 / 10 Vọng Tinh** (16 đá / cục), **Quay ×1 / ×10**, bảng "Tỉ lệ" (quy tắc + tỉ lệ) và "Lịch sử" (100 lần gần nhất). Quay = `pullPots` (`data/api.ts`, 1 transaction: trừ roll, quay, ghi kết quả + lịch sử)
     → **`RollReveal`** (`game/RollReveal.tsx`, hiệu ứng ở trên, tự vỡ không cần chạm) → hiện từng món (chạm để tiếp, "Bỏ qua") → tổng kết 2×5 [Xong] [Quay tiếp].
     Logic ở `data/gacha.ts` (`pullMany`, `goldRate`, `bannerOf`; lịch banner `BANNER_SETS` xoay theo tháng từ 11/2026, hiện chỉ có Phượng Hoàng; vàng lệch lấy từ các bộ S không có trong lịch `OFF_SETS` = Sứ Lam, Băng Tinh).
     Đã mô phỏng 300.000 lần: lâu nhất 74 lần ra vàng, ≤ 9 lần liền không tím, sau lệch không bao giờ lệch tiếp, trung bình ~63 lần / vàng.
     Vườn có thêm `stones` (mặc định 32), `rolls` { sao_duyen, vong_tinh }, `gift`, `seeds` (hạt nhận từ gacha, **chưa dùng để gieo**), `insects` (côn trùng, chưa dùng), `gacha` { sinceGold, sincePurple, insured, total }, `pullLog`.
-    **Hạt giống chỉ rơi 8 cây đang có trong `CROPS`** (cây hiếm thêm sau), chia theo hạng B / A / S (xem GĐ4). **`STARTER_SETS` = chỉ Đất nung** (vườn đã lưu 10 bộ tặng thử trước đây vẫn giữ). Chưa có: banner Sao Duyên, hòm thư, cách kiếm thêm đá, lông chim.
+    **Hạt giống chỉ rơi 8 cây đang có trong `CROPS`** (cây hiếm thêm sau), chia theo hạng B / A / S (xem GĐ4). **`STARTER_SETS` = chỉ Đất nung** (vườn đã lưu 10 bộ tặng thử trước đây vẫn giữ). Chưa có: banner Vọng Nguyệt, hòm thư, cách kiếm thêm đá, lông chim.
     **TẠM để test**: tài khoản trong `TESTER_UIDS` (`data/gacha.ts`) thấy nút "+100 Vọng Tinh (test)" trong màn hình gacha (`grantTestRolls`); gỡ khi làm xong phần tiền tệ.
     Icon nét côn trùng mới trong `GLYPHS`: 🐞 bọ rùa, 🦋 bướm, 🕷 nhện, 🪲 đom đóm (🐛 sâu đã có).
   - **KHÔNG có sổ tay cách trồng** (đã bỏ). **Đủ cấp + có hạt giống là trồng được.** Hạt giống mua bằng **lông chim**;
     **nhiều loại hạt HIẾM chỉ rơi từ gacha, KHÔNG bán ở cửa hàng** (tỉ lệ rơi khác nhau theo độ hiếm, xem bảng dưới).
-  - **2 banner, 2 bộ đếm RIÊNG**: **banner 1 = đồ trang trí, dùng Sao Duyên** (hệ thống đồ trang trí + cơ chế mô tả sau); **banner 2 = chậu, dùng Vọng Tinh**.
+  - **2 banner, 2 bộ đếm RIÊNG**: **banner 1 = đồ trang trí, dùng Vọng Nguyệt** (hệ thống đồ trang trí + cơ chế mô tả sau); **banner 2 = chậu, dùng Vọng Tinh**.
   - **Banner chậu**: mỗi đợt **1 tháng**, chỉ định **1 bộ chậu hạng S** (cần ≥ 2 bộ S để có "vàng ngoài banner"); lịch ghi sẵn trong code, xoay vòng các bộ S.
     1 lần quay = 1 Vọng Tinh; quay 10 lần 1 lượt tỉ lệ y như 10 lần lẻ.
   - **Tỉ lệ mỗi lần quay**: vàng (chậu S) **0,08%**; tím (**chậu A**) **6%**; chậu B **14%**; **10 hạt giống** **30%**; côn trùng (bọ rùa, sâu, đom đóm, nhện, **bươm bướm**) phần còn lại ≈ 50%, chia đều.
@@ -925,7 +925,7 @@ Game nông trại **tự thiết kế** (cùng thể loại game trồng trọt,
     **Đủ bộ thì "reset"**: bắt đầu vòng 2, chậu nào chưa có bản thứ 2 thì KHÔNG tính trùng; tới khi lại gặp bản trùng lần nữa (bản thứ 3…) mới tính trùng (vòng 3, …).
     **Chậu trùng cứ giữ lại** (đặt ở tầng khác để có hiệu ứng cho tầng đó).
   - **Bộ đếm lần quay + bảo hiểm giữ nguyên khi đổi sang banner mới** (mỗi banner 1 / 2 một bộ đếm riêng).
-  - **Hiệu ứng lúc vừa bấm quay (ĐÃ CHỐT)** — quay 1 hay 10 lần đều chỉ **1 cục roll** (đúng loại: Vọng Tinh / Sao Duyên), màu báo theo **món hiếm nhất**:
+  - **Hiệu ứng lúc vừa bấm quay (ĐÃ CHỐT)** — quay 1 hay 10 lần đều chỉ **1 cục roll** (đúng loại: Vọng Tinh / Vọng Nguyệt), màu báo theo **món hiếm nhất**:
     1. **Màn hình tối, cục roll ĐÃ CÓ SẴN giữa màn hình nhưng CHÌM TRONG BÓNG TỐI** (KHÔNG loé sáng, KHÔNG phóng to cục roll từ nút quay): kính, hành tinh, đèn phụ, phản chiếu môi trường
        (`scene.environmentIntensity`) theo bình phương độ sáng trời (`lit2`), lõi sáng theo `lit³` → trăng mới ló thì cục roll gần như vô hình, trăng vào nhiều mới rõ dần.
     2. **Mặt trăng trôi 1 MẠCH từ ngoài mép phải tới đúng chỗ thẳng hàng, KHÔNG dừng giữa chừng** (đoạn lọt vào màn hình ~2,3 giây đi chậm đều, sau đó tăng tốc mượt rồi chậm dần khi khớp hàng).
@@ -943,7 +943,7 @@ Game nông trại **tự thiết kế** (cùng thể loại game trồng trọt,
     **mặt trăng là ĐĨA SÁNG đơn giản** (người dùng không muốn trăng 3D), vị trí tính THEO KHUNG NHÌN (trăng ở rất xa, không lệch khi camera bay):
     trôi vào từ ngoài mép phải theo 1 cung mượt lên góc trên bên phải, rồi trôi đều vào đúng sau quả cầu; mảnh kính là lăng trụ có độ dày, vài mảnh bay sượt qua camera; 260 hạt bụi sáng nhiều lớp xa gần.
     Phần phát sáng của cục roll (lõi, quầng, tia, đốm) dùng `MeshBasicMaterial` (không chịu đèn) để giữ đúng màu gợi ý.
-  - **Hiệu ứng che màn hình khi ra vàng / tím.** Màn hình banner: xem **quy tắc quay + tỉ lệ rơi từng vật phẩm**, xem **lịch sử đã quay được gì**; số Sao Duyên / Vọng Tinh hiện ở đây.
+  - **Hiệu ứng che màn hình khi ra vàng / tím.** Màn hình banner: xem **quy tắc quay + tỉ lệ rơi từng vật phẩm**, xem **lịch sử đã quay được gì**; số Vọng Nguyệt / Vọng Tinh hiện ở đây.
   - **Độ hiếm hạt giống (ĐÃ DUYỆT)** — mỗi lần rơi "10 hạt giống" là 10 hạt CÙNG 1 loại; trong suất 30% hạt giống chia theo độ hiếm, trong cùng độ hiếm chia đều:
     | Độ hiếm | Cây | Bán ở cửa hàng | Tỉ lệ trong suất hạt | ≈ mỗi lần quay (mỗi loại) |
     |---|---|---|---|---|
@@ -969,13 +969,13 @@ Game nông trại **tự thiết kế** (cùng thể loại game trồng trọt,
     |---|---|---|---|---|---|---|---|
     | Lông chim | 40 | 80 | 160 | 300 | 600 | 1.000 | 1.600 |
     | Đá vũ trụ | 16 | 32 | 48 | 64 | 96 | 128 | 160 |
-    | Cục roll (thành tựu lớn) | — | — | — | — | +2 Vọng Tinh | +4 Vọng Tinh +2 Sao Duyên | +6 Vọng Tinh +4 Sao Duyên |
+    | Cục roll (thành tựu lớn) | — | — | — | — | +2 Vọng Tinh | +4 Vọng Tinh +2 Vọng Nguyệt | +6 Vọng Tinh +4 Vọng Nguyệt |
     Ước lượng tổng từ thành tựu (không tính Thăng tiến) ≈ 7.200 đá + roll ở bậc V–VII. Người dùng chấp nhận rộng tay: sẽ ra banner / bộ chậu mới liên tục.
   - **Các nhóm (đã chốt)**:
     1. **Thăng tiến** (đổi tên từ "Cấp độ"):
        - "Chào mừng tới Vườn mây": nhận **20 Vọng Tinh** (thay nút nhận quà ở màn hình gacha).
-       - **Lên cấp L** (mỗi cấp 1 lần nhận): **16 đá + 10·L lông chim + 10 Vọng Tinh + 5 Sao Duyên**.
-       - **Cấp 5 / 10 / 15 (mở tầng)**: **160 đá + 200 lông chim + 30 Vọng Tinh + 20 Sao Duyên**, **THAY CHO** thưởng cấp thường của cấp đó (không cộng).
+       - **Lên cấp L** (mỗi cấp 1 lần nhận): **16 đá + 10·L lông chim + 10 Vọng Tinh + 5 Vọng Nguyệt**.
+       - **Cấp 5 / 10 / 15 (mở tầng)**: **160 đá + 200 lông chim + 30 Vọng Tinh + 20 Vọng Nguyệt**, **THAY CHO** thưởng cấp thường của cấp đó (không cộng).
        - **Sau cấp 15 vẫn thưởng mỗi cấp** như trên, tới **cấp tối đa 90** (Thăng tiến không nhân 2, giữ đúng số người dùng đưa).
     2. **Thu hoạch** (giải thích chi tiết, đã gửi người dùng):
        - **"Nông dân chăm chỉ" (I–VII)**: tổng **số NÔNG SẢN** đã thu (không phải số lần): 50 / 200 / 500 / 1.000 / 2.500 / 5.000 / 10.000.
@@ -1009,7 +1009,7 @@ Game nông trại **tự thiết kế** (cùng thể loại game trồng trọt,
     - **Không cần chuyển dữ liệu cũ**: chưa có người chơi thật; sau khi thử nghiệm người dùng sẽ **xoá dữ liệu vườn các tài khoản đang chơi**.
     - Nút "Nhận quà chào mừng" ở `GachaScreen` + cờ `gift` chuyển sang thành tựu "Chào mừng"; nút "+100 Vọng Tinh (test)" thay bằng gửi thư (script).
   - **Đã chốt 20/11/2026**: thưởng mở tầng THAY THẾ thưởng cấp thường; thưởng bậc ×2 (không phải ×6), nhiệm vụ ngày ×2; sau cấp 15 vẫn thưởng mỗi cấp, cấp tối đa 90, từ cấp 40 rất khó lên;
-    Sao Duyên cứ tích trữ (banner đồ trang trí chưa có); mốc "Nhà sưu tầm" giữ 60; sẽ có bộ chậu 5 / 4 chậu dành riêng tầng 3 / 4 (như Thiên hà).
+    Vọng Nguyệt cứ tích trữ (banner đồ trang trí chưa có); mốc "Nhà sưu tầm" giữ 60; sẽ có bộ chậu 5 / 4 chậu dành riêng tầng 3 / 4 (như Thiên hà).
   - **Chốt thêm 20/11/2026 (lượt 3, các bất cập a–f đều làm theo đề xuất)**:
     a. **Mốc Thăng tiến sau cấp 15: 20 / 30 / 40 / 50 / 60 / 70 / 80 / 90, thưởng TĂNG DẦN**, thay cho thưởng cấp thường của cấp đó (như mốc mở tầng). Con số (đề xuất, cân chỉnh được):
        | Cấp | 20 | 30 | 40 | 50 | 60 | 70 | 80 | 90 (tối đa) |
@@ -1017,10 +1017,10 @@ Game nông trại **tự thiết kế** (cùng thể loại game trồng trọt,
        | Đá vũ trụ | 200 | 240 | 280 | 320 | 360 | 400 | 440 | 480 |
        | Lông chim | 400 | 600 | 800 | 1.000 | 1.200 | 1.400 | 1.600 | 2.000 |
        | Vọng Tinh | 35 | 40 | 45 | 50 | 55 | 60 | 65 | 80 |
-       | Sao Duyên | 25 | 30 | 35 | 40 | 45 | 50 | 55 | 70 |
+       | Vọng Nguyệt | 25 | 30 | 35 | 40 | 45 | 50 | 55 | 70 |
     b. **Thêm nguồn kinh nghiệm** (ngoài thu hoạch; con số đề xuất, cân chỉnh được): mỗi nhiệm vụ ngày bậc 1 / 2 / 3 / 4 = **20 / 40 / 80 / 150 kinh nghiệm**; **bắt 1 côn trùng = 2 kinh nghiệm**;
        chế tạo: mỗi sản phẩm ≈ ½ tổng kinh nghiệm thu hoạch của nguyên liệu (định khi làm GĐ6); **14 cây mới (GĐ8) rải cấp mở từ cấp 9 tới ~cấp 40**, cây lớn lâu cho kinh nghiệm cao hơn (cây 24 giờ ≈ 200–300).
-    c. **GHI NHỚ khi cân banner**: Thăng tiến rất rộng tay (10 Vọng Tinh + 5 Sao Duyên mỗi cấp + các mốc → tới cấp 90 ≈ 1.300 Vọng Tinh + 800 Sao Duyên). Người dùng cố ý chấp nhận vì sẽ ra banner / bộ chậu mới liên tục.
+    c. **GHI NHỚ khi cân banner**: Thăng tiến rất rộng tay (10 Vọng Tinh + 5 Vọng Nguyệt mỗi cấp + các mốc → tới cấp 90 ≈ 1.300 Vọng Tinh + 800 Vọng Nguyệt). Người dùng cố ý chấp nhận vì sẽ ra banner / bộ chậu mới liên tục.
     d. **"Nhà sưu tầm"**: khi game có > 60 loại chậu thì thêm bậc 80 / 100 / 150…; dòng "Trọn bộ <bộ>" tự sinh từ `POT_SETS` (không phải thêm tay).
     e. **Bộ 5 / 4 chậu (dành riêng tầng 3 / 4)**: mốc hiệu ứng riêng — bộ 5 chậu **2 / 4 / 5**, bộ 4 chậu **2 / 3 / 4** (như Thiên hà); khai báo `tiers` trong `POT_SETS` như Thiên hà.
     f. **Menu ☰**: làm theo đề xuất (xem mục "HUD menu ☰").
@@ -1045,7 +1045,7 @@ Game nông trại **tự thiết kế** (cùng thể loại game trồng trọt,
        | `--family <familyId>` | chỉ các vườn của 1 gia đình (dùng kèm `--to`) |
        | `--broadcast` | 1 thư CHUNG (không dùng cùng `--to`); thêm `--new-players` để người chơi tạo vườn SAU này cũng nhận |
        | `--title "…"` (bắt buộc), `--body "…"` (`\n` = xuống dòng), `--from "…"` (mặc định "Vườn mây") | nội dung thư |
-       | `--feathers N`, `--stones N`, `--vong N`, `--sao N` | lông chim, đá vũ trụ, Vọng Tinh, Sao Duyên |
+       | `--feathers N`, `--stones N`, `--vong N`, `--sao N` | lông chim, đá vũ trụ, Vọng Tinh, Vọng Nguyệt |
        | `--seed <id cây>:N`, `--insect <id>:N`, `--pot <id loại chậu>[:N]` | hạt, côn trùng, chậu cấp 1 — **lặp lại được** nhiều lần |
        | `--charm B:N` / `A:N` / `S:N` / `keep:N` | bùa may mắn B / A / S, bùa giữ cấp (đập chậu) |
        | `--fert B:N` / `A:N` | phân bón B / A (số túi) |
@@ -1135,7 +1135,7 @@ Game nông trại **tự thiết kế** (cùng thể loại game trồng trọt,
     | Chậu A (tím) | 6% | **5 mảnh sao** (trùng: 8) |
     | Bùa A | 0,9% | 2 mảnh sao |
     | 10 hạt hạng A | ~7,5% | 1 mảnh sao |
-    Trung bình ≈ **3,7 mảnh sao + 0,2 sao sáng / 10 lần quay**; 1 chậu vàng ≈ 10–15 sao sáng. Bùa giữ cấp không kèm mảnh. Banner 1 (Sao Duyên, đồ trang trí) sau này dùng cùng quy tắc.
+    Trung bình ≈ **3,7 mảnh sao + 0,2 sao sáng / 10 lần quay**; 1 chậu vàng ≈ 10–15 sao sáng. Bùa giữ cấp không kèm mảnh. Banner 1 (Vọng Nguyệt, đồ trang trí) sau này dùng cùng quy tắc.
   - **Đổi ở cửa hàng — tab "Đổi sao" (đề xuất; giới hạn số lần mỗi THÁNG, làm mới cùng lúc đổi banner)**:
     | Đổi bằng | Món | Giá | Giới hạn / tháng |
     |---|---|---|---|
@@ -1146,7 +1146,7 @@ Game nông trại **tự thiết kế** (cùng thể loại game trồng trọt,
     | Sao sáng | **Chọn 1 chậu S của bộ KHÔNG đang chạy banner** (bộ lệch / banner đã qua) | 120 | 1 |
     | Mảnh sao | Bùa A | 20 | 5 |
     | Mảnh sao | 1 Vọng Tinh | 15 | 5 |
-    | Mảnh sao | 1 Sao Duyên | 15 | 5 |
+    | Mảnh sao | 1 Vọng Nguyệt | 15 | 5 |
     | Mảnh sao | 10 hạt hạng A (chọn loại, khi đã có cây A) | 30 | 3 |
     | Mảnh sao | Chọn 1 chậu A (bộ A bất kỳ) | 80 | 1 |
     | Mảnh sao | 5 côn trùng (chọn loại) | 10 | 5 |
@@ -1162,8 +1162,58 @@ Game nông trại **tự thiết kế** (cùng thể loại game trồng trọt,
     6. **Cửa hàng chia tab**: [Hạt giống] [Bùa] (bùa B mua bằng lông chim) [Đổi sao].
     7. **Dữ liệu**: vườn thêm `shards: { sao_sang, sao }` + `shopLimit: { thang: "YYYY-MM", bought: { id: n } }`; cộng mảnh trong CÙNG transaction `pullPots`; đổi = `exchange(id, n)` (transaction, kiểm tra giới hạn tháng).
        Thư (script) thêm được `shards` vào quà; bộ đếm `stats` thêm `shardsEarned`.
-    8. **Icon Blender phải phân biệt bằng HÌNH, không chỉ màu** (đã có đá vũ trụ xanh-tím-hồng, Vọng Tinh vàng trắng, Sao Duyên xanh biển trắng): đề xuất **sao sáng = mảnh sao 5 cánh vỡ vàng kim, lõi trắng phát sáng + quầng**;
-       **mảnh sao = vài mảnh vỡ nhọn nhỏ màu bạc ánh hồng**, sáng nhẹ. Xuất ảnh như icon tiền (`public/game/tien/`, 128px, ghép 2 lần giữ quầng sáng).
+    8. **Icon Blender phải phân biệt bằng HÌNH, không chỉ màu** (đã có đá vũ trụ xanh-tím-hồng, Vọng Tinh vàng trắng, Vọng Nguyệt xanh biển trắng): đề xuất **sao sáng = mảnh sao 5 cánh vỡ vàng kim, lõi trắng phát sáng + quầng**;
+       **mảnh sao = vài mảnh vỡ nhọn nhỏ màu bạc ánh hồng**, sáng nhẹ. Xuất ảnh như icon tiền (`public/game/tien/`, 128px, ghép 2 lần giữ quầng sáng). **ĐÃ LÀM** (xem "Icon item Blender").
+- [x] **Icon item Blender (ĐÃ LÀM 20/11/2026)** — 8 icon 128px webp, dựng trong `tang-may.blend` (hàng mẫu ngoài mây), ảnh xem thử `design/vuon-may/icon-item-xem-thu.png`:
+  | Item | File | Collection / gốc | Hình |
+  |---|---|---|---|
+  | Mảnh vỡ sao sáng / Mảnh vỡ sao | `public/game/sao/sao_sang.webp`, `sao.webp` | `ManhSao`: `ManhSao_Sang`, `ManhSao` (y −28) | sao 5 cánh vàng kim, 1 cánh vỡ tách ra + vết nứt sáng / chùm 3 mảnh nhọn bạc ánh hồng |
+  | Bùa may mắn B / A / S, Bùa giữ cấp | `public/game/bua/B.webp`, `A`, `S`, `keep` (theo `CharmId`) | `Bua`: `Bua_B` / `_A` / `_S` / `_GiuCap` (y −30) | thẻ bùa đầu vòm + cỏ 4 lá + tua rua: B xanh biển đơn giản, A tím + viền vàng + ngọc, S vàng cam + sao + đôi cánh; giữ cấp = KHIÊN bạc + ổ khoá vàng + xích |
+  | Phân bón B / A | `public/game/phan/B.webp`, `A.webp` (theo `FertId`) | `PhanBon`: `PhanBon_B` / `_A` (y −32), chép lưới túi hạt | B xanh nhạt + mầm 2 lá; A xanh đậm, miệng vàng, cây 4 lá, hạt phân vàng sáng |
+  Dựng bằng `manh_sao.py` / `bua.py` / `phan_bon.py` (`design/vuon-may/scripts/`, chạy sau `h2.py`); xuất: `render_lv_glow([gốc], <dir>/x_<gốc>, 1, res=(512, 512), pad=1.3)` → `glow_merge.py` → `item_icons.py <dir>`
+  (cắt vuông theo hình vật +10%, bỏ quầng quá nhạt + nhạt dần ra mép để không lộ khung vuông).
+  Code: trường `img` trong `CHARMS` (`upgrade.ts`), `FERTS` / `SHARDS` (`items.ts`); hiện bằng `ItemImg` (`game/ItemImg.tsx`: có `img` thì ảnh, không thì icon nét `icon`)
+  ở Túi đồ (tab Vật phẩm), Cửa hàng (phân, bùa B, Đổi sao — món đổi là cục roll cũng hiện ảnh Vọng Tinh / Vọng Nguyệt, `offerImg`), gacha (thẻ món + mảnh kèm), Hòm thư (ô quà), Đập chậu (ô bùa), thanh túi phân khi bón.
+- [x] **Icon côn trùng (ĐÃ LÀM 20/11/2026)** — 5 icon 128px webp chụp từ mô hình collection `ConTrung`: `public/game/contrung/<id>.webp` (id như `INSECTS`: `sau`, `bo_rua`, `dom_dom`, `nhen`, `buom`).
+  Lúc chụp TẠM xoay khung gốc (sâu z 0,65; đom đóm z 0,5; bọ rùa x 0,75 z 0,45 cho thấy mai; nhện z 0,2; bướm `ZYX` (1,2; 0; π − 0,12) = nhìn từ trên, đầu hướng lên) và TẠM tách `Nhen_Luoi` (icon nhện không có mạng, như trong game), chụp xong trả lại.
+  Xuất: `render_lv_glow([gốc], <dir>/x_<gốc>, 1, res=(512, 512), pad=1.3)` → `glow_merge.py` → `item_icons.py <dir> contrung`.
+  Code: `INSECTS[].img` (`data/gacha.ts`), hiện bằng `ItemImg` ở: Túi đồ tab Côn trùng, gacha (thẻ món), Hòm thư (ô quà), Đập chậu (côn trùng cần), Đổi sao (chọn loại côn trùng),
+  Thành tựu "Săn …" (`Achievement.img`), nhiệm vụ ngày "Bắt n <loại>" (`catchKind`, lấy ảnh theo `param`). Icon có ảnh thì KHÔNG đặt trong ô màu gradient (ảnh đã nền trong suốt).
+- [x] **Cửa hàng + Túi đồ toàn màn hình, bố cục giống Thành tựu (20/11/2026)**: dùng chung `SideTabScreen` (`game/SideTabScreen.tsx`): thanh trên [đóng tròn] [tiêu đề + dòng phụ] [nút hành động bên phải],
+  cột trái `w-36` = các tab (icon + tên, chấm số), bên phải = danh sách `DragScroll`. Cửa hàng: tab Hạt & phân / Bùa / Đổi sao (khung chọn loại khi đổi sao là `overlay`);
+  **Tab Gacha** (🎲, giữa Bùa và Đổi sao): bán **Vọng Tinh / Vọng Nguyệt giá `ROLL_PRICE` = 16 đá vũ trụ / cục** (Mua 1 / Mua 10, `buyRolls`); dòng phụ cửa hàng có thêm số đá. Nút gacha trong menu ☰ = icon nét **xí ngầu 🎲** (`GLYPHS`).
+  **Cửa hàng (sửa 21/11/2026): KHÔNG có tiêu đề**, thanh trên = nút đóng + tiền tệ bên phải (lông chim, đá vũ trụ, mảnh vỡ sao sáng, mảnh vỡ sao; `Count` của màn hình ước nguyện, không khung);
+  **mỗi món là 1 Ô VUÔNG** (lưới `auto-fill` ≥ 112px: ảnh + tên trên dải tối, nền kính màu theo hạng `RANK_GRADIENT`, nhãn góc trên "Còn n/m" / "Hôm nay n/m" / "Cần cấp n", ô giá riêng bên dưới — đỏ khi không đủ tiền);
+  **chạm ô → `BuyDialog`** (mô tả + chọn số lượng; giới hạn ngày / tháng = `maxCount`). Món đổi sao phải chọn loại: dialog số lượng 1 → `ChoosePicker`. Đổi mảnh / đá → lông chim = ô "n lông chim" trả bằng mảnh / đá.
+  **Túi đồ (sửa 21/11/2026)**: tab Nông sản / Hạt giống / Côn trùng / Chậu / Vật phẩm; **không tiêu đề, không nút Bán tất cả**, thanh trên = nút đóng + tiền tệ (`Wallet`, dùng chung với Cửa hàng);
+  giữa = **lưới ô vuông** (ảnh, số lượng / "Lv n" góc phải dưới, nhãn "Đang đặt", nền kính màu theo hạng, ô đang chọn viền vàng); **phải = khung chi tiết** (`SideTabScreen aside`, w-72):
+  tên + loại + ảnh lớn + "Đang có n" trên nền màu hạng, mô tả, nguồn nhận, **nút [Bán] (nông sản: bán hết loại đó) / [Đập] (chậu) ở đáy khung chi tiết**.
+  Nút "Đập chậu" ở menu chậu và màn hình đập đổi chữ thành **"Đập"**.
+  **Cẩm nang cũng toàn màn hình** (21/11/2026, `SideTabScreen`): tab Cách chơi / Các loại cây / Cập nhật; đã bỏ popup khung giữa cũ (`Popup`). **Màn hình popup mới có nhiều mục thì dùng `SideTabScreen`.**
+- [x] **Màn hình banner gacha làm lại (20/11/2026)** (`GachaScreen` trong `GachaUi.tsx`): **nền banner phủ kín khung game**, nút X tròn kính đè lên nền (trái trên) cạnh tên bộ + tháng;
+  **ảnh nền banner sẽ do người dùng gửi**: đặt ở `public/game/banner/…` rồi thêm vào `BANNER_IMAGE` (id bộ → đường dẫn; chưa có ảnh thì nền gradient).
+  Bỏ tiêu đề "ước nguyện", bỏ nút Đổi 1 / Đổi 10 (mua cục roll ở Cửa hàng → Gacha); số Vọng Tinh / Vọng Nguyệt / đá ở phải trên KHÔNG khung.
+  Giữa = 6 chậu cấp 6 (đã BỎ dòng "Quay thêm n lần chắc chắn ra vàng"; hiện KHÔNG còn chỗ nào hiện số lần còn lại tới vàng). Nút **Bỏ qua** (lúc mở cục roll và lúc xem từng món) = nút tròn kính icon **tua** (`skip`);
+  bảng kết quả bỏ dòng "Kết quả n lần quay", 2 nút [Xong] (xám) / [Quay tiếp ×n] (tím) rộng + cao bằng nhau. **Trái dưới = 2 nút tròn kính `GLASS_ROUND` cỡ bằng nút X (40px): [?] (`help`) Quy tắc & tỉ lệ, [đồng hồ] (`clock`) Lịch sử** (icon mới trong `ICON_PATHS`).
+  **Phải dưới = 2 nút quay RỘNG BẰNG NHAU, CAO BẰNG NÚT X (40px), nội dung "[icon Vọng Tinh] x 1" / "[icon Vọng Tinh] x 10"** (không có chữ "Quay"); x 1 gradient xanh nước biển, x 10 cam → hồng (`PULL_BTN` = `BTN` đã bỏ màu gốc — thêm `from-* to-*` lên `BTN` sẽ KHÔNG đè được màu gốc của nó).
+- [x] **QUY ƯỚC GAME: ô vật phẩm dùng chung `ItemTile` (`game/ItemTile.tsx`, 21/11/2026)** — kiểu thẻ Cửa hàng: ảnh giữa, tên trên dải tối ở đáy (**"tên x số lượng"**, số lượng 1 thì chỉ tên — `qtyName`),
+  nền kính màu theo hạng (`RANK_GRADIENT`), **chữ hạng B / A / S góc trái trên** (`RankBadge`), nhãn nhỏ góc phải trên (`tr`), ô phụ bên dưới `TileFooter` (giá, % cộng, mảnh sao kèm).
+  Đang dùng: Cửa hàng, kết quả gacha (từng món + bảng tổng kết; tên + số lượng qua `itemBase`), danh sách hạt khi gieo, chọn chậu bỏ vào khi đập chậu. Túi đồ giữ ô có số lượng ở đáy nhưng cũng có chữ hạng.
+  **Côn trùng mặc định hạng B**, bùa giữ cấp tính hạng A, phân bón / bùa theo id (B / A / S).
+  **Danh sách chọn hạt (gieo) và chọn chậu (đặt) có CỘT LỌC HẠNG ở đầu bên trái** (`RankFilter` trong `PotUi.tsx`): 4 nút dọc S / A / B / ALL (rộng 56px), đứng yên khi cuộn dải, mở danh sách mặc định ALL.
+  **Mọi danh sách vật phẩm xếp theo hạng S → A → B** (`byRank` / `RANK_ORDER` trong `data/pots.ts`, cùng hạng giữ thứ tự cũ): Cửa hàng, Túi đồ, danh sách chậu khi đặt, danh sách hạt khi gieo, chọn phân bón.
+- [x] **QUY ƯỚC GAME: mọi nút TRÒN có icon trong game Vườn mây là KÍNH, KHÔNG màu riêng** (20/11/2026): dùng `GLASS_ROUND` (`game/glass.ts`, thêm kích thước khi dùng, vd `${GLASS_ROUND} h-10 w-10`) + `data-round`.
+  Gồm: thoát, ☰ + 7 nút menu, ▲ ▼, các nút X / ✓ khi cầm túi hạt / túi phân / chọn hạt / đặt chậu, nút X đóng của MỌI popup / màn hình (kể cả Cẩm nang, Có gì mới, gacha),
+  [?] / [đồng hồ] ở màn hình ước nguyện, [?] ở Đập chậu. **Không áp dụng**: huy hiệu 💧 nổi trên cây (giữ màu để phân biệt), chấm đỏ / chấm số, chấm sáng màn hình tải, nút chữ nhật.
+  Trong game KHÔNG dùng `Fab` có màu (variant) cho nút tròn.
+- [x] **Đổi tên cục roll banner 1 "Sao Duyên" → "Vọng Nguyệt" (21/11/2026)** cho đồng bộ với Vọng Tinh: CHỈ đổi tên hiển thị; mã `sao_duyen` (dữ liệu vườn `rolls.sao_duyen`, ảnh `public/game/roll/sao_duyen.webp`, mô hình `Roll_SaoDuyen`, tham số `--sao` của script gửi thư) GIỮ NGUYÊN.
+- [x] **Dialog mua / đổi dùng chung `BuyDialog` (21/11/2026, `game/BuyDialog.tsx`)** — dùng lại ở màn hình khác (vd cửa hàng). 3 dòng:
+  1. [ô vật phẩm: ảnh + tên, **dạng KÍNH MỜ** (nền gần trong suốt + làm mờ phía sau, màu hạng chỉ ửng nhẹ từ dưới lên + vạch màu hạng ở mép dưới, tên trên dải tối mờ; `RANK_GRADIENT` — B xanh biển, A tím, S vàng cam)] [mô tả (để trống nếu ngắn) / dải dưới "Đang có: n"];
+  2. "Số lượng: n" + tổng giá (icon tiền); **thanh kéo TỰ LÀM** (khung game có thể xoay 90°, toạ độ qua `toLocal`) từ 1 tới **số lớn nhất mua được theo tiền đang có** (`maxCount` giới hạn thêm), 2 đầu nút kính − / +;
+  3. [Huỷ] [OK] rộng bằng nhau. Chạm nền mờ = huỷ. Kèm `ConfirmDialog` (nội dung + [Huỷ] [Đồng ý]).
+  **Màn hình ước nguyện**: nút kính **+** cạnh số Vọng Tinh / Vọng Nguyệt → `BuyDialog` đổi bằng đá vũ trụ (16 đá / cục; Vọng Tinh hạng S, Vọng Nguyệt hạng B theo màu ánh sáng).
+  **Bấm x 1 / x 10 mà thiếu Vọng Tinh** → `ConfirmDialog` "Dùng n đá vũ trụ để đổi k Vọng Tinh còn thiếu?"; đồng ý mà không đủ đá thì báo "Không đủ đá vũ trụ: cần …, đang có …",
+  đủ thì `buyRolls` phần thiếu rồi quay (2 transaction liên tiếp).
 - **THỨ TỰ CODE ĐỀ XUẤT (20/11/2026) — các phần ĐÃ ĐẶC TẢ, KHÔNG cần Blender** (icon chưa có thì dùng tạm icon nét `GLYPHS`, có Blender thì thay ảnh):
   1. **[x] ĐÃ LÀM (20/11/2026)**: kinh nghiệm cấp tối đa 90 + đường cong sau cấp 40 (`MAX_LEVEL`, `XP_TABLE` trong `data/crops.ts`, `levelProgress().max`); bắt côn trùng +`CATCH_XP` (2);
      bộ đếm `stats` (`data/api.ts`: `bump`, `markPots`, `markTier`; khoá ghi trong chú thích `Stats`) cộng trong sow / water / catchInsect / harvestPlant / sell / buySeeds / placePot / movePot / pullPots,
@@ -1180,7 +1230,7 @@ Game nông trại **tự thiết kế** (cùng thể loại game trồng trọt,
   5. **[x] ĐÃ LÀM (20/11/2026)**: Đập chậu — luật ở `data/upgrade.ts` (`BASE_RATE`, `FODDER_BONUS`, `CHARMS`, `FAIL_SPLIT`, `UPGRADE_INSECTS` = 2 loại côn trùng của từng bộ, `upgradeCost`, `upgradeRate`, `rollUpgrade`, `riskyFodder`),
      ghi `upgradePot` + `buyCharms` (`data/api.ts`; vườn có `charms` = { B, A, S, keep }; `stats` upgradeTry / upgradeOk / potLv6 / setLv6), màn hình `game/UpgradeUi.tsx` (`UpgradeScreen` + nút ? `UpgradeHelp`),
      lối vào: nhấn giữ chậu → [Đập chậu] (`PotMenu` 2×2), Túi đồ tab **Chậu** (mọi chậu) + tab **Vật phẩm** (bùa); Cửa hàng tab **Bùa** (bùa B 100 lông chim, mua 1 / 5); thư + script gửi được bùa (`--charm B:3`);
-     thành tựu "Chậu tinh xảo" (IV) + "Bộ hoàn mỹ" (VI). Icon bùa tạm 🍀 / 🔒. Bùa từ gacha + đổi sao làm ở bước 6. Chưa thử trong game (máy làm không có `.env`).
+     thành tựu "Chậu tinh xảo" (IV) + "Bộ hoàn mỹ" (VI). Icon bùa: ảnh Blender (xem "Icon item Blender"). Bùa từ gacha + đổi sao làm ở bước 6. Chưa thử trong game (máy làm không có `.env`).
      Cặp côn trùng từng bộ (tự chọn theo chủ đề, sửa được): Đất nung sâu + bọ rùa, Mây tre nhện + sâu, Biển cả bọ rùa + đom đóm, Rừng nấm sâu + đom đóm, Trung thu đom đóm + bướm,
      Mật ong bướm + bọ rùa, Thiên hà đom đóm + nhện, Sứ Lam bướm + nhện, Băng Tinh nhện + bọ rùa, Phượng Hoàng đom đóm + bướm. **Thêm bộ chậu mới thì thêm vào `UPGRADE_INSECTS`.**
   6. **[x] ĐÃ LÀM (20/11/2026, gộp luôn bước 8 Phân bón theo yêu cầu người dùng)**:
@@ -1192,12 +1242,12 @@ Game nông trại **tự thiết kế** (cùng thể loại game trồng trọt,
      - Cửa hàng 3 tab **[Hạt & phân] [Bùa] [Đổi sao]** (`ShopPopup`, `ChoosePicker` chọn loại bằng dải cuộn ngang); Túi đồ tab Vật phẩm có phân bón + mảnh sao; dòng phụ cửa hàng hiện số mảnh.
      - **Phân bón**: cây có `boost` (phần thời gian đã rút) + `fert` (số lần bón); `plantState` cộng `boost` vào tiến độ; `canFertilize` (`data/crops.ts`).
        Chạm cây đang lớn đã tưới (có phân) → dải chọn phân (hiện "bớt bao lâu") → túi phân 3D (mô hình túi hạt, màu xanh lá / nâu vàng, nhãn chữ B / A) → kéo lướt qua cây bón được (`BagState.fert` + `targets`), gom 1 transaction lúc thả tay.
-       Thành tựu "Nhà nông chăm bón" (`stats.fertilize`). Thư / script gửi được `--fert B:10`, `--shard sao:5`. Icon tạm: 🌱 / 🌿 (phân), ⭐ / ✨ (mảnh; vẽ thêm icon nét ✨).
-     - **Chưa có**: icon Blender (bùa, phân, mảnh), nhiệm vụ ngày "Bón phân" (làm ở bước 7). Chưa thử trong game (máy làm không có `.env`).
+       Thành tựu "Nhà nông chăm bón" (`stats.fertilize`). Thư / script gửi được `--fert B:10`, `--shard sao:5`. Icon: ảnh Blender (xem "Icon item Blender"), icon nét 🌱 / 🌿 / ⭐ / ✨ chỉ còn dự phòng.
+     - **Chưa có**: nhiệm vụ ngày "Bón phân" (làm ở bước 7). Chưa thử trong game (máy làm không có `.env`).
   7. **[x] ĐÃ LÀM (20/11/2026)**: Nhiệm vụ hằng ngày — **popup RIÊNG** (người dùng đổi ý: KHÔNG làm tab "Hôm nay" trong Thành tựu), nút 📝 trong menu ☰ (chấm đỏ khi có thưởng chờ).
      Luật `data/daily.ts` (`QUESTS` bảng nhiệm vụ đã chốt + "Bón phân" 3 / 6 / 10 / 15; "Đập chậu" tính số LẦN đập; "Chế tạo" chưa có — thêm khi làm máy), `questsOf` (5 loại khác nhau, hạt giống = uid + ngày),
      vườn có `daily` = { day, base (ảnh chụp `stats` đầu ngày), claimed, quests (chốt lúc chụp: lên cấp giữa ngày không đổi nhiệm vụ) }; `mutate` gọi `rollDaily` TRƯỚC mỗi thao tác;
-     tiến độ = `stats` − `base`; thêm bộ đếm `harvestTier_<tầng>`. Nhận: `claimDaily` (1 nhiệm vụ / "bonus" / tất cả): bậc 1–4 = 40 + 32 đá + 20 KN · 50 + 32 + 40 · 60 + 48 + 80 · 80 + 64 + 150; xong cả 5 = 2 Sao Duyên (`stats.fullDays`).
+     tiến độ = `stats` − `base`; thêm bộ đếm `harvestTier_<tầng>`. Nhận: `claimDaily` (1 nhiệm vụ / "bonus" / tất cả): bậc 1–4 = 40 + 32 đá + 20 KN · 50 + 32 + 40 · 60 + 48 + 80 · 80 + 64 + 150; xong cả 5 = 2 Vọng Tinh + 2 Vọng Nguyệt (`stats.fullDays`).
      Giao diện `game/DailyUi.tsx` (`DailyScreen`). Thành tựu "Chăm chỉ mỗi ngày" (1 / 7 / 30 / 100 ngày) ở nhóm Chăm sóc. Chưa thử trong game.
   9. **[x] ĐÃ LÀM (20/11/2026)**: nội dung `src/pages/garden/data/changelog.ts` (`CHANGELOG`, `unseenOf`), đã xem `data/news.ts` (`users/{uid}/settings/game` `seenVersion`; Rules sẵn có `settings/{doc}`),
      popup `game/NewsUi.tsx` (`NewsScreen`, `ChangelogList`) mở trong `GamePage` sau màn hình tải; vườn mới tạo → `markSeenIfNew` (GardenContext) + vườn tạo < 1 giờ mà chưa có bản ghi thì coi là đã xem;
@@ -1207,7 +1257,7 @@ Game nông trại **tự thiết kế** (cùng thể loại game trồng trọt,
      Ghi chú cũ (đề xuất): `data/changelog.ts`, `seenVersion` ở `users/{uid}/settings/game` (+ Rules), popup sau màn hình tải, mục "Cập nhật" trong Cẩm nang, vườn mới không hiện;
      kèm thanh "Có bản cập nhật · Tải lại" cho cả app (`useRegisterSW`).
   8. **[x] Gộp vào bước 6.** Phân bón (đã duyệt): `plant.boost`, túi phân kiểu túi hạt, cửa hàng "Hạt & phân", gacha (côn trùng 35,5% + phân B 6% + phân A 2%), đổi sao, tab "Vật phẩm" trong Túi đồ, thành tựu + nhiệm vụ bón phân, quà thư `fertilizer` — icon tạm.
-  CẦN Blender (làm riêng): icon 4 bùa + 2 mảnh sao, hoạt cảnh / xuất máy chế tạo, xuất 14 cây mới, bộ chậu banner mới. CHƯA đặc tả: máy chế tạo (GĐ6), số liệu 14 cây (GĐ8), banner Sao Duyên.
+  CẦN Blender (làm riêng): hoạt cảnh / xuất máy chế tạo, xuất 14 cây mới, bộ chậu banner mới. CHƯA đặc tả: máy chế tạo (GĐ6), số liệu 14 cây (GĐ8), banner Vọng Nguyệt.
 - [x] **Phân bón — rút ngắn thời gian trồng (ĐÃ LÀM 20/11/2026, xem "THỨ TỰ CODE" bước 6) (NGƯỜI DÙNG MÔ TẢ + ĐÃ DUYỆT 20/11/2026: mọi con số + mục 1–7 theo đề xuất; CHƯA LÀM)**:
   - **Người dùng mô tả**: 2 loại **Phân bón B** và **Phân bón A** (không có S). Nguồn: **mua ở cửa hàng, gacha, đổi bằng mảnh vỡ sao**. Dùng để **rút ngắn thời gian trồng cây theo %**.
   - **Cách giảm (đề xuất)**: mỗi lần bón **giảm % TỔNG thời gian lớn của cây** (dễ hiểu: bí ngô 12 giờ, phân B −20% = bớt 2 giờ 24 phút): **Phân B −20%, Phân A −40%**.
@@ -1229,7 +1279,7 @@ Game nông trại **tự thiết kế** (cùng thể loại game trồng trọt,
     4. **Cộng dồn với hiệu ứng "Lớn nhanh" của bộ chậu**: phân bón tính trên thời gian ĐÃ giảm bởi Lớn nhanh (chụp lúc gieo), không cộng % với nhau → không bao giờ về 0.
     5. **Phân bón không có hạng S** nhưng bảng gacha / thư / thành tựu đều xử lý được 2 loại; bón không đổi `plantedAt` nên dời chậu / cất chậu vẫn đúng (cất chậu thì mất cây + phân đã bón).
     6. **Thêm vào**: Túi đồ (tab mới "Vật phẩm": phân bón, bùa, mảnh sao), thư (quà có `fertilizer`), bộ đếm `stats.fertilize` + thành tựu Chăm sóc **"Nhà nông chăm bón"** (bón 20 / 100 / 500 / 2.000 lần, I–IV) + nhiệm vụ ngày "Bón phân" (3 / 6 / 10 / 15).
-    7. **Icon 2 túi phân bón** dựng bằng Blender (làm sau, cùng icon bùa / mảnh sao); trước đó dùng tạm icon nét. Có thể tái dùng mô hình **túi hạt** (`tui-hat.glb`) đổi màu + nhãn cho túi phân 3D lơ lửng.
+    7. **Icon 2 túi phân bón** dựng bằng Blender — **ĐÃ LÀM** (xem "Icon item Blender"). Có thể tái dùng mô hình **túi hạt** (`tui-hat.glb`) đổi màu + nhãn cho túi phân 3D lơ lửng.
 - Lưu ý nhiệm vụ ngày: bậc 1 có thể bốc "Bón phân 3 lần" dù người mới chưa có phân (phải mua phân B 40 lông chim ở Cửa hàng) — nếu thấy khó thì chỉ bốc khi đã có phân / từ bậc 2.
 - [x] **Màn hình "Có gì mới" (What's new) — ĐÃ LÀM 20/11/2026 (xem "THỨ TỰ CODE" bước 9)**
   - **⚠️ CÁCH DÙNG MỖI LẦN DEPLOY** (để tra lại khi quên): mở `src/pages/garden/data/changelog.ts`, thêm 1 mục vào **ĐẦU** mảng `CHANGELOG`:
@@ -1261,7 +1311,7 @@ Game nông trại **tự thiết kế** (cùng thể loại game trồng trọt,
     6. **Ngôn ngữ / độ dài**: mỗi bản 3–6 ý ngắn, viết cho người chơi (không ghi chi tiết kỹ thuật).
 - **Các phần Vườn mây CÒN CẦN NGƯỜI DÙNG ĐẶC TẢ** (rà ngày 20/11/2026; session hiện tại chủ yếu đặc tả trước, code sau):
   1. GĐ5 hiệu ứng bộ chậu + nâng cấp chậu (cơ chế nâng có tỉ lệ đã mô tả + đề xuất số, chờ duyệt; "Ít sâu" đã chốt bỏ → Hút côn trùng; Mật ong thưởng Giá tốt, Băng Tinh không khát nước).
-  2. Banner 1 Sao Duyên = đồ trang trí (chưa có gì). 3. Chủ đề + hiệu ứng 5 bộ banner S còn lại (B4–B8).
+  2. Banner 1 Vọng Nguyệt = đồ trang trí (chưa có gì). 3. Chủ đề + hiệu ứng 5 bộ banner S còn lại (B4–B8).
   4. Máy chế tạo GĐ6: số nguyên liệu, thời gian, số mẻ, **giá bán sản phẩm bằng đá**, tầng 4 có máy không.
   5. Kinh nghiệm game (đã chốt giữ `xp`; còn: nguồn kinh nghiệm ngoài thu hoạch, cấp tối đa). 6. Hòm thư: ĐÃ CHỐT gửi bằng script (xem mục Hòm thư).
   7. Nhiệm vụ hằng ngày: đã chốt là tab "Hôm nay" trong popup Thành tựu. 8. Đổi đá → lông chim: đổi ở đâu, theo gói hay nhập số.

@@ -1,12 +1,14 @@
 import { useMemo, useState } from 'react'
 import { LineIcon } from '../../../components/ui/Fab'
 import { Icon3D } from '../../../components/ui/Icon3D'
+import { ItemImg } from './ItemImg'
 import type { Actor } from '../../../lib/firestore'
 import { claimAchievement, claimAllAchievements, errorText, type Garden } from '../data/api'
 import { ACHIEVEMENTS, achState, GROUPS, ROMAN, type AchState, type GroupId, type Reward } from '../data/achievements'
 import { DragScroll } from './DragScroll'
 import { FEATHER_IMG, ROLL_IMG, STONE_IMG } from './GachaUi'
 import { BTN } from './PotUi'
+import { GLASS_ROUND } from './glass'
 
 // Popup Thành tựu (xem CLAUDE.md "Thành tựu"): phủ kín khung game như màn hình gacha.
 // Cột trái = các nhóm (chấm đỏ + số bậc chờ nhận), bên phải = danh sách cuộn dọc; thành tựu nhiều bậc gộp 1 dòng.
@@ -16,7 +18,7 @@ const REWARD_IMG: { key: keyof Reward; img: string; label: string }[] = [
   { key: 'feathers', img: FEATHER_IMG, label: 'lông chim' },
   { key: 'stones', img: STONE_IMG, label: 'đá vũ trụ' },
   { key: 'vong_tinh', img: ROLL_IMG.vong_tinh, label: 'Vọng Tinh' },
-  { key: 'sao_duyen', img: ROLL_IMG.sao_duyen, label: 'Sao Duyên' },
+  { key: 'sao_duyen', img: ROLL_IMG.sao_duyen, label: 'Vọng Nguyệt' },
 ]
 export const rewardText = (r: Reward) =>
   REWARD_IMG.filter((x) => (r[x.key] ?? 0) > 0).map((x) => `+${(r[x.key] ?? 0).toLocaleString('vi-VN')} ${x.label}`).join(', ')
@@ -42,9 +44,11 @@ function Row({ s, busy, onClaim }: { s: AchState; busy: boolean; onClaim: () => 
   const pct = s.done ? 100 : Math.min(100, (s.have / s.goal) * 100)
   return (
     <div className={`flex h-16 items-center gap-3 border-b border-white/10 px-3 ${s.ready ? 'bg-amber-300/10' : ''} ${s.done ? 'opacity-55' : ''}`}>
-      <span className="flex h-10 w-10 shrink-0 items-center justify-center border border-white/25 bg-gradient-to-br from-violet-500/50 to-indigo-700/60 shadow shadow-black/40">
-        <Icon3D emoji={s.a.icon} className="h-6 w-6" />
-      </span>
+      {s.a.img ? <ItemImg img={s.a.img} emoji={s.a.icon} className="h-10 w-10" /> : (
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center border border-white/25 bg-gradient-to-br from-violet-500/50 to-indigo-700/60 shadow shadow-black/40">
+          <Icon3D emoji={s.a.icon} className="h-6 w-6" />
+        </span>
+      )}
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm leading-5 font-semibold">
           {s.a.name(t)}
@@ -104,11 +108,11 @@ export function AchievementsScreen({ garden, actor, onClose }: { garden: Garden;
     <div className="absolute inset-0 z-40 flex flex-col bg-gradient-to-br from-[#120a33]/95 via-[#24104d]/95 to-[#3b1450]/95 backdrop-blur-xl">
       {/* thanh trên: đóng, tiêu đề, đã xong n/m, nhận tất cả */}
       <div className="flex h-14 shrink-0 items-center gap-2 border-b border-white/15" style={{ paddingLeft: 'calc(var(--safe-l) + 12px)', paddingRight: 'calc(var(--safe-r) + 12px)' }}>
-        <button type="button" data-round aria-label="Đóng thành tựu" onClick={onClose} className="flex h-10 w-10 items-center justify-center rounded-full border border-white/30 bg-white/10">
+        <button type="button" data-round aria-label="Đóng thành tựu" onClick={onClose} className={`${GLASS_ROUND} h-10 w-10`}>
           <LineIcon icon="cancel" className="h-5 w-5" />
         </button>
         <div className="ml-1 min-w-0">
-          <p className="text-lg leading-6 font-light lowercase">thành tựu</p>
+          <p className="text-lg leading-6 font-light">Thành tựu</p>
           <p className="text-xs leading-4 text-white/65">Đã xong {doneCount}/{states.length}</p>
         </div>
         <button

@@ -1,17 +1,16 @@
 import { lazy, Suspense, useMemo, useState } from 'react'
 import { LineIcon } from '../../../components/ui/Fab'
-import { Icon3D } from '../../../components/ui/Icon3D'
 import { useGarden } from '../data/GardenContext'
 import { buyRolls, errorText, pullPots, type Garden } from '../data/api'
-import { CROPS } from '../data/crops'
+import type { RollKind } from '../data/gacha'
+import { CROPS, seedImage } from '../data/crops'
 import {
   bannerOf,
-  HARD_PITY,
   insectById,
+  itemBase,
   itemName,
   rateRows,
   ROLL_PRICE,
-  SOFT_PITY,
   type PullItem,
   type Rarity,
 } from '../data/gacha'
@@ -20,6 +19,10 @@ import { DragScroll } from './DragScroll'
 import { charmById } from '../data/upgrade'
 import { fertById, shardById, type ShardId } from '../data/items'
 import { BTN, RankBadge } from './PotUi'
+import { ItemImg } from './ItemImg'
+import { ItemTile, TileFooter } from './ItemTile'
+import { GLASS_ROUND } from './glass'
+import { BuyDialog, ConfirmDialog, type ItemRank } from './BuyDialog'
 
 // Màn hình gacha trong game (xem CLAUDE.md "Gacha"): banner chậu (Vọng Tinh). Bấm quay → ghi Firestore → hiệu ứng mở cục roll
 // (RollReveal) → hiện từng món (chạm để sang món tiếp) → bảng tổng kết.
@@ -30,64 +33,85 @@ export const ROLL_IMG = { vong_tinh: '/game/roll/vong_tinh.webp', sao_duyen: '/g
 export const STONE_IMG = '/game/tien/da_vu_tru.webp'
 export const FEATHER_IMG = '/game/tien/long_chim.webp' // lông chim: tiền mua hạt / bán nông sản
 
+// Bóng sáng quanh ô khi ra món hiếm
 const GLOW: Record<Rarity, string> = {
-  gold: 'border-amber-200/90 bg-gradient-to-b from-amber-300/35 to-orange-600/25 shadow-[0_0_22px_rgba(253,211,77,0.55)]',
-  purple: 'border-violet-300/80 bg-gradient-to-b from-violet-400/30 to-purple-800/25 shadow-[0_0_18px_rgba(196,148,255,0.45)]',
-  blue: 'border-sky-300/50 bg-gradient-to-b from-sky-400/20 to-blue-800/20',
+  gold: 'shadow-[0_0_22px_rgba(253,211,77,0.6)]',
+  purple: 'shadow-[0_0_18px_rgba(196,148,255,0.5)]',
+  blue: '',
 }
 
-// Ảnh / icon của 1 món
-function ItemArt({ item, className }: { item: PullItem; className: string }) {
-  if (item.type === 'pot') return <img src={potImage(item.kind, 1)} alt="" draggable={false} className={`${className} object-contain`} />
-  const icon =
-    item.type === 'seed' ? CROPS.find((c) => c.id === item.crop)?.icon ?? '🌱'
-      : item.type === 'charm' ? charmById.get(item.charm)?.icon ?? '🍀'
-        : item.type === 'fert' ? fertById.get(item.fert)?.icon ?? '🌱'
-          : insectById.get(item.insect)?.icon ?? '🐛'
-  return <Icon3D emoji={icon} className={className} />
+// Ảnh + hạng của 1 món (côn trùng mặc định hạng B; bùa giữ cấp tính hạng A)
+function itemArt(item: PullItem): { img?: string; emoji: string } {
+  if (item.type === 'pot') return { img: potImage(item.kind, 1), emoji: '🪴' }
+  if (item.type === 'charm') { const c = charmById.get(item.charm); return { img: c?.img, emoji: c?.icon ?? '🍀' } }
+  if (item.type === 'fert') { const f = fertById.get(item.fert); return { img: f?.img, emoji: f?.icon ?? '🌱' } }
+  if (item.type === 'insect') { const i = insectById.get(item.insect); return { img: i?.img, emoji: i?.icon ?? '🐛' } }
+  return { img: seedImage(item.crop), emoji: '🌱' }
 }
-function itemTag(item: PullItem) {
-  if (item.type !== 'pot') return item.type === 'seed' ? 'Hạt giống' : item.type === 'charm' ? 'Bùa' : item.type === 'fert' ? 'Phân bón' : 'Côn trùng'
-  if (item.isNew) return 'MỚI!'
-  return 'Trùng'
+function itemRank(item: PullItem): ItemRank {
+  if (item.type === 'pot') return potSetById.get(potKindById.get(item.kind)?.set ?? '')?.rank ?? 'B'
+  if (item.type === 'seed') return CROPS.find((c) => c.id === item.crop)?.rank ?? 'B'
+  if (item.type === 'charm') return item.charm === 'keep' ? 'A' : item.charm
+  if (item.type === 'fert') return item.fert
+  return 'B'
 }
+// Nhãn góc phải trên: chậu mới / trùng
+const itemTag = (item: PullItem) => (item.type !== 'pot' ? undefined : item.isNew ? 'MỚI!' : 'Trùng')
+
 function ItemCard({ item, big = false }: { item: PullItem; big?: boolean }) {
   const set = item.type === 'pot' ? potSetById.get(potKindById.get(item.kind)?.set ?? '') : undefined
+  const { name, qty } = itemBase(item)
+  const tag = itemTag(item)
+  const tile = (
+    <ItemTile {...itemArt(item)} name={name} qty={qty} rank={itemRank(item)} big={big} fill={!big} glow={GLOW[item.rarity]}
+      tr={tag && <span className={item.type === 'pot' && item.isNew ? 'text-amber-200' : 'text-white/80'}>{tag}</span>}
+      footer={item.shards && <TileFooter className={big ? '' : 'h-6 text-[11px]'}><ShardTag shards={item.shards} big={big} /></TileFooter>} />
+  )
+  if (!big) return tile
   return (
-    <div className={`relative flex flex-col items-center border text-center ${GLOW[item.rarity]} ${big ? 'w-64 px-4 pt-4 pb-4' : 'h-full w-full px-1 pt-1.5 pb-1'}`}>
-      {set && <RankBadge rank={set.rank} className="absolute top-1.5 left-1.5" />}
-      <span className={`absolute top-1 right-1.5 font-semibold ${big ? 'text-xs' : 'text-[10px]'} ${item.type === 'pot' && item.isNew ? 'text-amber-200' : 'text-white/70'}`}>
-        {itemTag(item)}
-      </span>
-      <ItemArt item={item} className={big ? 'mt-2 h-32 w-32' : 'mt-2 h-12 w-12'} />
-      <span className={`font-semibold ${big ? 'mt-3 text-lg leading-6' : 'mt-1 text-[11px] leading-[13px]'}`}>{itemName(item)}</span>
-      {set && <span className={`text-white/70 ${big ? 'text-sm leading-5' : 'text-[10px] leading-3'}`}>Bộ {set.name}</span>}
-      {big && item.type === 'pot' && item.off && <span className="mt-1 text-xs text-white/60">Lần vàng tới chắc chắn là chậu mới của banner</span>}
-      {item.shards && <ShardTag shards={item.shards} big={big} />}
+    <div className="flex w-64 flex-col items-center gap-1 text-center">
+      <div className="w-full">{tile}</div>
+      {set && <span className="text-sm leading-5 text-white/75">Bộ {set.name}</span>}
+      {item.type === 'pot' && item.off && <span className="text-xs text-white/60">Lần vàng tới chắc chắn là chậu mới của banner</span>}
     </div>
   )
 }
 
-// Mảnh vỡ sao đi kèm món (dưới thẻ món)
+// Mảnh vỡ sao đi kèm món (ô dưới thẻ món)
 function ShardTag({ shards, big }: { shards: Partial<Record<ShardId, number>>; big: boolean }) {
   return (
-    <span className={`mt-auto flex items-center gap-1 font-bold text-amber-200 ${big ? 'pt-2 text-sm' : 'text-[10px] leading-3'}`}>
+    <span className="flex items-center gap-1.5 font-bold text-amber-200">
       {(Object.entries(shards) as [ShardId, number][]).filter(([, n]) => n > 0).map(([id, n]) => (
-        <span key={id} className="flex items-center gap-0.5"><Icon3D emoji={shardById.get(id)!.icon} className={big ? 'h-4 w-4' : 'h-3 w-3'} />+{n}{big ? ` ${shardById.get(id)!.name.toLowerCase()}` : ''}</span>
+        <span key={id} className="flex items-center gap-0.5"><ItemImg img={shardById.get(id)!.img} emoji={shardById.get(id)!.icon} className={big ? 'h-5 w-5' : 'h-3.5 w-3.5'} />+{n}{big ? ` ${shardById.get(id)!.name.toLowerCase()}` : ''}</span>
       ))}
     </span>
   )
 }
 
 // Ô số lượng (cục roll / đá) trên thanh trên cùng
-function Count({ img, n, label }: { img: string; n: number; label: string }) {
+export function Count({ img, n, label, onPlus }: { img: string; n: number; label: string; onPlus?: () => void }) {
   return (
-    <div className="flex h-9 items-center gap-1.5 border border-white/20 bg-black/30 pr-3 pl-1.5 backdrop-blur-md" aria-label={label}>
+    <div className="flex items-center gap-1" aria-label={label}>
       <img src={img} alt="" className="h-7 w-7 object-contain" />
-      <span className="text-sm font-bold tabular-nums">{n.toLocaleString('vi-VN')}</span>
+      <span className="text-sm font-bold tabular-nums [text-shadow:0_1px_3px_rgba(0,0,0,0.8)]">{n.toLocaleString('vi-VN')}</span>
+      {onPlus && (
+        <button type="button" data-round aria-label={`Đổi thêm ${label}`} onClick={onPlus} className={`${GLASS_ROUND} ml-0.5 h-7 w-7`}>
+          <LineIcon icon="add" className="h-4 w-4" />
+        </button>
+      )}
     </div>
   )
 }
+// Cục roll khi mua bằng đá vũ trụ (dialog mua): hạng = màu nền ô vật phẩm (Vọng Nguyệt ánh xanh biển = B, Vọng Tinh ánh vàng = S)
+export const ROLL_GOODS: Record<RollKind, { name: string; rank: ItemRank; desc: string }> = {
+  vong_tinh: { name: 'Vọng Tinh', rank: 'S', desc: 'Cục roll của banner chậu. Mỗi cục quay được 1 lần ở banner chậu hạng S đang mở.' },
+  sao_duyen: { name: 'Vọng Nguyệt', rank: 'B', desc: 'Cục roll của banner đồ trang trí (sắp mở). Mỗi cục quay được 1 lần ở banner đồ trang trí.' },
+}
+// Nút quay x 1 / x 10: cao bằng nút X (h-10); bỏ màu gốc của BTN để màu riêng của từng nút không bị đè
+const BTN_PLAIN = BTN.replace(/from-\S+ to-\S+/, '') // BTN đã bỏ màu gốc: thêm from-* to-* riêng mới có tác dụng
+const PULL_BTN = `${BTN_PLAIN} h-10 gap-1.5 text-base`
+// Ảnh nền banner theo bộ chậu (public/game/banner/…); chưa có ảnh thì dùng nền gradient
+const BANNER_IMAGE: Record<string, string> = {}
 
 type View =
   | { kind: 'banner'; panel: null | 'rates' | 'history' }
@@ -104,24 +128,52 @@ export function GachaScreen({ onClose }: { onClose: () => void }) {
   const set = potSetById.get(banner.setId)!
   const g = garden as Garden
 
-  async function job(fn: () => Promise<unknown>, ok?: string) {
+  // Thiếu Vọng Tinh: hỏi dùng đá vũ trụ để bù; đồng ý thì kiểm tra đủ đá chưa, đủ thì mua phần thiếu rồi quay
+  const [shortfall, setShortfall] = useState<{ count: 1 | 10; need: number } | null>(null)
+  const [buying, setBuying] = useState<RollKind | null>(null)
+  async function pull(count: 1 | 10) {
+    if (busy) return
+    if (g.rolls.vong_tinh < count) {
+      setShortfall({ count, need: count - g.rolls.vong_tinh })
+      return
+    }
+    await doPull(count)
+  }
+  async function coverAndPull() {
+    if (!shortfall || busy) return
+    const { count, need } = shortfall
+    const cost = need * ROLL_PRICE
+    if (g.stones < cost) {
+      setShortfall(null)
+      setMsg(`Không đủ đá vũ trụ: cần ${cost.toLocaleString('vi-VN')}, đang có ${g.stones.toLocaleString('vi-VN')}`)
+      return
+    }
     setBusy(true)
-    setMsg(null)
     try {
-      await fn()
-      if (ok) setMsg(ok)
+      await buyRolls(actor, 'vong_tinh', need)
+    } catch (err) {
+      setMsg(errorText(err))
+      setBusy(false)
+      return
+    } finally {
+      setShortfall(null)
+    }
+    setBusy(false)
+    await doPull(count)
+  }
+  async function buy(kind: RollKind, n: number) {
+    setBusy(true)
+    try {
+      await buyRolls(actor, kind, n)
+      setMsg(`Đã đổi ${n} ${ROLL_GOODS[kind].name} · −${(n * ROLL_PRICE).toLocaleString('vi-VN')} đá vũ trụ`)
+      setBuying(null)
     } catch (err) {
       setMsg(errorText(err))
     } finally {
       setBusy(false)
     }
   }
-  async function pull(count: 1 | 10) {
-    if (busy) return
-    if (g.rolls.vong_tinh < count) {
-      setMsg(`Cần ${count} Vọng Tinh — đổi thêm bằng đá vũ trụ`)
-      return
-    }
+  async function doPull(count: 1 | 10) {
     setBusy(true)
     setMsg(null)
     try {
@@ -136,7 +188,6 @@ export function GachaScreen({ onClose }: { onClose: () => void }) {
 
   const rarities = useMemo(() => (view.kind === 'reveal' ? view.items.map((i) => i.rarity) : []), [view])
   if (!garden) return null
-  const toGold = HARD_PITY - g.gacha.sinceGold
 
   if (view.kind === 'reveal')
     return (
@@ -159,14 +210,16 @@ export function GachaScreen({ onClose }: { onClose: () => void }) {
         {view.items.length > 1 && (
           <button
             type="button"
-            className="absolute top-3 border border-white/25 bg-white/10 px-3 py-1.5 text-xs text-white/85 backdrop-blur"
+            data-round
+            aria-label="Bỏ qua"
+            className={`${GLASS_ROUND} absolute top-3 h-10 w-10`}
             style={{ right: 'calc(var(--safe-r) + 12px)' }}
             onClick={(e) => {
               e.stopPropagation()
               setView({ kind: 'sum', items: view.items, count: view.count })
             }}
           >
-            Bỏ qua ›
+            <LineIcon icon="skip" className="h-5 w-5" />
           </button>
         )}
       </div>
@@ -176,7 +229,6 @@ export function GachaScreen({ onClose }: { onClose: () => void }) {
   if (view.kind === 'sum')
     return (
       <div className="absolute inset-0 z-50 flex flex-col bg-gradient-to-b from-[#0a0620] to-[#1c0f3d] pt-3 pb-3" style={{ paddingLeft: 'calc(var(--safe-l) + 14px)', paddingRight: 'calc(var(--safe-r) + 14px)' }}>
-        <p className="mb-2 text-center text-sm font-semibold tracking-wide text-white/85">Kết quả {view.items.length} lần quay</p>
         <div className={`grid min-h-0 flex-1 gap-2 ${view.items.length > 1 ? 'grid-cols-5 grid-rows-2' : 'grid-cols-1 place-items-center'}`}>
           {[...view.items]
             .sort((a, b) => ({ gold: 0, purple: 1, blue: 2 })[a.rarity] - ({ gold: 0, purple: 1, blue: 2 })[b.rarity])
@@ -187,7 +239,7 @@ export function GachaScreen({ onClose }: { onClose: () => void }) {
             ))}
         </div>
         <div className="mx-auto mt-3 grid w-[22rem] grid-cols-2 gap-3">
-          <button type="button" className={`${BTN} from-slate-400/40 to-slate-600/50`} onClick={() => setView({ kind: 'banner', panel: null })}>
+          <button type="button" className={`${BTN_PLAIN} from-slate-400/45 to-slate-600/55`} onClick={() => setView({ kind: 'banner', panel: null })}>
             Xong
           </button>
           <button type="button" className={BTN} disabled={busy} onClick={() => void pull(view.count)}>
@@ -197,83 +249,88 @@ export function GachaScreen({ onClose }: { onClose: () => void }) {
       </div>
     )
 
-  // ---- Màn hình banner ----
+  // ---- Màn hình banner: nền banner phủ kín khung game (sau này thay bằng ảnh BANNER_IMAGE), nút X đè lên nền ----
+  const bgImg = BANNER_IMAGE[banner.setId]
   return (
-    <div className="absolute inset-0 z-40 flex flex-col bg-gradient-to-br from-[#120a33]/95 via-[#24104d]/95 to-[#3b1450]/95 backdrop-blur-xl">
-      {/* thanh trên: đóng, tên, số cục roll + đá */}
-      <div className="flex h-14 shrink-0 items-center gap-2 border-b border-white/15" style={{ paddingLeft: 'calc(var(--safe-l) + 12px)', paddingRight: 'calc(var(--safe-r) + 12px)' }}>
-        <button type="button" data-round aria-label="Đóng gacha" onClick={onClose} className="flex h-10 w-10 items-center justify-center rounded-full border border-white/30 bg-white/10">
+    <div className="absolute inset-0 z-40 overflow-hidden bg-[#120a33]">
+      {/* nền banner */}
+      <div
+        className="absolute inset-0 bg-gradient-to-br from-orange-500/35 via-rose-700/30 to-indigo-900/60 bg-cover bg-center"
+        style={bgImg ? { backgroundImage: `url(${bgImg})` } : undefined}
+      />
+      {/* trái trên: đóng + tên banner */}
+      <div className="absolute top-3 flex items-start gap-3" style={{ left: 'calc(var(--safe-l) + 12px)' }}>
+        <button type="button" data-round aria-label="Đóng gacha" onClick={onClose} className={`${GLASS_ROUND} h-10 w-10`}>
           <LineIcon icon="cancel" className="h-5 w-5" />
         </button>
-        <p className="ml-1 text-lg font-light lowercase">ước nguyện</p>
-        <div className="ml-auto flex gap-2">
-          <Count img={ROLL_IMG.vong_tinh} n={g.rolls.vong_tinh} label="Vọng Tinh" />
-          <Count img={ROLL_IMG.sao_duyen} n={g.rolls.sao_duyen} label="Sao Duyên" />
-          <Count img={STONE_IMG} n={g.stones} label="Đá vũ trụ" />
+        <div className="[text-shadow:0_1px_3px_rgba(0,0,0,0.7)]">
+          <p className="flex items-center gap-1.5 text-xl leading-7 font-semibold"><RankBadge rank="S" /> {set.name}</p>
+          <p className="text-xs leading-5 text-white/80">Banner chậu · tháng {banner.month} · đổi banner ngày {banner.end.getDate()}/{banner.end.getMonth() + 1}</p>
         </div>
       </div>
-
-      <div className="flex min-h-0 flex-1 gap-3 py-3" style={{ paddingLeft: 'calc(var(--safe-l) + 12px)', paddingRight: 'calc(var(--safe-r) + 12px)' }}>
-        {/* banner */}
-        <div className="relative flex min-w-0 flex-1 flex-col border border-amber-200/40 bg-gradient-to-br from-orange-500/20 via-rose-700/15 to-indigo-900/30 p-3 shadow-2xl shadow-black/40">
-          <div className="flex items-start justify-between gap-2">
-            <div>
-              <p className="flex items-center gap-1.5 text-xl leading-7 font-semibold">
-                <RankBadge rank="S" /> {set.name}
-              </p>
-              <p className="text-xs leading-5 text-white/70">Banner chậu · tháng {banner.month} · đổi banner ngày {banner.end.getDate()}/{banner.end.getMonth() + 1}</p>
+      {/* phải trên: số cục roll + đá (không khung) */}
+      <div className="absolute top-3 flex h-10 items-center gap-3" style={{ right: 'calc(var(--safe-r) + 12px)' }}>
+        <Count img={ROLL_IMG.vong_tinh} n={g.rolls.vong_tinh} label="Vọng Tinh" onPlus={() => setBuying('vong_tinh')} />
+        <Count img={ROLL_IMG.sao_duyen} n={g.rolls.sao_duyen} label="Vọng Nguyệt" onPlus={() => setBuying('sao_duyen')} />
+        <Count img={STONE_IMG} n={g.stones} label="Đá vũ trụ" />
+      </div>
+      {/* giữa: 6 chậu cấp 6 của bộ + dòng bảo hiểm */}
+      <div className="absolute inset-x-0 top-16 bottom-[5.5rem] flex flex-col" style={{ paddingLeft: 'calc(var(--safe-l) + 24px)', paddingRight: 'calc(var(--safe-r) + 24px)' }}>
+        <div className="grid min-h-0 flex-1 grid-cols-6 items-end gap-2">
+          {set.kinds.map((k) => (
+            <div key={k} className="flex h-full min-h-0 min-w-0 flex-col items-center justify-end">
+              <img src={potImage(k, 6)} alt="" draggable={false} className="min-h-0 w-full flex-1 object-contain object-bottom drop-shadow-[0_0_10px_rgba(255,190,90,0.45)]" style={{ maxHeight: 170 }} />
+              <span className="mt-0.5 line-clamp-2 text-center text-[10px] leading-3 text-white/85 [text-shadow:0_1px_2px_rgba(0,0,0,0.8)]">{potKindById.get(k)?.name}</span>
             </div>
-            <div className="flex gap-1">
-              <button type="button" className={`${BTN} h-8 px-2 text-xs`} onClick={() => setView({ kind: 'banner', panel: 'rates' })}>Tỉ lệ</button>
-              <button type="button" className={`${BTN} h-8 px-2 text-xs`} onClick={() => setView({ kind: 'banner', panel: 'history' })}>Lịch sử</button>
-            </div>
-          </div>
-          <div className="mt-1 grid min-h-0 flex-1 grid-cols-6 items-end gap-1">
-            {set.kinds.map((k) => (
-              <div key={k} className="flex h-full min-h-0 min-w-0 flex-col items-center justify-end">
-                <img src={potImage(k, 6)} alt="" draggable={false} className="min-h-0 w-full flex-1 object-contain object-bottom drop-shadow-[0_0_10px_rgba(255,190,90,0.45)]" style={{ maxHeight: 150 }} />
-                <span className="mt-0.5 line-clamp-2 text-center text-[10px] leading-3 text-white/85">{potKindById.get(k)?.name}</span>
-              </div>
-            ))}
-          </div>
-          <p className="mt-2 text-[11px] leading-4 text-white/75">
-            Ra vàng: 34% chậu mới của bộ · lệch thì lần vàng tới chắc chắn là chậu mới. Quay thêm <b className="text-amber-200">{toGold}</b> lần chắc chắn ra vàng
-            {g.gacha.sinceGold + 1 >= SOFT_PITY ? ' (đang tăng tỉ lệ!)' : ''}.
-            {g.gacha.insured && <b className="text-amber-200"> Lần vàng tới chắc chắn là chậu {set.name}.</b>}
-          </p>
+          ))}
         </div>
-
-        {/* cột nút */}
-        <div className="flex w-56 shrink-0 flex-col gap-2">
-          <p className="text-[11px] leading-4 text-white/70">Đổi đá vũ trụ lấy Vọng Tinh ({ROLL_PRICE} đá / cục)</p>
-          <div className="grid grid-cols-2 gap-2">
-            <button type="button" disabled={busy || g.stones < ROLL_PRICE} className={`${BTN} text-xs from-sky-500/60 to-blue-700/70`} onClick={() => void job(() => buyRolls(actor, 'vong_tinh', 1), 'Đã đổi 1 Vọng Tinh')}>
-              Đổi 1
-            </button>
-            <button type="button" disabled={busy || g.stones < ROLL_PRICE * 10} className={`${BTN} text-xs from-sky-500/60 to-blue-700/70`} onClick={() => void job(() => buyRolls(actor, 'vong_tinh', 10), 'Đã đổi 10 Vọng Tinh')}>
-              Đổi 10
-            </button>
-          </div>
-          <div className="mt-auto grid grid-cols-2 gap-2">
-            {([1, 10] as const).map((n) => (
-              <button key={n} type="button" disabled={busy} onClick={() => void pull(n)} className={`${BTN} h-16 flex-col from-amber-400/70 to-fuchsia-600/70`}>
-                <span className="text-base leading-5">Quay ×{n}</span>
-                <span className="flex items-center gap-1 text-[11px] font-normal text-white/85">
-                  <img src={ROLL_IMG.vong_tinh} alt="" className="h-4 w-4" /> {n}
-                </span>
-              </button>
-            ))}
-          </div>
-          <p className="text-[10px] leading-3 text-white/45">Banner đồ trang trí (Sao Duyên) sắp có.</p>
-        </div>
+      </div>
+      {/* trái dưới: nút tròn kính [?] quy tắc & tỉ lệ, [đồng hồ] lịch sử */}
+      <div className="absolute bottom-4 flex gap-3" style={{ left: 'calc(var(--safe-l) + 12px)' }}>
+        <button type="button" data-round aria-label="Quy tắc & tỉ lệ" title="Quy tắc & tỉ lệ" onClick={() => setView({ kind: 'banner', panel: 'rates' })} className={`${GLASS_ROUND} h-10 w-10`}><LineIcon icon="help" className="h-6 w-6" /></button>
+        <button type="button" data-round aria-label="Lịch sử quay" title="Lịch sử quay" onClick={() => setView({ kind: 'banner', panel: 'history' })} className={`${GLASS_ROUND} h-10 w-10`}><LineIcon icon="clock" className="h-6 w-6" /></button>
+      </div>
+      {/* phải dưới: 2 nút quay rộng bằng nhau */}
+      <div className="absolute bottom-4 grid w-[17rem] grid-cols-2 gap-3" style={{ right: 'calc(var(--safe-r) + 12px)' }}>
+        {([1, 10] as const).map((n) => (
+          <button key={n} type="button" disabled={busy} onClick={() => void pull(n)} aria-label={`Quay ${n} lần`}
+            className={`${PULL_BTN} ${n === 1 ? 'from-sky-400/85 to-blue-700/85' : 'from-amber-400/85 to-fuchsia-600/85'}`}>
+            <img src={ROLL_IMG.vong_tinh} alt="" className="h-7 w-7 object-contain" />
+            <span className="tabular-nums">x {n}</span>
+          </button>
+        ))}
       </div>
 
       {msg && (
-        <div className="pointer-events-none absolute inset-x-0 bottom-3 flex justify-center">
+        <div className="pointer-events-none absolute inset-x-0 bottom-24 flex justify-center">
           <p className="border border-white/25 bg-black/60 px-4 py-2 text-sm font-semibold backdrop-blur-md">{msg}</p>
         </div>
       )}
 
+      {buying && (
+        <BuyDialog
+          name={ROLL_GOODS[buying].name}
+          img={ROLL_IMG[buying]}
+          rank={ROLL_GOODS[buying].rank}
+          desc={ROLL_GOODS[buying].desc}
+          have={g.rolls[buying]}
+          price={ROLL_PRICE}
+          payImg={STONE_IMG}
+          payName="đá vũ trụ"
+          payHave={g.stones}
+          busy={busy}
+          onConfirm={(n) => void buy(buying, n)}
+          onClose={() => setBuying(null)}
+        />
+      )}
+      {shortfall && (
+        <ConfirmDialog busy={busy} onConfirm={() => void coverAndPull()} onClose={() => setShortfall(null)}>
+          Không đủ Vọng Tinh để quay {shortfall.count} lần (đang có {g.rolls.vong_tinh}).
+          <br />
+          Dùng <b className="text-amber-200">{(shortfall.need * ROLL_PRICE).toLocaleString('vi-VN')} đá vũ trụ</b> để đổi {shortfall.need} Vọng Tinh còn thiếu?
+          <span className="mt-1 block text-xs text-white/60">Đang có {g.stones.toLocaleString('vi-VN')} đá vũ trụ</span>
+        </ConfirmDialog>
+      )}
       {view.panel && (
         <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/45" onClick={() => setView({ kind: 'banner', panel: null })}>
           <div className="flex max-h-[86%] w-[30rem] flex-col border border-white/25 bg-indigo-950/85 shadow-2xl shadow-black/60 backdrop-blur-xl" onClick={(e) => e.stopPropagation()}>

@@ -23,11 +23,12 @@ export const SAME_KIND_MULT = 1.5
 
 // Bùa: may mắn B / A / S cộng tỉ lệ; giữ cấp = thất bại thì luôn giữ nguyên cấp (1 ô riêng, tối đa 1)
 export type CharmId = 'B' | 'A' | 'S' | 'keep'
-export const CHARMS: { id: CharmId; name: string; icon: string; bonus: number; note: string }[] = [
-  { id: 'B', name: 'Bùa may mắn B', icon: '🍀', bonus: 0.05, note: '+5% tỉ lệ thành công' },
-  { id: 'A', name: 'Bùa may mắn A', icon: '🍀', bonus: 0.12, note: '+12% tỉ lệ thành công' },
-  { id: 'S', name: 'Bùa may mắn S', icon: '🍀', bonus: 0.25, note: '+25% tỉ lệ thành công' },
-  { id: 'keep', name: 'Bùa giữ cấp', icon: '🔒', bonus: 0, note: 'Thất bại thì luôn giữ nguyên cấp' },
+// img: public/game/bua/<id>.webp (design/vuon-may/scripts/bua.py); icon = icon nét dự phòng
+export const CHARMS: { id: CharmId; name: string; icon: string; img: string; bonus: number; note: string }[] = [
+  { id: 'B', name: 'Bùa may mắn B', icon: '🍀', img: '/game/bua/B.webp', bonus: 0.05, note: '+5% tỉ lệ thành công' },
+  { id: 'A', name: 'Bùa may mắn A', icon: '🍀', img: '/game/bua/A.webp', bonus: 0.12, note: '+12% tỉ lệ thành công' },
+  { id: 'S', name: 'Bùa may mắn S', icon: '🍀', img: '/game/bua/S.webp', bonus: 0.25, note: '+25% tỉ lệ thành công' },
+  { id: 'keep', name: 'Bùa giữ cấp', icon: '🔒', img: '/game/bua/keep.webp', bonus: 0, note: 'Thất bại thì luôn giữ nguyên cấp' },
 ]
 export const charmById = new Map(CHARMS.map((c) => [c.id, c]))
 export const CHARM_SHOP_PRICE = 100 // bùa may mắn B: lông chim / bùa (cửa hàng)

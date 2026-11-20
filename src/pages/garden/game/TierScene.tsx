@@ -51,7 +51,7 @@ import { Icon3D } from '../../../components/ui/Icon3D'
 // - Tầng khác vẫn hiện nhưng mờ; tầng nào che tầng đang xem thì gần trong suốt.
 // - Chậu ở các chỗ đặt cố định (`SLOTS`) theo `garden.placed`; chỗ trống của tầng đang xem có vòng nét đứt phát sáng nhấp nháy.
 //   Chạm vòng = chọn chỗ đặt chậu, nhấn giữ chậu ~0,5 giây = menu Dời chỗ / Cất vào kho (GamePage lo giao diện).
-// - Cây trong chậu ở MỌI tầng (`plants`, chỉ bật lớp `_GD{giai đoạn}`); huy hiệu 💧 (cần tưới) / 🧺 (chín) nổi trên cây của tầng đang xem.
+// - Cây trong chậu ở MỌI tầng (`plants`, chỉ bật lớp `_GD{giai đoạn}`); huy hiệu 💧 (cần tưới) nổi trên cây (cây chín không có huy hiệu) của tầng đang xem.
 //   Côn trùng (con-trung.glb) bay / bò vòng quanh cây, chạm để bắt. Chạm chậu / cây → `onPotTap` (GamePage quyết định gieo / tưới / thu hoạch).
 // - Túi hạt giống (tui-hat.glb, tô màu theo cây + nhãn icon cây) lơ lửng trên chậu vừa gieo; nhấn vào túi rồi kéo:
 //   lướt qua chậu trống nào thì báo `onBagOver` (gieo), thả tay báo `onBagRelease` (GamePage ghi 1 transaction).
@@ -630,12 +630,12 @@ export default function TierScene({ models, tier, tierOpen, toLocal, plants, pot
   useEffect(() => { syncSlots(world, models, { pots, placed, views, tier, tierOpen, mode }) }, [key, world]) // eslint-disable-line react-hooks/exhaustive-deps
   const viewsRef = useRef(views); viewsRef.current = views
 
-  // Huy hiệu trên cây của tầng đang xem: 🧺 chín, 💧 cần tưới
+  // Huy hiệu trên cây của tầng đang xem: chỉ 💧 cần tưới (cây chín KHÔNG có huy hiệu, chạm cây là thu hoạch)
   const badges: Badge[] = []
   if (tierOpen) for (let i = 0; i < SLOTS[tier].length; i++) {
     const v = placed[slotKey(tier, i)] ? views[slotKey(tier, i)] : undefined
-    if (v?.ripe) badges.push({ index: i, icon: '🧺' })
-    else if (v?.thirsty && v.stage > 0) badges.push({ index: i, icon: '💧' })
+    if (v?.ripe) continue
+    if (v?.thirsty && v.stage > 0) badges.push({ index: i, icon: '💧' })
   }
   const badgeEls = useRef(new Map<number, HTMLDivElement>())
 
@@ -678,13 +678,16 @@ export default function TierScene({ models, tier, tierOpen, toLocal, plants, pot
   // Đang đặt chậu / chọn hạt: camera lại gần + giữ chỗ đó ở vùng trống bên trái-trên; xong thì tâm nhìn tự về lại trong tầng
   const focusSlot = mode.kind === 'place' || mode.kind === 'seed' ? mode.slot : -1
   const prevRadius = useRef(0)
+  const prevTarget = useRef(new Vector3())
+  const prevTier = useRef(-1)
   useEffect(() => {
     const c = cam.current
     if (focusSlot < 0) {
-      if (c.focus) { c.focus = null; c.radius = prevRadius.current } // đặt xong / huỷ: trả lại khoảng cách cũ
+      // đặt xong / huỷ / bỏ chọn: trả lại khoảng cách VÀ tâm nhìn cũ (không để camera kẹt lệch về phía chậu vừa chọn)
+      if (c.focus) { c.focus = null; c.radius = prevRadius.current; if (c.tier === prevTier.current && !c.tween) c.target.copy(prevTarget.current) }
       return
     }
-    if (!c.focus) prevRadius.current = c.radius
+    if (!c.focus) { prevRadius.current = c.radius; prevTarget.current.copy(c.target); prevTier.current = c.tier }
     c.focus = world.slots[tier][focusSlot]?.group ?? null
     c.radius = Math.min(c.radius, c.r0 * 0.62)
   }, [focusSlot, tier, world])
@@ -849,9 +852,7 @@ export default function TierScene({ models, tier, tierOpen, toLocal, plants, pot
             {/* lớp trong mới nhảy (animation transform không đè lên vị trí của lớp ngoài) */}
             <div
               data-round
-              className={`flex h-8 w-8 items-center justify-center rounded-full border border-white/50 shadow-lg shadow-black/40 ${
-                b.icon === '🧺' ? 'animate-bounce bg-gradient-to-br from-amber-300/90 to-orange-500/90' : 'bg-gradient-to-br from-sky-400/90 to-blue-600/90'
-              }`}
+              className={`flex h-8 w-8 items-center justify-center rounded-full border border-white/50 bg-gradient-to-br from-sky-400/90 to-blue-600/90 shadow-lg shadow-black/40`}
             >
               <Icon3D emoji={b.icon} className="h-5 w-5" />
             </div>

@@ -265,6 +265,9 @@ export const potKindById = new Map(POT_KINDS.map((k) => [k.id, k]))
 export const potImage = (kind: string, level: number) => `/game/chau/${kind}_${Math.max(1, Math.min(6, level))}.webp`
 
 // Màu hạng (kèm chữ B / A / S cho người khó phân biệt màu)
+// Thứ tự hiển thị danh sách vật phẩm: hạng S trước, rồi A, rồi B (sort ổn định: cùng hạng giữ thứ tự cũ)
+export const RANK_ORDER: Record<Rank, number> = { S: 0, A: 1, B: 2 }
+export const byRank = <T,>(list: T[], rankOf: (x: T) => Rank) => [...list].sort((a, b) => RANK_ORDER[rankOf(a)] - RANK_ORDER[rankOf(b)])
 export const RANK_STYLE: Record<Rank, string> = {
   B: 'from-sky-400 to-blue-600',
   A: 'from-violet-400 to-purple-700',

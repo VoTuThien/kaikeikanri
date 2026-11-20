@@ -21,7 +21,7 @@ const FAB_SIZE = 'h-14 w-14'
 export const FAB_SPACE = 'pb-20'
 
 // Icon nét trắng theo chức năng
-export type FabIcon = 'add' | 'delete' | 'save' | 'edit' | 'cancel' | 'logout' | 'locate' | 'bell' | 'send' | 'copy' | 'undo' | 'redo' | 'filter' | 'upload' | 'water' | 'harvest' | 'coin' | 'menu'
+export type FabIcon = 'add' | 'delete' | 'save' | 'edit' | 'cancel' | 'logout' | 'locate' | 'bell' | 'send' | 'copy' | 'undo' | 'redo' | 'filter' | 'upload' | 'water' | 'harvest' | 'coin' | 'menu' | 'help' | 'clock' | 'skip'
 
 const ICON_PATHS: Record<FabIcon, string[]> = {
   add: ['M12 5v14', 'M5 12h14'],
@@ -51,6 +51,11 @@ const ICON_PATHS: Record<FabIcon, string[]> = {
   harvest: ['M3 10h18l-2 9.5a1 1 0 0 1-1 .8H6a1 1 0 0 1-1-.8z', 'M7 10l3-6', 'M17 10l-3-6', 'M12 13.5v4'],
   // 3 gạch: menu (gom các nút của HUD game)
   menu: ['M4 7h16', 'M4 12h16', 'M4 17h16'],
+  // Dấu hỏi trong vòng tròn: quy tắc / tỉ lệ; đồng hồ: lịch sử
+  help: ['M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z', 'M9.5 9.5a2.5 2.5 0 1 1 3.6 2.25c-.65.35-1.1.95-1.1 1.7v.55', 'M12 17h.01'],
+  clock: ['M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z', 'M12 7v5l3.5 2.2'],
+  // Tua nhanh (bỏ qua hiệu ứng / các món còn lại)
+  skip: ['M4 6.5l7 5.5-7 5.5V6.5z', 'M12.5 6.5l7 5.5-7 5.5V6.5z'],
   // Đồng xu: bán
   coin: ['M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z', 'M12 7.5v9', 'M14.5 9.5c-.4-.9-1.3-1.5-2.5-1.5-1.4 0-2.5.8-2.5 2s1.1 1.6 2.5 2 2.5.8 2.5 2-1.1 2-2.5 2c-1.2 0-2.1-.6-2.5-1.5'],
 }

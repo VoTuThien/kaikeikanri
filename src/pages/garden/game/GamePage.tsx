@@ -5,7 +5,7 @@ import { LineIcon } from '../../../components/ui/Fab'
 import { Icon3D } from '../../../components/ui/Icon3D'
 import { useGarden, useNow } from '../data/GardenContext'
 import { catchInsect, errorText, harvestPlant, movePot, placePot, sow, storePot, water } from '../data/api'
-import { potKindById, potSetById, slotKey, tierBlock, type OwnedPot } from '../data/pots'
+import { byRank, potKindById, potSetById, slotKey, tierBlock, type OwnedPot } from '../data/pots'
 import { isPlaced, potsOnTier } from './potInfo'
 import { BTN, InfoPanel, LIST_H, PotList, PotMenu } from './PotUi'
 import { canFertilize, cropById, formatLeft, levelOf, levelProgress, plantState, seedImage, type Crop, type Plant } from '../data/crops'
@@ -14,7 +14,7 @@ import { loadMenuOpen, loadTier, MENU_PATH, saveMenuOpen, saveTier, TIER_COUNT, 
 import { LandscapeFrame, useLandscape } from './LandscapeFrame'
 import { LoadingScreen } from './LoadingScreen'
 import type { GameModels, SceneMode } from './TierScene'
-import { FEATHER_IMG, GachaScreen, ROLL_IMG, STONE_IMG } from './GachaUi'
+import { FEATHER_IMG, GachaScreen, STONE_IMG } from './GachaUi'
 import { SeedList } from './SeedUi'
 import { BagPopup, GuidePopup, ShopPopup } from './GardenPopups'
 import { AchievementsScreen } from './AchievementsUi'
@@ -29,8 +29,10 @@ import { loadSeenVersion, saveSeenVersion } from '../data/news'
 import { UpdateBar } from '../../../components/UpdatePrompt'
 import { dailyView } from '../data/daily'
 import { fertById, FERTS, type FertId } from '../data/items'
+import { ItemImg } from './ItemImg'
 import { fertilize } from '../data/api'
 import { SLOTS } from './slots'
+import { GLASS_ROUND } from './glass'
 
 // Màn hình game Vườn mây: toàn màn hình, luôn nằm ngang (LandscapeFrame), màn hình tải → cảnh 3D xem từng tầng mây.
 // Nút thoát (góc trái trên) về menu app Giải trí. Bong bóng thông báo tự ẩn ở đường dẫn game (isGamePath).
@@ -67,8 +69,30 @@ function RedDot() {
   return <span data-round aria-hidden className="absolute top-0 right-0 h-3 w-3 rounded-full border-2 border-white/80 bg-rose-500 shadow" />
 }
 
-const ROUND_BTN =
-  'flex h-12 w-12 items-center justify-center rounded-full border border-white/30 bg-gradient-to-br from-fuchsia-500/70 to-indigo-500/70 shadow-lg shadow-black/40 backdrop-blur-xl transition active:scale-90 disabled:opacity-35 disabled:active:scale-100'
+// Cấp độ: số nằm giữa cỏ 4 lá (mỗi lá = 2 thuỳ tròn ghép thành hình tim)
+function LevelClover({ level }: { level: number }) {
+  const lobes = [45, 135, 225, 315].flatMap((a) => [-26, 26].map((d) => {
+    const r = ((a + d) * Math.PI) / 180
+    return { x: 20 + Math.cos(r) * 8.6, y: 20 + Math.sin(r) * 8.6 }
+  }))
+  return (
+    <span className="relative flex h-11 w-11 shrink-0 items-center justify-center drop-shadow-[0_2px_3px_rgba(0,0,0,0.55)]">
+      <svg viewBox="0 0 40 40" className="absolute inset-0 h-full w-full" aria-hidden>
+        <defs>
+          <linearGradient id="clover-g" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stopColor="#bef264" />
+            <stop offset="1" stopColor="#059669" />
+          </linearGradient>
+        </defs>
+        {lobes.map((p, i) => <circle key={i} cx={p.x} cy={p.y} r={7.2} fill="url(#clover-g)" stroke="#065f46" strokeWidth={1.2} />)}
+        <circle cx={20} cy={20} r={8.5} fill="url(#clover-g)" />
+      </svg>
+      <span className="relative text-base leading-none font-extrabold tabular-nums [text-shadow:0_1px_2px_rgba(6,78,59,0.95)]">{level}</span>
+    </span>
+  )
+}
+
+const ROUND_BTN = `${GLASS_ROUND} h-12 w-12` // nút tròn kính, không màu riêng (glass.ts)
 
 function Game() {
   const navigate = useNavigate()
@@ -146,14 +170,14 @@ function Game() {
   const box = useMailbox(uid || null)
   const mailNow = useNow(60_000)
   const mail = useMemo(() => mailView(box.personal, box.broadcasts, garden?.mailClaimed ?? {}, garden?.born ?? 0, mailNow), [box.personal, box.broadcasts, garden?.mailClaimed, garden?.born, mailNow])
-  const menuItems: { label: string; popup: NonNullable<typeof popup>; color: string; icon: React.ReactNode; dot: boolean }[] = [
-    { label: 'Cẩm nang', popup: 'guide', color: 'from-sky-400/70 to-indigo-600/70', icon: <Icon3D emoji="📖" className="h-6 w-6" />, dot: false },
-    { label: 'Cửa hàng', popup: 'shop', color: 'from-rose-400/70 to-pink-600/70', icon: <Icon3D emoji="🛒" className="h-6 w-6" />, dot: false },
-    { label: 'Nhiệm vụ hằng ngày', popup: 'daily', color: 'from-lime-400/70 to-emerald-600/70', icon: <Icon3D emoji="📝" className="h-6 w-6" />, dot: dailyReady > 0 },
-    { label: 'Thành tựu', popup: 'ach', color: 'from-amber-400/70 to-orange-600/70', icon: <Icon3D emoji="🏆" className="h-6 w-6" />, dot: achReady > 0 },
-    { label: 'Gacha (ước nguyện)', popup: 'gacha', color: 'from-amber-400/70 to-fuchsia-600/70', icon: <img src={ROLL_IMG.vong_tinh} alt="" className="h-9 w-9 object-contain" />, dot: false },
-    { label: 'Hòm thư', popup: 'mail', color: 'from-sky-400/70 to-blue-600/70', icon: <Icon3D emoji="📬" className="h-6 w-6" />, dot: mail.unread > 0 },
-    { label: 'Túi đồ', popup: 'bag', color: 'from-emerald-400/70 to-teal-600/70', icon: <Icon3D emoji="🧺" className="h-6 w-6" />, dot: false },
+  const menuItems: { label: string; popup: NonNullable<typeof popup>; icon: React.ReactNode; dot: boolean }[] = [
+    { label: 'Cẩm nang', popup: 'guide', icon: <Icon3D emoji="📖" className="h-6 w-6" />, dot: false },
+    { label: 'Cửa hàng', popup: 'shop', icon: <Icon3D emoji="🛒" className="h-6 w-6" />, dot: false },
+    { label: 'Nhiệm vụ hằng ngày', popup: 'daily', icon: <Icon3D emoji="📝" className="h-6 w-6" />, dot: dailyReady > 0 },
+    { label: 'Thành tựu', popup: 'ach', icon: <Icon3D emoji="🏆" className="h-6 w-6" />, dot: achReady > 0 },
+    { label: 'Gacha (ước nguyện)', popup: 'gacha', icon: <Icon3D emoji="🎲" className="h-6 w-6" />, dot: false },
+    { label: 'Hòm thư', popup: 'mail', icon: <Icon3D emoji="📬" className="h-6 w-6" />, dot: mail.unread > 0 },
+    { label: 'Túi đồ', popup: 'bag', icon: <Icon3D emoji="🧺" className="h-6 w-6" />, dot: false },
   ]
   const menuDots = menuItems.filter((m) => m.dot).length
   const need = TIER_UNLOCK_LEVEL[tier]
@@ -389,14 +413,14 @@ function Game() {
       {/* Trái trên: nút thoát + cấp / thanh kinh nghiệm (ẩn khi đang đặt / dời chậu, chọn hạt) */}
       {(ui.kind === 'view' || ui.kind === 'menu' || ui.kind === 'bag') && (
         <div className="absolute top-3 z-30 flex items-center gap-2" style={{ left: 'calc(var(--safe-l) + 12px)' }}>
-          <button type="button" data-round aria-label="Thoát về menu Giải trí" onClick={() => navigate(MENU_PATH)} className={`${ROUND_BTN} from-slate-400/50 to-slate-600/60`}>
+          <button type="button" data-round aria-label="Thoát về menu Giải trí" onClick={() => navigate(MENU_PATH)} className={`${ROUND_BTN}`}>
             <LineIcon icon="logout" className="h-6 w-6 -scale-x-100" />
           </button>
           {garden && phase !== 'loading' && (
-            <div className="pointer-events-none flex h-10 w-32 flex-col justify-center border border-white/25 bg-black/30 px-2 shadow-lg shadow-black/30 backdrop-blur-md">
-              <span className="text-xs leading-4 font-bold">Cấp {xpBar.level}{xpBar.max && ' · tối đa'}</span>
-              <span className="mt-0.5 h-1.5 w-full bg-white/20">
-                <span className="block h-full bg-gradient-to-r from-lime-300 to-emerald-500" style={{ width: `${Math.min(100, (xpBar.have / xpBar.need) * 100)}%` }} />
+            <div className="pointer-events-none flex items-center gap-1.5" aria-label={`Cấp ${xpBar.level}${xpBar.max ? ', tối đa' : ''}`}>
+              <LevelClover level={xpBar.level} />
+              <span className="h-1.5 w-20 bg-black/35 shadow shadow-black/40">
+                <span className="block h-full bg-gradient-to-r from-lime-300 to-emerald-500" style={{ width: `${xpBar.max ? 100 : Math.min(100, (xpBar.have / xpBar.need) * 100)}%` }} />
               </span>
             </div>
           )}
@@ -405,13 +429,13 @@ function Game() {
 
       {showHud && (
         <>
-          {/* Giữa trên: đá vũ trụ + lông chim (2 ô bằng nhau) */}
+          {/* Phải trên, sát bên trái nút ☰: đá vũ trụ + lông chim (không khung, nền game tối nên chữ vẫn rõ) */}
           {garden && (
-            <div className="pointer-events-none absolute top-3 left-1/2 z-20 grid -translate-x-1/2 grid-cols-2 gap-2">
+            <div className="pointer-events-none absolute top-3 z-20 flex h-12 items-center gap-3" style={{ right: 'calc(var(--safe-r) + 12px + 48px + 10px)' }}>
               {[{ img: STONE_IMG, n: garden.stones, label: 'Đá vũ trụ' }, { img: FEATHER_IMG, n: garden.feathers, label: 'Lông chim' }].map((x) => (
-                <div key={x.label} aria-label={x.label} className="flex h-10 w-24 items-center gap-1.5 border border-white/25 bg-black/30 pr-2 pl-1.5 shadow-lg shadow-black/30 backdrop-blur-md">
+                <div key={x.label} aria-label={x.label} className="flex items-center gap-1">
                   <img src={x.img} alt="" className="h-7 w-7 shrink-0 object-contain" />
-                  <span className="truncate text-sm font-bold tabular-nums">{x.n.toLocaleString('vi-VN')}</span>
+                  <span className="text-sm font-bold tabular-nums [text-shadow:0_1px_3px_rgba(0,0,0,0.8)]">{x.n.toLocaleString('vi-VN')}</span>
                 </div>
               ))}
             </div>
@@ -423,7 +447,7 @@ function Game() {
             aria-label={menuOpen ? 'Đóng menu' : 'Mở menu'}
             aria-expanded={menuOpen}
             onClick={() => setMenuOpen(!menuOpen)}
-            className={`${ROUND_BTN} absolute top-3 z-20 from-violet-500/70 to-indigo-600/70`}
+            className={`${ROUND_BTN} absolute top-3 z-20`}
             style={{ right: 'calc(var(--safe-r) + 12px)' }}
           >
             <LineIcon icon={menuOpen ? 'cancel' : 'menu'} className="h-6 w-6" />
@@ -433,24 +457,31 @@ function Game() {
           {menuOpen && (
             <div className="absolute z-20 grid grid-cols-2 gap-2" style={{ top: 'calc(0.75rem + 56px)', right: 'calc(var(--safe-r) + 12px + 72px)' }}>
               {menuItems.map((m) => (
-                <button key={m.label} type="button" data-round aria-label={m.label} onClick={() => setPopup(m.popup)} className={`${ROUND_BTN} relative ${m.color}`}>
+                <button key={m.label} type="button" data-round aria-label={m.label} onClick={() => setPopup(m.popup)} className={`${ROUND_BTN} relative`}>
                   {m.icon}
                   {m.dot && <RedDot />}
                 </button>
               ))}
             </div>
           )}
-          {/* Chuyển tầng: ▲ ▼ xếp dọc ở mép phải, giữa ghi "Tầng n/4" */}
+          {/* Chuyển tầng: ▲ ▼ xếp dọc ở mép phải, giữa là 4 ô vuông báo tầng đang xem */}
           <div className="absolute top-1/2 z-20 flex -translate-y-1/2 flex-col items-center gap-2" style={{ right: 'calc(var(--safe-r) + 12px)' }}>
             <button type="button" data-round aria-label="Lên tầng trên" disabled={tier >= TIER_COUNT - 1} onClick={() => go(1)} className={`${ROUND_BTN} text-xl`}>
               ▲
             </button>
-            <div className="flex w-16 flex-col items-center border border-white/25 bg-black/25 px-1 py-1.5 text-center shadow-lg shadow-black/30 backdrop-blur-md">
-              <span className="text-[11px] leading-4 text-white/70">Tầng</span>
-              <span className="flex items-center gap-1 text-base leading-5 font-bold">
-                {locked && <Icon3D emoji="🔒" className="h-4 w-4" />}
-                {tier + 1}/{TIER_COUNT}
-              </span>
+            {/* 4 ô vuông nhỏ xếp thành ô lớn rộng bằng nút ▲: đang ở tầng n thì n ô đầu sáng (trái → phải, trên → dưới), còn lại mờ */}
+            <div role="img" aria-label={`Tầng ${tier + 1}/${TIER_COUNT}${locked ? ' (đang khoá)' : ''}`} className="grid h-8 w-8 grid-cols-2 grid-rows-2 gap-[3px]">
+              {Array.from({ length: TIER_COUNT }, (_, i) => {
+                const on = i <= tier
+                const cur = i === tier
+                return (
+                  <span key={i} className={`flex items-center justify-center border shadow shadow-black/40 ${
+                    on ? 'border-amber-100/90 bg-gradient-to-br from-amber-200/90 to-orange-400/80 shadow-[0_0_8px_rgba(253,211,77,0.55)]' : 'border-white/25 bg-white/10 opacity-50'
+                  }`}>
+                    {cur && locked && <Icon3D emoji="🔒" className="h-2.5 w-2.5 text-indigo-950" />}
+                  </span>
+                )
+              })}
             </div>
             <button type="button" data-round aria-label="Xuống tầng dưới" disabled={tier <= 0} onClick={() => go(-1)} className={`${ROUND_BTN} text-xl`}>
               ▼
@@ -482,7 +513,7 @@ function Game() {
             <p className="text-sm leading-5 font-semibold">{bagInfo.name} · còn {bagLeft} hạt</p>
             <p className="text-xs leading-4 text-white/70">Kéo túi lướt qua chậu trống để gieo</p>
           </div>
-          <button type="button" data-round aria-label="Cất túi hạt" onClick={() => setUi({ kind: 'view' })} className={`${ROUND_BTN} h-10 w-10 from-sky-500/70 to-blue-600/70`}>
+          <button type="button" data-round aria-label="Cất túi hạt" onClick={() => setUi({ kind: 'view' })} className={`${GLASS_ROUND} h-10 w-10`}>
             <LineIcon icon="cancel" className="h-5 w-5" />
           </button>
         </div>
@@ -491,12 +522,12 @@ function Game() {
       {/* Cầm túi phân: loại phân + số túi còn lại + nút X */}
       {phase !== 'loading' && ui.kind === 'bag' && bagFert && (
         <div className="absolute bottom-4 left-1/2 z-30 flex -translate-x-1/2 items-center gap-3 border border-white/25 bg-indigo-950/70 py-1.5 pr-1.5 pl-2 shadow-2xl shadow-black/40 backdrop-blur-xl">
-          <span className="flex h-10 w-10 items-center justify-center border border-white/20 bg-gradient-to-br from-lime-400/50 to-emerald-700/60"><Icon3D emoji={fertById.get(bagFert)!.icon} className="h-6 w-6" /></span>
+          <ItemImg img={fertById.get(bagFert)!.img} emoji={fertById.get(bagFert)!.icon} className="h-10 w-10" />
           <div className="min-w-0">
             <p className="text-sm leading-5 font-semibold">{fertById.get(bagFert)!.name} · còn {bagFertLeft} túi</p>
             <p className="text-xs leading-4 text-white/70">Kéo túi lướt qua cây đang lớn để bón (−{Math.round(fertById.get(bagFert)!.cut * 100)}% thời gian)</p>
           </div>
-          <button type="button" data-round aria-label="Cất túi phân" onClick={() => setUi({ kind: 'view' })} className={`${ROUND_BTN} h-10 w-10 from-sky-500/70 to-blue-600/70`}>
+          <button type="button" data-round aria-label="Cất túi phân" onClick={() => setUi({ kind: 'view' })} className={`${GLASS_ROUND} h-10 w-10`}>
             <LineIcon icon="cancel" className="h-5 w-5" />
           </button>
         </div>
@@ -509,18 +540,18 @@ function Game() {
             <p className="truncate text-sm leading-5 font-semibold">{pickState.crop.name} · chín sau {formatLeft(pickState.leftMs)}</p>
             <p className="text-[11px] leading-4 text-white/65">Đã bón {pickPlant.fert ?? 0}/2 lần · chọn phân để bón</p>
           </div>
-          {FERTS.map((f) => {
+          {byRank(FERTS, (f) => f.id).map((f) => {
             const have = garden.ferts[f.id]
             const cut = Math.min(f.cut, 0.6 - (pickPlant.boost ?? 0), 1 - pickState.progress) * pickState.crop!.minutes * 60_000
             return (
               <button key={f.id} type="button" disabled={have <= 0} onClick={() => chooseFert(f.id)}
                 className={`${BTN} h-12 w-36 flex-col gap-0 px-1 leading-4 ${f.id === 'A' ? 'from-amber-500/70 to-fuchsia-600/70' : 'from-lime-500/60 to-emerald-700/70'}`}>
-                <span className="flex items-center gap-1"><Icon3D emoji={f.icon} className="h-4 w-4" />{f.name} ×{have}</span>
+                <span className="flex items-center gap-1"><ItemImg img={f.img} emoji={f.icon} className="h-5 w-5" />{f.name} ×{have}</span>
                 <span className="text-[11px] font-normal text-white/80">bớt {formatLeft(cut)}</span>
               </button>
             )
           })}
-          <button type="button" data-round aria-label="Huỷ bón phân" onClick={() => setUi({ kind: 'view' })} className={`${ROUND_BTN} h-10 w-10 from-sky-500/70 to-blue-600/70`}>
+          <button type="button" data-round aria-label="Huỷ bón phân" onClick={() => setUi({ kind: 'view' })} className={`${GLASS_ROUND} h-10 w-10`}>
             <LineIcon icon="cancel" className="h-5 w-5" />
           </button>
         </div>
@@ -531,7 +562,7 @@ function Game() {
         <>
           <SeedList seeds={seedsView} level={level} onSelect={chooseSeed} />
           <div className="absolute z-30" style={{ left: 'calc(var(--safe-l) + 12px)', bottom: LIST_H + 12 }}>
-            <button type="button" data-round aria-label="Huỷ chọn hạt" onClick={() => setUi({ kind: 'view' })} className={`${ROUND_BTN} from-sky-500/70 to-blue-600/70`}>
+            <button type="button" data-round aria-label="Huỷ chọn hạt" onClick={() => setUi({ kind: 'view' })} className={`${ROUND_BTN}`}>
               <LineIcon icon="cancel" className="h-6 w-6" />
             </button>
           </div>
@@ -544,7 +575,7 @@ function Game() {
           <PotList pots={inStore} onTier={onTier} tier={tier} selected={ui.sel} onSelect={(id) => setUi({ ...ui, sel: id })} />
           <InfoPanel onTier={onTier} sel={selPot} />
           <div className="absolute z-30 flex gap-3" style={{ left: 'calc(var(--safe-l) + 12px)', bottom: LIST_H + 12 }}>
-            <button type="button" data-round aria-label="Huỷ đặt chậu" onClick={() => setUi({ kind: 'view' })} className={`${ROUND_BTN} from-sky-500/70 to-blue-600/70`}>
+            <button type="button" data-round aria-label="Huỷ đặt chậu" onClick={() => setUi({ kind: 'view' })} className={`${ROUND_BTN}`}>
               <LineIcon icon="cancel" className="h-6 w-6" />
             </button>
             <button type="button" data-round aria-label="Đặt chậu" disabled={!selPot || busy} onClick={confirmPlace} className={ROUND_BTN}>

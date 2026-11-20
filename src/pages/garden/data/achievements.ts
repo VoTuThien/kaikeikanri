@@ -55,6 +55,7 @@ export interface Achievement {
   id: string
   group: GroupId
   icon: string
+  img?: string // ảnh thay icon nét (vd thành tựu bắt từng loại côn trùng)
   name: (tier: number) => string // tên ở bậc `tier` (0 = bậc đầu)
   desc: (goal: number) => string
   goals: number[]
@@ -118,7 +119,7 @@ function build(): Achievement[] {
   many({ id: 'water', group: 'cham_soc', icon: '💧', name: () => 'Người tưới cây', desc: (n) => `Tưới cây ${fmt(n)} lần`, goals: [20, 100, 500, 2000], progress: (g) => st(g, 'water') })
   many({ id: 'catch', group: 'cham_soc', icon: '🐞', name: () => 'Thợ bắt côn trùng', desc: (n) => `Bắt ${fmt(n)} côn trùng`, goals: [10, 50, 200, 500, 1000], progress: (g) => st(g, 'catch') })
   for (const ins of INSECTS) {
-    many({ id: `catch_${ins.id}`, group: 'cham_soc', icon: ins.icon, name: () => `Săn ${ins.name.toLowerCase()}`, desc: (n) => `Bắt ${fmt(n)} ${ins.name.toLowerCase()}`, goals: [10, 50, 150], progress: (g) => st(g, `catch_${ins.id}`) })
+    many({ id: `catch_${ins.id}`, group: 'cham_soc', icon: ins.icon, img: ins.img, name: () => `Săn ${ins.name.toLowerCase()}`, desc: (n) => `Bắt ${fmt(n)} ${ins.name.toLowerCase()}`, goals: [10, 50, 150], progress: (g) => st(g, `catch_${ins.id}`) })
   }
   list.push({ id: 'insect_kinds', group: 'cham_soc', icon: '🦋', name: () => 'Nhà côn trùng học', desc: (n) => `Bắt đủ ${n} loại côn trùng`, goals: [INSECTS.length], reward: one(1), progress: (g) => INSECTS.filter((i) => st(g, `catch_${i.id}`) > 0).length })
 

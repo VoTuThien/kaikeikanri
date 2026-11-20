@@ -9,9 +9,12 @@ import { formatLeft } from '../data/crops'
 import { DragScroll } from './DragScroll'
 import { FEATHER_IMG, ROLL_IMG, STONE_IMG } from './GachaUi'
 import { BTN } from './PotUi'
+import { ItemImg } from './ItemImg'
+import { insectById } from '../data/gacha'
+import { GLASS_ROUND } from './glass'
 
 // Popup NHIỆM VỤ HẰNG NGÀY (riêng, không gộp với Thành tựu; xem CLAUDE.md "Nhiệm vụ hằng ngày"):
-// 5 nhiệm vụ của hôm nay (thanh tiến độ, thưởng, [Nhận]) + dòng thưởng xong cả 5 (2 Sao Duyên). Làm mới lúc 0 giờ.
+// 5 nhiệm vụ của hôm nay (thanh tiến độ, thưởng, [Nhận]) + dòng thưởng xong cả 5 (2 Vọng Tinh + 2 Vọng Nguyệt). Làm mới lúc 0 giờ.
 
 function Chip({ img, emoji, n, label }: { img?: string; emoji?: string; n: number; label: string }) {
   return (
@@ -25,11 +28,14 @@ function Chip({ img, emoji, n, label }: { img?: string; emoji?: string; n: numbe
 function Row({ r, busy, onClaim }: { r: QuestView; busy: boolean; onClaim: () => void }) {
   const rw = DAILY_REWARD[r.q.tier - 1]
   const pct = Math.min(100, (r.have / r.q.goal) * 100)
+  const img = r.q.type === 'catchKind' ? insectById.get(r.q.param ?? '')?.img : undefined // nhiệm vụ bắt 1 loại côn trùng: ảnh con đó
   return (
     <div className={`flex h-16 items-center gap-3 border-b border-white/10 px-3 ${r.done && !r.claimed ? 'bg-amber-300/10' : ''} ${r.claimed ? 'opacity-55' : ''}`}>
-      <span className="flex h-10 w-10 shrink-0 items-center justify-center border border-white/25 bg-gradient-to-br from-emerald-500/50 to-teal-700/60 shadow shadow-black/40">
-        <Icon3D emoji={r.q.icon} className="h-6 w-6" />
-      </span>
+      {img ? <ItemImg img={img} emoji={r.q.icon} className="h-10 w-10" /> : (
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center border border-white/25 bg-gradient-to-br from-emerald-500/50 to-teal-700/60 shadow shadow-black/40">
+          <Icon3D emoji={r.q.icon} className="h-6 w-6" />
+        </span>
+      )}
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm leading-5 font-semibold">{r.q.name}</p>
         <div className="mt-1 flex items-center gap-2">
@@ -74,7 +80,7 @@ export function DailyScreen({ garden, actor, onClose }: { garden: Garden; actor:
     setBusy(true)
     try {
       const r = await claimDaily(actor, id)
-      const parts = [r.feathers && `+${r.feathers} lông chim`, r.stones && `+${r.stones} đá`, r.xp && `+${r.xp} kinh nghiệm`, r.sao_duyen && `+${r.sao_duyen} Sao Duyên`].filter(Boolean)
+      const parts = [r.feathers && `+${r.feathers} lông chim`, r.stones && `+${r.stones} đá`, r.xp && `+${r.xp} kinh nghiệm`, r.vong_tinh && `+${r.vong_tinh} Vọng Tinh`, r.sao_duyen && `+${r.sao_duyen} Vọng Nguyệt`].filter(Boolean)
       say(`${parts.join(', ')}${r.after > r.before ? ` · lên cấp ${r.after}!` : ''}`)
     } catch (err) {
       say(errorText(err))
@@ -86,11 +92,11 @@ export function DailyScreen({ garden, actor, onClose }: { garden: Garden; actor:
   return (
     <div className="absolute inset-0 z-40 flex flex-col bg-gradient-to-br from-[#0b1a33]/95 via-[#14284a]/95 to-[#1d1748]/95 backdrop-blur-xl">
       <div className="flex h-14 shrink-0 items-center gap-2 border-b border-white/15" style={{ paddingLeft: 'calc(var(--safe-l) + 12px)', paddingRight: 'calc(var(--safe-r) + 12px)' }}>
-        <button type="button" data-round aria-label="Đóng nhiệm vụ" onClick={onClose} className="flex h-10 w-10 items-center justify-center rounded-full border border-white/30 bg-white/10">
+        <button type="button" data-round aria-label="Đóng nhiệm vụ" onClick={onClose} className={`${GLASS_ROUND} h-10 w-10`}>
           <LineIcon icon="cancel" className="h-5 w-5" />
         </button>
         <div className="ml-1 min-w-0">
-          <p className="text-lg leading-6 font-light lowercase">nhiệm vụ hằng ngày</p>
+          <p className="text-lg leading-6 font-light">Nhiệm vụ hằng ngày</p>
           <p className="truncate text-xs leading-4 text-white/65">Bậc {v.tier} · xong {doneCount}/{v.rows.length} · làm mới sau {formatLeft(midnight.getTime() - now)}</p>
         </div>
         <button type="button" disabled={busy || v.ready === 0} onClick={() => void claim(null)} className={`${BTN} ml-auto w-40 from-amber-400/80 to-rose-500/80`}>
@@ -110,7 +116,10 @@ export function DailyScreen({ garden, actor, onClose }: { garden: Garden; actor:
               <p className="truncate text-sm leading-5 font-semibold">Hoàn thành cả {v.rows.length} nhiệm vụ</p>
               <p className="truncate text-[11px] leading-4 text-white/65">Nhận thưởng đủ {v.rows.length} nhiệm vụ hôm nay để mở quà</p>
             </div>
-            <span className="flex w-32 shrink-0 items-center gap-1 text-xs font-semibold"><img src={ROLL_IMG.sao_duyen} alt="" className="h-5 w-5 object-contain" />{DAILY_BONUS.sao_duyen} Sao Duyên</span>
+            <span className="flex w-32 shrink-0 flex-col justify-center gap-0.5 text-xs leading-4 font-semibold">
+              <span className="flex items-center gap-1"><img src={ROLL_IMG.vong_tinh} alt="" className="h-5 w-5 object-contain" />{DAILY_BONUS.vong_tinh} Vọng Tinh</span>
+              <span className="flex items-center gap-1"><img src={ROLL_IMG.sao_duyen} alt="" className="h-5 w-5 object-contain" />{DAILY_BONUS.sao_duyen} Vọng Nguyệt</span>
+            </span>
             <div className="w-20 shrink-0">
               {v.bonusClaimed ? (
                 <span className="flex h-9 items-center justify-center gap-1 text-xs text-white/70"><LineIcon icon="save" className="h-4 w-4" /> Đã nhận</span>
@@ -121,7 +130,7 @@ export function DailyScreen({ garden, actor, onClose }: { garden: Garden; actor:
               )}
             </div>
           </div>
-          <p className="px-4 pt-1 pb-4 text-[11px] leading-4 text-white/55">Nhiệm vụ đổi mỗi ngày lúc 0 giờ; nhiệm vụ chưa nhận thưởng sẽ mất. Bậc nhiệm vụ = số tầng mây đã mở (mở thêm tầng thì từ hôm sau nhiệm vụ khó hơn, thưởng nhiều hơn).</p>
+          <div className="h-4" />
         </div>
       </DragScroll>
 

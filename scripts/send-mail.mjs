@@ -12,7 +12,7 @@
 //   --family <familyId>          chỉ các vườn của gia đình này
 //   --broadcast                  gửi 1 thư CHUNG (gardenBroadcasts); thêm --new-players để người chơi tạo vườn sau này cũng nhận
 //   --title, --body, --from      tiêu đề, nội dung (\n để xuống dòng), người gửi (mặc định "Vườn mây")
-//   --feathers N --stones N --vong N --sao N        lông chim, đá vũ trụ, Vọng Tinh, Sao Duyên
+//   --feathers N --stones N --vong N --sao N        lông chim, đá vũ trụ, Vọng Tinh, Vọng Nguyệt
 //   --seed <id cây>:N  --insect <id>:N  --pot <id loại chậu>[:N]  --charm B|A|S|keep:N (bùa)  --fert B|A:N (phân bón)  --shard sao_sang|sao:N (mảnh vỡ sao)    lặp lại được
 //   --expires 7d | 12h | 2026-12-31                 hạn nhận (mặc định không hết hạn)
 //   --dry-run                    chỉ in ra, không ghi;  --yes   không hỏi xác nhận

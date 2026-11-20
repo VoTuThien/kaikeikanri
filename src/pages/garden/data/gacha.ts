@@ -4,7 +4,7 @@ import { charmById, type CharmId, type Charms } from './upgrade'
 import { fertById, type FertId, type Ferts, type Shards } from './items'
 
 // Gacha của game Vườn mây (xem CLAUDE.md "Gacha"). Hiện có BANNER CHẬU (banner 2, dùng Vọng Tinh).
-// Banner đồ trang trí (banner 1, Sao Duyên) chưa có đồ trang trí nên chưa mở.
+// Banner đồ trang trí (banner 1, Vọng Nguyệt) chưa có đồ trang trí nên chưa mở.
 // Quay chạy trên điện thoại rồi ghi Firestore trong cùng transaction với việc trừ cục roll (không có máy chủ riêng).
 
 export type RollKind = 'sao_duyen' | 'vong_tinh'
@@ -15,13 +15,13 @@ export const GIFT_ROLLS = 20 // quà chào mừng: 20 Vọng Tinh
 export const HARD_PITY = 80
 export const SOFT_PITY = 60
 
-// Côn trùng (dùng nâng cấp chậu ở GĐ5)
+// Côn trùng (dùng nâng cấp chậu ở GĐ5). img = icon chụp từ mô hình Blender (public/game/contrung/), icon = icon nét dự phòng
 export const INSECTS = [
-  { id: 'bo_rua', name: 'Bọ rùa', icon: '🐞' },
-  { id: 'sau', name: 'Sâu', icon: '🐛' },
-  { id: 'dom_dom', name: 'Đom đóm', icon: '🪲' },
-  { id: 'nhen', name: 'Nhện', icon: '🕷' },
-  { id: 'buom', name: 'Bươm bướm', icon: '🦋' },
+  { id: 'bo_rua', name: 'Bọ rùa', icon: '🐞', img: '/game/contrung/bo_rua.webp' },
+  { id: 'sau', name: 'Sâu', icon: '🐛', img: '/game/contrung/sau.webp' },
+  { id: 'dom_dom', name: 'Đom đóm', icon: '🪲', img: '/game/contrung/dom_dom.webp' },
+  { id: 'nhen', name: 'Nhện', icon: '🕷', img: '/game/contrung/nhen.webp' },
+  { id: 'buom', name: 'Bươm bướm', icon: '🦋', img: '/game/contrung/buom.webp' },
 ]
 export const insectById = new Map(INSECTS.map((i) => [i.id, i]))
 
@@ -201,13 +201,12 @@ export function rateRows() {
     { label: `Côn trùng — ${INSECTS.length} loại`, rate: 1 - RATES.gold - RATES.purple - RATES.potB - RATES.seeds - ITEMS_TOTAL },
   ]
 }
-export const itemName = (it: PullItem) =>
-  it.type === 'pot'
-    ? potKindById.get(it.kind)?.name ?? 'Chậu'
-    : it.type === 'seed'
-      ? `10 hạt ${CROPS.find((c) => c.id === it.crop)?.name.toLowerCase() ?? ''}`
-      : it.type === 'charm'
-        ? charmById.get(it.charm)?.name ?? 'Bùa'
-        : it.type === 'fert'
-          ? `${it.qty} túi ${fertById.get(it.fert)?.name.replace('Phân', 'phân') ?? 'phân bón'}`
-          : insectById.get(it.insect)?.name ?? 'Côn trùng'
+// Tên gốc + số lượng của 1 món (hiển thị "tên x số lượng", số lượng 1 thì chỉ ghi tên)
+export function itemBase(it: PullItem): { name: string; qty: number } {
+  if (it.type === 'pot') return { name: potKindById.get(it.kind)?.name ?? 'Chậu', qty: 1 }
+  if (it.type === 'seed') return { name: `Hạt ${CROPS.find((c) => c.id === it.crop)?.name.toLowerCase() ?? ''}`, qty: it.qty }
+  if (it.type === 'charm') return { name: charmById.get(it.charm)?.name ?? 'Bùa', qty: it.qty }
+  if (it.type === 'fert') return { name: fertById.get(it.fert)?.name ?? 'Phân bón', qty: it.qty }
+  return { name: insectById.get(it.insect)?.name ?? 'Côn trùng', qty: 1 }
+}
+export const itemName = (it: PullItem) => { const b = itemBase(it); return b.qty > 1 ? `${b.name} x ${b.qty}` : b.name }

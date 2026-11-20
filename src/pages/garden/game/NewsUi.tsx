@@ -3,6 +3,7 @@ import { Icon3D } from '../../../components/ui/Icon3D'
 import { NEWS_MAX, type ChangelogEntry } from '../data/changelog'
 import { DragScroll } from './DragScroll'
 import { BTN } from './PotUi'
+import { GLASS_ROUND } from './glass'
 
 // Màn hình "Có gì mới" (xem CLAUDE.md): tự mở sau màn hình tải khi có bản cập nhật chưa xem; xem lại ở Cẩm nang → Cập nhật.
 
@@ -39,7 +40,7 @@ export function NewsScreen({ entries, onClose }: { entries: ChangelogEntry[]; on
             <p className="truncate text-xs leading-4 text-white/65">Vườn mây vừa được cập nhật</p>
           </div>
           <button type="button" data-round aria-label="Đóng" onClick={onClose}
-            className="flex h-10 w-10 items-center justify-center rounded-full border border-white/30 bg-gradient-to-br from-sky-500/70 to-blue-600/70 shadow-lg active:scale-90">
+            className={`${GLASS_ROUND} h-10 w-10`}>
             <LineIcon icon="cancel" className="h-5 w-5" />
           </button>
         </div>
