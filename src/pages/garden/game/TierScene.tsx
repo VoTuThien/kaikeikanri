@@ -506,11 +506,27 @@ function labelTexture(crop: string) {
   const img = new Image(); img.onload = () => paint(img); img.src = cropImage(crop)
   return tex
 }
+// Nhãn túi phân bón: chữ hạng to (B / A) trên nền kem
+function fertTexture(id: string) {
+  const c = document.createElement('canvas'); c.width = c.height = 256
+  const g = c.getContext('2d')!
+  g.fillStyle = '#f6ecd6'; g.fillRect(0, 0, 256, 256)
+  g.fillStyle = id === 'A' ? '#7c3aed' : '#2563eb'
+  g.font = 'bold 150px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'
+  g.fillText(id, 128, 118)
+  g.font = 'bold 40px sans-serif'; g.fillStyle = '#5b4126'; g.fillText('PHÂN BÓN', 128, 215)
+  g.strokeStyle = '#966e46'; g.lineWidth = 8; g.strokeRect(4, 4, 248, 248)
+  const tex = new CanvasTexture(c)
+  tex.flipY = false; tex.colorSpace = SRGBColorSpace
+  return tex
+}
+// `crop` = id cây (túi hạt) hoặc "fert:B" / "fert:A" (túi phân bón)
 function makeBag(models: GameModels, crop: string) {
   const obj = models.bag.scene.getObjectByName('TuiHat')!.clone(true)
   obj.position.set(0, 0, 0); obj.scale.setScalar(BAG_SCALE)
-  const color = new Color(cropById.get(crop)?.bag ?? '#e5e7eb')
-  const tex = labelTexture(crop)
+  const fert = crop.startsWith('fert:') ? crop.slice(5) : null
+  const color = new Color(fert ? (fert === 'A' ? '#a16207' : '#65a30d') : cropById.get(crop)?.bag ?? '#e5e7eb')
+  const tex = fert ? fertTexture(fert) : labelTexture(crop)
   const mats = cloneMaterials(obj, (m) => {
     const mm = m as Material & { color?: Color; map?: unknown }
     if (m.name === 'TuiHat_Than') mm.color?.copy(color)
@@ -521,7 +537,8 @@ function makeBag(models: GameModels, crop: string) {
 }
 type Bag = ReturnType<typeof makeBag>
 
-export interface BagState { crop: string; slot: number } // túi đang lơ lửng trên chậu `slot` của tầng đang xem
+// Túi đang lơ lửng trên chậu `slot` của tầng đang xem. Túi phân: `fert` = hạng phân, `targets` = các chậu bón được (lướt qua là bón).
+export interface BagState { crop: string; slot: number; fert?: string; targets?: number[] }
 interface Badge { index: number; icon: string }
 
 // Hoạt cảnh mỗi khung hình: côn trùng bay / bò, huy hiệu đi theo cây, túi hạt bay theo ngón tay / về chậu
@@ -625,7 +642,7 @@ export default function TierScene({ models, tier, tierOpen, toLocal, plants, pot
   // Túi hạt: dựng lại khi đổi loại cây
   const bagRef = useRef<{ bag: Bag | null; slot: number }>({ bag: null, slot: 0 })
   const bagDrag = useRef({ on: false, point: new Vector3(), over: new Set<number>() })
-  const bagCrop = bag?.crop ?? null
+  const bagCrop = bag ? (bag.fert ? `fert:${bag.fert}` : bag.crop) : null
   useEffect(() => {
     if (!bagCrop) return
     const b = makeBag(models, bagCrop)
@@ -676,8 +693,8 @@ export default function TierScene({ models, tier, tierOpen, toLocal, plants, pot
   const camRef = useRef<Camera | null>(null)
   const raycaster = useMemo(() => new Raycaster(), [])
   const el = useRef<HTMLDivElement>(null)
-  const latest = useRef({ tier, onSlotTap, onPotTap, onPotHold, onEmptyTap, onBagOver, onBagRelease, bagOn: !!bag })
-  latest.current = { tier, onSlotTap, onPotTap, onPotHold, onEmptyTap, onBagOver, onBagRelease, bagOn: !!bag }
+  const latest = useRef({ tier, onSlotTap, onPotTap, onPotHold, onEmptyTap, onBagOver, onBagRelease, bagOn: !!bag, targets: bag?.fert ? bag.targets ?? [] : null })
+  latest.current = { tier, onSlotTap, onPotTap, onPotHold, onEmptyTap, onBagOver, onBagRelease, bagOn: !!bag, targets: bag?.fert ? bag.targets ?? [] : null }
   const ndc = (p: { x: number; y: number }) => {
     const box = el.current!
     return new Vector2((p.x / box.clientWidth) * 2 - 1, -(p.y / box.clientHeight) * 2 + 1)
@@ -726,7 +743,8 @@ export default function TierScene({ models, tier, tierOpen, toLocal, plants, pot
     const v = new Vector3()
     let best: SlotNode | null = null; let bestD = BAG_REACH
     for (const s of world.slots[latest.current.tier]) {
-      if (!s.pot || viewsRef.current[slotKey(s.tier, s.index)] || bagDrag.current.over.has(s.index)) continue
+      const tg = latest.current.targets // túi phân: chỉ các cây bón được; túi hạt: chậu trống
+      if (!s.pot || bagDrag.current.over.has(s.index) || (tg ? !tg.includes(s.index) : viewsRef.current[slotKey(s.tier, s.index)])) continue
       s.group.localToWorld(v.set(0, s.pot.rim, 0)).project(camera)
       const d = Math.hypot(((v.x + 1) / 2) * box.clientWidth - p.x, ((1 - v.y) / 2) * box.clientHeight - p.y)
       if (d < bestD) { bestD = d; best = s }

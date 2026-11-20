@@ -13,7 +13,7 @@
 //   --broadcast                  gửi 1 thư CHUNG (gardenBroadcasts); thêm --new-players để người chơi tạo vườn sau này cũng nhận
 //   --title, --body, --from      tiêu đề, nội dung (\n để xuống dòng), người gửi (mặc định "Vườn mây")
 //   --feathers N --stones N --vong N --sao N        lông chim, đá vũ trụ, Vọng Tinh, Sao Duyên
-//   --seed <id cây>:N  --insect <id>:N  --pot <id loại chậu>[:N]  --charm B|A|S|keep:N (bùa may mắn / giữ cấp)    lặp lại được
+//   --seed <id cây>:N  --insect <id>:N  --pot <id loại chậu>[:N]  --charm B|A|S|keep:N (bùa)  --fert B|A:N (phân bón)  --shard sao_sang|sao:N (mảnh vỡ sao)    lặp lại được
 //   --expires 7d | 12h | 2026-12-31                 hạn nhận (mặc định không hết hạn)
 //   --dry-run                    chỉ in ra, không ghi;  --yes   không hỏi xác nhận
 import { existsSync, readFileSync } from 'node:fs'
@@ -28,7 +28,7 @@ const here = dirname(fileURLToPath(import.meta.url))
 
 // ---- đọc tham số ----
 const args = process.argv.slice(2)
-const opt = { seed: [], insect: [], pot: [], charm: [] }
+const opt = { seed: [], insect: [], pot: [], charm: [], fert: [], shard: [] }
 for (let i = 0; i < args.length; i++) {
   const a = args[i]
   if (!a.startsWith('--')) fail(`Tham số lạ: ${a}`)
@@ -68,6 +68,12 @@ const insects = pairs(opt.insect, 'insect'); if (Object.keys(insects).length) re
 const charms = pairs(opt.charm, 'charm')
 for (const k of Object.keys(charms)) if (!['B', 'A', 'S', 'keep'].includes(k)) fail(`--charm sai loại: ${k} (B, A, S, keep)`)
 if (Object.keys(charms).length) rewards.charms = charms
+const ferts = pairs(opt.fert, 'fert')
+for (const k of Object.keys(ferts)) if (!['B', 'A'].includes(k)) fail(`--fert sai loại: ${k} (B, A)`)
+if (Object.keys(ferts).length) rewards.ferts = ferts
+const shards = pairs(opt.shard, 'shard')
+for (const k of Object.keys(shards)) if (!['sao_sang', 'sao'].includes(k)) fail(`--shard sai loại: ${k} (sao_sang, sao)`)
+if (Object.keys(shards).length) rewards.shards = shards
 const pots = Object.entries(pairs(opt.pot, 'pot')).flatMap(([id, n]) => Array(n).fill(id)); if (pots.length) rewards.pots = pots
 
 function parseExpires(s) {

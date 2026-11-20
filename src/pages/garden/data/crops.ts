@@ -1,6 +1,7 @@
 // Luật chơi của game Vườn mây (tính hoàn toàn ở máy, không cần server).
 // Cây lớn theo THỜI GIAN THẬT tính từ lúc gieo (`plantedAt`), nên đóng app cây vẫn lớn.
 import type { Rank } from './pots'
+import { FERT_MIN_MINUTES, MAX_FERT_CUT, MAX_FERT_TIMES } from './items'
 
 export interface Crop {
   id: string
@@ -44,6 +45,8 @@ export interface Plant {
   plantedAt: number // lúc gieo (ms)
   watered: boolean // đã tưới: +1 nông sản
   caught: boolean // đã bắt côn trùng xuất hiện trên cây
+  boost?: number // phân bón: phần TỔNG thời gian lớn đã được rút (0…0,6)
+  fert?: number // số lần đã bón (tối đa 2)
 }
 
 // ---- Cấp độ (tối đa MAX_LEVEL) ----
@@ -104,13 +107,19 @@ export function plantState(plant: Plant | null | undefined, now: number): PlantS
   const crop = plant?.crop ? cropById.get(plant.crop) : undefined
   if (!plant || !crop) return null
   const total = crop.minutes * 60_000
-  const progress = Math.min(1, Math.max(0, (now - plant.plantedAt) / total))
+  const progress = Math.min(1, Math.max(0, (now - plant.plantedAt) / total + (plant.boost ?? 0)))
   const ripe = progress >= 1
   const stage: Stage = ripe ? 3 : progress >= 0.6 ? 2 : progress >= 0.2 ? 1 : 0
   const bug = insectOf(plant.plantedAt)
   const insect = bug && progress >= INSECT_AT && !plant.caught ? bug : null
   const harvest = crop.yield + (plant.watered ? 1 : 0)
-  return { crop, progress, stage, ripe, leftMs: Math.max(0, plant.plantedAt + total - now), insect, thirsty: !plant.watered && !ripe, harvest }
+  return { crop, progress, stage, ripe, leftMs: Math.max(0, (1 - progress) * total), insect, thirsty: !plant.watered && !ripe, harvest }
+}
+
+// Cây bón phân được không (chưa chín, chưa bón đủ 2 lần / 60%, không phải cây quá ngắn)
+export function canFertilize(plant: Plant | null | undefined, now: number) {
+  const st = plantState(plant, now)
+  return !!plant && !!st?.crop && !st.ripe && (plant.fert ?? 0) < MAX_FERT_TIMES && (plant.boost ?? 0) < MAX_FERT_CUT - 1e-9 && st.crop.minutes >= FERT_MIN_MINUTES
 }
 
 // "2 giờ 05 phút", "12 phút", "40 giây"

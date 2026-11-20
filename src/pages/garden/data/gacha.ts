@@ -1,5 +1,7 @@
 import { CROPS, SEED_RANK_RATE } from './crops'
 import { POT_SETS, potKindById, type OwnedPot } from './pots'
+import { charmById, type CharmId, type Charms } from './upgrade'
+import { fertById, type FertId, type Ferts, type Shards } from './items'
 
 // Gacha của game Vườn mây (xem CLAUDE.md "Gacha"). Hiện có BANNER CHẬU (banner 2, dùng Vọng Tinh).
 // Banner đồ trang trí (banner 1, Sao Duyên) chưa có đồ trang trí nên chưa mở.
@@ -36,7 +38,32 @@ export function bannerOf(date = new Date()) {
 }
 
 // Tỉ lệ (mỗi lần quay)
-export const RATES = { gold: 0.0008, purple: 0.06, potB: 0.14, seeds: 0.3 } // còn lại = côn trùng
+export const RATES = { gold: 0.0008, purple: 0.06, potB: 0.14, seeds: 0.3 } // còn lại = suất "vật phẩm" bên dưới + côn trùng
+// Suất vật phẩm (lấy từ phần côn trùng ~50%): bùa B 5%, A 0,9%, S 0,1%, giữ cấp 0,5%; phân bón B 6% (5 túi), A 2% (2 túi) → côn trùng còn ≈ 35,4%
+export const ITEM_RATES: { kind: 'charm' | 'fert'; id: string; rate: number; qty: number; rarity: Rarity }[] = [
+  { kind: 'charm', id: 'S', rate: 0.001, qty: 1, rarity: 'gold' },
+  { kind: 'charm', id: 'A', rate: 0.009, qty: 1, rarity: 'purple' },
+  { kind: 'charm', id: 'keep', rate: 0.005, qty: 1, rarity: 'purple' },
+  { kind: 'charm', id: 'B', rate: 0.05, qty: 1, rarity: 'blue' },
+  { kind: 'fert', id: 'A', rate: 0.02, qty: 2, rarity: 'purple' },
+  { kind: 'fert', id: 'B', rate: 0.06, qty: 5, rarity: 'blue' },
+]
+const ITEMS_TOTAL = ITEM_RATES.reduce((s, x) => s + x.rate, 0)
+
+// Mảnh vỡ sao ĐI KÈM món hiếm (không phải món rơi riêng), theo độ hiếm thật của món
+export function shardsFor(it: PullItem): Partial<Shards> {
+  if (it.type === 'pot') {
+    if (it.rarity === 'gold') return { sao_sang: it.isNew ? 10 : 15 }
+    if (it.rarity === 'purple') return { sao: it.isNew ? 5 : 8 }
+    return {}
+  }
+  if (it.type === 'charm') return it.charm === 'S' ? { sao_sang: 3 } : it.charm === 'A' ? { sao: 2 } : {}
+  if (it.type === 'seed') {
+    const rank = CROPS.find((c) => c.id === it.crop)?.rank
+    return rank === 'S' ? { sao_sang: 1 } : rank === 'A' ? { sao: 1 } : {}
+  }
+  return {}
+}
 // Tỉ lệ vàng theo số lần quay kể từ lần ra vàng gần nhất (n tính cả lần này, bắt đầu từ 1)
 export function goldRate(n: number) {
   if (n >= HARD_PITY) return 1
@@ -53,10 +80,13 @@ export interface GachaState {
 }
 export const EMPTY_GACHA: GachaState = { sinceGold: 0, sincePurple: 0, insured: false, total: 0 }
 
-export type PullItem =
+export type PullItem = (
   | { type: 'pot'; rarity: Rarity; kind: string; isNew: boolean; off?: boolean }
   | { type: 'seed'; rarity: 'blue'; crop: string; qty: number }
   | { type: 'insect'; rarity: 'blue'; insect: string }
+  | { type: 'charm'; rarity: Rarity; charm: CharmId; qty: number }
+  | { type: 'fert'; rarity: Rarity; fert: FertId; qty: number }
+) & { shards?: Partial<Shards> } // mảnh vỡ sao đi kèm
 export interface PullLog { at: number; item: PullItem }
 
 const pick = <T,>(arr: T[], rnd: () => number) => arr[Math.floor(rnd() * arr.length)]
@@ -74,17 +104,17 @@ function pickSeed(rnd: () => number) {
 }
 const kindsOf = (pred: (rank: string, id: string) => boolean) => POT_SETS.filter((s) => pred(s.rank, s.id)).flatMap((s) => s.kinds)
 
-// Quay `count` lần, sửa trực tiếp `state` / `pots` (thêm chậu mới) / `seeds` / `insects`. Trả về các món theo thứ tự.
-export function pullMany(
-  count: number,
-  state: GachaState,
-  pots: OwnedPot[],
-  seeds: Record<string, number>,
-  insects: Record<string, number>,
-  bannerSet: string,
-  rnd: () => number = Math.random,
-): PullItem[] {
+// Túi đồ mà gacha cộng vào (sửa trực tiếp)
+export interface PullBag { pots: OwnedPot[]; seeds: Record<string, number>; insects: Record<string, number>; charms: Charms; ferts: Ferts; shards: Shards }
+// Quay `count` lần, sửa trực tiếp `state` + túi đồ `bag` (thêm chậu, hạt, côn trùng, bùa, phân, mảnh sao). Trả về các món theo thứ tự.
+export function pullMany(count: number, state: GachaState, bag: PullBag, bannerSet: string, rnd: () => number = Math.random): PullItem[] {
+  const { pots, seeds, insects } = bag
   const out: PullItem[] = []
+  const push = (it: PullItem) => {
+    const sh = shardsFor(it)
+    if (sh.sao_sang || sh.sao) { it.shards = sh; bag.shards.sao_sang += sh.sao_sang ?? 0; bag.shards.sao += sh.sao ?? 0 }
+    out.push(it)
+  }
   const owned = (kind: string) => pots.filter((p) => p.kind === kind).length
   const addPot = (kind: string) => pots.push({ id: `r${Date.now().toString(36)}${Math.floor(rnd() * 1e6).toString(36)}${pots.length}`, kind, level: 1 })
   const banner = POT_SETS.find((s) => s.id === bannerSet)!
@@ -115,7 +145,7 @@ export function pullMany(
       state.insured = off
       const isNew = owned(kind) === 0
       addPot(kind)
-      out.push({ type: 'pot', rarity: 'gold', kind, isNew, off })
+      push({ type: 'pot', rarity: 'gold', kind, isNew, off })
       continue
     }
     state.sinceGold = n
@@ -127,21 +157,32 @@ export function pullMany(
       const kind = pick(kindsOf((rank) => rank === 'A'), rnd)
       const isNew = owned(kind) === 0
       addPot(kind)
-      out.push({ type: 'pot', rarity: 'purple', kind, isNew })
+      push({ type: 'pot', rarity: 'purple', kind, isNew })
     } else if (r < RATES.purple + RATES.potB) {
       const kind = pick(kindsOf((rank) => rank === 'B'), rnd)
       const isNew = owned(kind) === 0
       addPot(kind)
-      out.push({ type: 'pot', rarity: 'blue', kind, isNew })
+      push({ type: 'pot', rarity: 'blue', kind, isNew })
     } else if (r < RATES.purple + RATES.potB + RATES.seeds) {
       // 10 hạt giống cùng 1 loại: chọn hạng theo SEED_RANK_RATE (hạng chưa có cây thì bỏ), rồi chia đều trong hạng
       const crop = pickSeed(rnd)
       seeds[crop] = (seeds[crop] ?? 0) + 10
-      out.push({ type: 'seed', rarity: 'blue', crop, qty: 10 })
+      push({ type: 'seed', rarity: 'blue', crop, qty: 10 })
+    } else if (r < RATES.purple + RATES.potB + RATES.seeds + ITEMS_TOTAL) {
+      // vật phẩm: bùa / phân bón
+      let x = r - RATES.purple - RATES.potB - RATES.seeds
+      const it = ITEM_RATES.find((y) => { if (x < y.rate) return true; x -= y.rate; return false }) ?? ITEM_RATES[ITEM_RATES.length - 1]
+      if (it.kind === 'charm') {
+        bag.charms[it.id as CharmId] += it.qty
+        push({ type: 'charm', rarity: it.rarity, charm: it.id as CharmId, qty: it.qty })
+      } else {
+        bag.ferts[it.id as FertId] += it.qty
+        push({ type: 'fert', rarity: it.rarity, fert: it.id as FertId, qty: it.qty })
+      }
     } else {
       const insect = pick(INSECTS, rnd).id
       insects[insect] = (insects[insect] ?? 0) + 1
-      out.push({ type: 'insect', rarity: 'blue', insect })
+      push({ type: 'insect', rarity: 'blue', insect })
     }
   }
   return out
@@ -156,7 +197,8 @@ export function rateRows() {
     { label: `Chậu hạng A (tím) — ${nA} loại`, rate: RATES.purple, note: '10 lần quay chắc chắn có ≥ 1 tím' },
     { label: `Chậu hạng B — ${nB} loại`, rate: RATES.potB },
     ...seedRankRates().map((x) => ({ label: `10 hạt giống hạng ${x.rank} — ${x.crops.length} loại`, rate: RATES.seeds * x.rate })),
-    { label: `Côn trùng — ${INSECTS.length} loại`, rate: 1 - RATES.gold - RATES.purple - RATES.potB - RATES.seeds },
+    ...ITEM_RATES.map((x) => ({ label: x.kind === 'charm' ? `${charmById.get(x.id as CharmId)?.name}` : `${x.qty} túi ${fertById.get(x.id as FertId)?.name.replace('Phân', 'phân')}`, rate: x.rate })),
+    { label: `Côn trùng — ${INSECTS.length} loại`, rate: 1 - RATES.gold - RATES.purple - RATES.potB - RATES.seeds - ITEMS_TOTAL },
   ]
 }
 export const itemName = (it: PullItem) =>
@@ -164,4 +206,8 @@ export const itemName = (it: PullItem) =>
     ? potKindById.get(it.kind)?.name ?? 'Chậu'
     : it.type === 'seed'
       ? `10 hạt ${CROPS.find((c) => c.id === it.crop)?.name.toLowerCase() ?? ''}`
-      : insectById.get(it.insect)?.name ?? 'Côn trùng'
+      : it.type === 'charm'
+        ? charmById.get(it.charm)?.name ?? 'Bùa'
+        : it.type === 'fert'
+          ? `${it.qty} túi ${fertById.get(it.fert)?.name.replace('Phân', 'phân') ?? 'phân bón'}`
+          : insectById.get(it.insect)?.name ?? 'Côn trùng'

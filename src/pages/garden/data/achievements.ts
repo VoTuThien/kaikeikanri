@@ -113,6 +113,7 @@ function build(): Achievement[] {
 
   // ---- Chăm sóc (gồm côn trùng) ----
   many({ id: 'sow', group: 'cham_soc', icon: '🫘', name: () => 'Gieo mầm', desc: (n) => `Gieo ${fmt(n)} hạt giống`, goals: [20, 100, 500, 2000], progress: (g) => st(g, 'sow') })
+  many({ id: 'fertilize', group: 'cham_soc', icon: '🌱', name: () => 'Nhà nông chăm bón', desc: (n) => `Bón phân ${fmt(n)} lần`, goals: [20, 100, 500, 2000], progress: (g) => st(g, 'fertilize') })
   many({ id: 'water', group: 'cham_soc', icon: '💧', name: () => 'Người tưới cây', desc: (n) => `Tưới cây ${fmt(n)} lần`, goals: [20, 100, 500, 2000], progress: (g) => st(g, 'water') })
   many({ id: 'catch', group: 'cham_soc', icon: '🐞', name: () => 'Thợ bắt côn trùng', desc: (n) => `Bắt ${fmt(n)} côn trùng`, goals: [10, 50, 200, 500, 1000], progress: (g) => st(g, 'catch') })
   for (const ins of INSECTS) {

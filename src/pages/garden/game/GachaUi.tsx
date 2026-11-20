@@ -17,6 +17,8 @@ import {
 } from '../data/gacha'
 import { potImage, potKindById, potSetById } from '../data/pots'
 import { DragScroll } from './DragScroll'
+import { charmById } from '../data/upgrade'
+import { fertById, shardById, type ShardId } from '../data/items'
 import { BTN, RankBadge } from './PotUi'
 
 // Màn hình gacha trong game (xem CLAUDE.md "Gacha"): banner chậu (Vọng Tinh). Bấm quay → ghi Firestore → hiệu ứng mở cục roll
@@ -37,11 +39,15 @@ const GLOW: Record<Rarity, string> = {
 // Ảnh / icon của 1 món
 function ItemArt({ item, className }: { item: PullItem; className: string }) {
   if (item.type === 'pot') return <img src={potImage(item.kind, 1)} alt="" draggable={false} className={`${className} object-contain`} />
-  const icon = item.type === 'seed' ? CROPS.find((c) => c.id === item.crop)?.icon ?? '🌱' : insectById.get(item.insect)?.icon ?? '🐛'
+  const icon =
+    item.type === 'seed' ? CROPS.find((c) => c.id === item.crop)?.icon ?? '🌱'
+      : item.type === 'charm' ? charmById.get(item.charm)?.icon ?? '🍀'
+        : item.type === 'fert' ? fertById.get(item.fert)?.icon ?? '🌱'
+          : insectById.get(item.insect)?.icon ?? '🐛'
   return <Icon3D emoji={icon} className={className} />
 }
 function itemTag(item: PullItem) {
-  if (item.type !== 'pot') return item.type === 'seed' ? 'Hạt giống' : 'Côn trùng'
+  if (item.type !== 'pot') return item.type === 'seed' ? 'Hạt giống' : item.type === 'charm' ? 'Bùa' : item.type === 'fert' ? 'Phân bón' : 'Côn trùng'
   if (item.isNew) return 'MỚI!'
   return 'Trùng'
 }
@@ -57,7 +63,19 @@ function ItemCard({ item, big = false }: { item: PullItem; big?: boolean }) {
       <span className={`font-semibold ${big ? 'mt-3 text-lg leading-6' : 'mt-1 text-[11px] leading-[13px]'}`}>{itemName(item)}</span>
       {set && <span className={`text-white/70 ${big ? 'text-sm leading-5' : 'text-[10px] leading-3'}`}>Bộ {set.name}</span>}
       {big && item.type === 'pot' && item.off && <span className="mt-1 text-xs text-white/60">Lần vàng tới chắc chắn là chậu mới của banner</span>}
+      {item.shards && <ShardTag shards={item.shards} big={big} />}
     </div>
+  )
+}
+
+// Mảnh vỡ sao đi kèm món (dưới thẻ món)
+function ShardTag({ shards, big }: { shards: Partial<Record<ShardId, number>>; big: boolean }) {
+  return (
+    <span className={`mt-auto flex items-center gap-1 font-bold text-amber-200 ${big ? 'pt-2 text-sm' : 'text-[10px] leading-3'}`}>
+      {(Object.entries(shards) as [ShardId, number][]).filter(([, n]) => n > 0).map(([id, n]) => (
+        <span key={id} className="flex items-center gap-0.5"><Icon3D emoji={shardById.get(id)!.icon} className={big ? 'h-4 w-4' : 'h-3 w-3'} />+{n}{big ? ` ${shardById.get(id)!.name.toLowerCase()}` : ''}</span>
+      ))}
+    </span>
   )
 }
 
@@ -290,6 +308,7 @@ function Rates() {
       <p className="text-white/75">• Khi ra vàng: 33% chậu S ngoài banner, 33% chậu trùng của bộ banner, 34% chậu MỚI của bộ banner. Bị lệch thì lần vàng tới chắc chắn là chậu mới.</p>
       <p className="text-white/75">• Đủ bộ thì tính vòng mới: chậu chưa có bản thứ 2 vẫn tính là "mới". Chậu trùng được giữ lại (đặt ở tầng khác).</p>
       <p className="text-white/75">• Ra vàng cũng tính là ra tím. Bộ đếm được giữ khi đổi sang banner tháng sau.</p>
+      <p className="text-white/75">• Thưởng KÈM mảnh vỡ sao (đổi đồ ở Cửa hàng): chậu S +10 mảnh vỡ sao sáng (trùng +15), bùa S +3, 10 hạt hạng S +1; chậu A +5 mảnh vỡ sao (trùng +8), bùa A +2, 10 hạt hạng A +1.</p>
       <p className="text-white/75">• Quay ×10 có tỉ lệ y như 10 lần quay lẻ. {ROLL_PRICE} đá vũ trụ đổi 1 cục roll.</p>
     </div>
   )

@@ -8,7 +8,7 @@ import { catchInsect, errorText, harvestPlant, movePot, placePot, sow, storePot,
 import { potKindById, potSetById, slotKey, tierBlock, type OwnedPot } from '../data/pots'
 import { isPlaced, potsOnTier } from './potInfo'
 import { BTN, InfoPanel, LIST_H, PotList, PotMenu } from './PotUi'
-import { cropById, formatLeft, levelOf, levelProgress, plantState, seedImage, type Crop, type Plant } from '../data/crops'
+import { canFertilize, cropById, formatLeft, levelOf, levelProgress, plantState, seedImage, type Crop, type Plant } from '../data/crops'
 import { insectById } from '../data/gacha'
 import { loadMenuOpen, loadTier, MENU_PATH, saveMenuOpen, saveTier, TIER_COUNT, TIER_UNLOCK_LEVEL } from './constants'
 import { LandscapeFrame, useLandscape } from './LandscapeFrame'
@@ -22,6 +22,9 @@ import { readyTotal } from '../data/achievements'
 import { mailView, useMailbox } from '../data/mail'
 import { MailScreen } from './MailUi'
 import { UpgradeScreen } from './UpgradeUi'
+import { fertById, FERTS, type FertId } from '../data/items'
+import { fertilize } from '../data/api'
+import { SLOTS } from './slots'
 
 // Màn hình game Vườn mây: toàn màn hình, luôn nằm ngang (LandscapeFrame), màn hình tải → cảnh 3D xem từng tầng mây.
 // Nút thoát (góc trái trên) về menu app Giải trí. Bong bóng thông báo tự ẩn ở đường dẫn game (isGamePath).
@@ -41,7 +44,8 @@ type Ui =
   | { kind: 'menu'; slot: number; confirm: boolean }
   | { kind: 'move'; from: number }
   | { kind: 'seed'; slot: number }
-  | { kind: 'bag'; crop: string; slot: number }
+  | { kind: 'bag'; crop: string; slot: number; fert?: FertId } // túi hạt (crop) hoặc túi phân (fert)
+  | { kind: 'fertPick'; slot: number } // chọn loại phân cho cây đang lớn
 
 export function GamePage() {
   return (
@@ -193,6 +197,42 @@ function Game() {
       .then(() => window.setTimeout(drop, 1500)) // chậu không gieo được (hết hạt…) thì biến mất; chậu đã gieo đã có trong dữ liệu thật
       .catch((err) => { say(errorText(err)); drop() })
   }
+  // ---- Phân bón: bón (ghi ngay theo lần kéo túi phân, gom 1 transaction lúc thả tay) ----
+  const fertQueue = useRef<{ fert: FertId; slots: number[] }>({ fert: 'B', slots: [] })
+  const [fertQueued, setFertQueued] = useState<string[]>([]) // chậu đã bón trong lần kéo (chưa ghi xong)
+  const fertLeft = (f: FertId) => Math.max(0, (garden?.ferts[f] ?? 0) - (fertQueue.current.fert === f ? fertQueue.current.slots.length : 0))
+  const fertTargets = (tier: number) => SLOTS[tier].map((_, i) => i).filter((i) => {
+    const key = slotKey(tier, i)
+    return !!placed[key] && !fertQueued.includes(key) && canFertilize(realPlants[key], now)
+  })
+  function fertLocal(f: FertId, slot: number) {
+    const key = slotKey(tier, slot)
+    if (fertQueued.includes(key) || !canFertilize(realPlants[key], Date.now())) return true
+    if (fertLeft(f) <= 0) return false
+    if (fertQueue.current.fert !== f) fertQueue.current = { fert: f, slots: [] }
+    fertQueue.current.slots.push(slot)
+    setFertQueued((q) => [...q, key])
+    return true
+  }
+  function flushFert() {
+    const { fert, slots } = fertQueue.current
+    fertQueue.current = { fert, slots: [] }
+    if (!slots.length) return
+    const t = tier
+    const keys = slots.map((s) => slotKey(t, s))
+    fertilize(actor, t, slots, fert)
+      .then((r) => say(`Đã bón ${r.n} cây · bớt ${formatLeft(r.cutMs)}`))
+      .catch((err) => say(errorText(err)))
+      .finally(() => setFertQueued((q) => q.filter((k) => !keys.includes(k))))
+  }
+  function chooseFert(f: FertId) {
+    if (ui.kind !== 'fertPick') return
+    const slot = ui.slot
+    if (!fertLocal(f, slot)) { say(`Hết ${fertById.get(f)!.name.toLowerCase()}`); return }
+    flushFert()
+    if (fertLeft(f) <= 0) { setUi({ kind: 'view' }); return }
+    setUi({ kind: 'bag', crop: '', slot, fert: f })
+  }
   function chooseSeed(crop: Crop) {
     if (ui.kind !== 'seed') return
     const slot = ui.slot
@@ -203,15 +243,22 @@ function Game() {
   }
   function onBagOver(slot: number) {
     if (ui.kind !== 'bag') return
-    if (!sowLocal(ui.crop, slot)) return
+    if (ui.fert ? !fertLocal(ui.fert, slot) : !sowLocal(ui.crop, slot)) return
     setUi({ ...ui, slot })
   }
   function onBagRelease() {
-    flushSow()
+    if (ui.kind === 'bag' && ui.fert) flushFert()
+    else flushSow()
   }
   // Hết hạt khi đang cầm túi → túi biến mất
-  const bagCrop = ui.kind === 'bag' ? ui.crop : null
+  const bagCrop = ui.kind === 'bag' && !ui.fert ? ui.crop : null
   const bagLeft = bagCrop ? seedsLeft(bagCrop) : 0
+  const bagFert = ui.kind === 'bag' ? ui.fert ?? null : null
+  const bagFertLeft = bagFert ? fertLeft(bagFert) : 0
+  // Hết phân khi đang cầm túi phân → túi biến mất
+  useEffect(() => {
+    if (bagFert && bagFertLeft <= 0) { flushFert(); setUi({ kind: 'view' }) }
+  }, [bagFert, bagFertLeft]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (bagCrop && bagLeft <= 0) {
       flushSow()
@@ -229,11 +276,14 @@ function Game() {
     const key = slotKey(tier, slot)
     const p = plants[key]
     if (ui.kind === 'move') return
-    if (ui.kind === 'bag') {
+    if (ui.kind === 'bag' && ui.fert) {
+      if (canFertilize(realPlants[key], Date.now()) && !insect) { fertLocal(ui.fert, slot); flushFert(); setUi({ ...ui, slot }); return }
+      setUi({ kind: 'view' })
+    } else if (ui.kind === 'bag') {
       if (!p) { sowLocal(ui.crop, slot); flushSow(); setUi({ ...ui, slot }); return }
       setUi({ kind: 'view' })
     }
-    if (ui.kind === 'place' || ui.kind === 'menu') { setUi({ kind: 'view' }); return }
+    if (ui.kind === 'place' || ui.kind === 'menu' || ui.kind === 'fertPick') { setUi({ kind: 'view' }); return }
     if (!p) { setUi({ kind: 'seed', slot }); return }
     if (pending[key] && !realPlants[key]) return // vừa gieo, chưa ghi xong
     const st = plantState(p, Date.now())
@@ -252,6 +302,8 @@ function Game() {
       })
     } else if (st.thirsty) {
       void act(async () => { await water(actor, tier, slot); return `Đã tưới ${name}: thu thêm 1 khi chín` })
+    } else if (canFertilize(p, Date.now()) && FERTS.some((f) => (garden?.ferts[f.id] ?? 0) > 0)) {
+      setUi({ kind: 'fertPick', slot }) // cây đang lớn (đã tưới) + có phân: chọn phân để bón
     } else {
       say(`${st.crop.name} chín sau ${formatLeft(st.leftMs)}`)
     }
@@ -279,6 +331,8 @@ function Game() {
   }
   const showHud = phase !== 'loading' && (ui.kind === 'view' || ui.kind === 'bag')
   const bagInfo = bagCrop ? cropById.get(bagCrop) : null
+  const pickPlant = ui.kind === 'fertPick' ? realPlants[slotKey(tier, ui.slot)] : undefined
+  const pickState = pickPlant ? plantState(pickPlant, now) : null
 
   return (
     <>
@@ -294,7 +348,7 @@ function Game() {
             placed={placed}
             now={now}
             mode={mode}
-            bag={ui.kind === 'bag' ? { crop: ui.crop, slot: ui.slot } : null}
+            bag={ui.kind === 'bag' ? { crop: ui.crop, slot: ui.slot, fert: ui.fert, targets: ui.fert ? fertTargets(tier) : undefined } : null}
             onSlotTap={onSlotTap}
             onPotTap={onPotTap}
             onPotHold={onPotHold}
@@ -407,6 +461,44 @@ function Game() {
         </div>
       )}
 
+      {/* Cầm túi phân: loại phân + số túi còn lại + nút X */}
+      {phase !== 'loading' && ui.kind === 'bag' && bagFert && (
+        <div className="absolute bottom-4 left-1/2 z-30 flex -translate-x-1/2 items-center gap-3 border border-white/25 bg-indigo-950/70 py-1.5 pr-1.5 pl-2 shadow-2xl shadow-black/40 backdrop-blur-xl">
+          <span className="flex h-10 w-10 items-center justify-center border border-white/20 bg-gradient-to-br from-lime-400/50 to-emerald-700/60"><Icon3D emoji={fertById.get(bagFert)!.icon} className="h-6 w-6" /></span>
+          <div className="min-w-0">
+            <p className="text-sm leading-5 font-semibold">{fertById.get(bagFert)!.name} · còn {bagFertLeft} túi</p>
+            <p className="text-xs leading-4 text-white/70">Kéo túi lướt qua cây đang lớn để bón (−{Math.round(fertById.get(bagFert)!.cut * 100)}% thời gian)</p>
+          </div>
+          <button type="button" data-round aria-label="Cất túi phân" onClick={() => setUi({ kind: 'view' })} className={`${ROUND_BTN} h-10 w-10 from-sky-500/70 to-blue-600/70`}>
+            <LineIcon icon="cancel" className="h-5 w-5" />
+          </button>
+        </div>
+      )}
+
+      {/* Chọn phân cho cây đang lớn */}
+      {phase !== 'loading' && ui.kind === 'fertPick' && garden && pickState?.crop && pickPlant && (
+        <div className="absolute bottom-4 left-1/2 z-30 flex -translate-x-1/2 items-center gap-2 border border-white/25 bg-indigo-950/75 p-2 shadow-2xl shadow-black/40 backdrop-blur-xl">
+          <div className="w-40 min-w-0 px-1">
+            <p className="truncate text-sm leading-5 font-semibold">{pickState.crop.name} · chín sau {formatLeft(pickState.leftMs)}</p>
+            <p className="text-[11px] leading-4 text-white/65">Đã bón {pickPlant.fert ?? 0}/2 lần · chọn phân để bón</p>
+          </div>
+          {FERTS.map((f) => {
+            const have = garden.ferts[f.id]
+            const cut = Math.min(f.cut, 0.6 - (pickPlant.boost ?? 0), 1 - pickState.progress) * pickState.crop!.minutes * 60_000
+            return (
+              <button key={f.id} type="button" disabled={have <= 0} onClick={() => chooseFert(f.id)}
+                className={`${BTN} h-12 w-36 flex-col gap-0 px-1 leading-4 ${f.id === 'A' ? 'from-amber-500/70 to-fuchsia-600/70' : 'from-lime-500/60 to-emerald-700/70'}`}>
+                <span className="flex items-center gap-1"><Icon3D emoji={f.icon} className="h-4 w-4" />{f.name} ×{have}</span>
+                <span className="text-[11px] font-normal text-white/80">bớt {formatLeft(cut)}</span>
+              </button>
+            )
+          })}
+          <button type="button" data-round aria-label="Huỷ bón phân" onClick={() => setUi({ kind: 'view' })} className={`${ROUND_BTN} h-10 w-10 from-sky-500/70 to-blue-600/70`}>
+            <LineIcon icon="cancel" className="h-5 w-5" />
+          </button>
+        </div>
+      )}
+
       {/* Chọn hạt cho chậu trống */}
       {phase !== 'loading' && ui.kind === 'seed' && garden && (
         <>
@@ -458,7 +550,7 @@ function Game() {
       )}
 
       {toast && (
-        <div className="pointer-events-none absolute inset-x-0 z-50 flex justify-center" style={{ bottom: ui.kind === 'place' || ui.kind === 'seed' ? LIST_H + 72 : ui.kind === 'bag' ? 84 : 24 }}>
+        <div className="pointer-events-none absolute inset-x-0 z-50 flex justify-center" style={{ bottom: ui.kind === 'place' || ui.kind === 'seed' ? LIST_H + 72 : ui.kind === 'bag' || ui.kind === 'fertPick' ? 84 : 24 }}>
           <p className="border border-white/25 bg-black/60 px-4 py-2 text-sm font-semibold shadow-lg backdrop-blur-md">{toast}</p>
         </div>
       )}

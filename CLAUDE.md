@@ -1048,6 +1048,8 @@ Game nông trại **tự thiết kế** (cùng thể loại game trồng trọt,
        | `--feathers N`, `--stones N`, `--vong N`, `--sao N` | lông chim, đá vũ trụ, Vọng Tinh, Sao Duyên |
        | `--seed <id cây>:N`, `--insect <id>:N`, `--pot <id loại chậu>[:N]` | hạt, côn trùng, chậu cấp 1 — **lặp lại được** nhiều lần |
        | `--charm B:N` / `A:N` / `S:N` / `keep:N` | bùa may mắn B / A / S, bùa giữ cấp (đập chậu) |
+       | `--fert B:N` / `A:N` | phân bón B / A (số túi) |
+       | `--shard sao_sang:N` / `sao:N` | mảnh vỡ sao sáng / mảnh vỡ sao |
        | `--expires 7d` / `12h` / `2026-12-31` | hạn nhận (bỏ trống = không hết hạn) |
        Id cây: `cai`, `carot`, `cachua`, `ngo`, `dau`, `huongduong`, `duahau`, `bingo` (`CROPS` trong `data/crops.ts`).
        Id côn trùng: `sau`, `bo_rua`, `dom_dom`, `nhen`, `buom`. Id chậu: `<bộ>_<1-6>`, vd `dat_nung_1`, `su_lam_3`, `phuong_hoang_6`, `thien_ha_4` (`POT_KINDS` trong `data/pots.ts`).
@@ -1120,7 +1122,7 @@ Game nông trại **tự thiết kế** (cùng thể loại game trồng trọt,
        bùa giữ cấp; trần tỉ lệ (B / A 100%, S 95%); "cấp mới áp dụng cho cây từ lần gieo sau"; hiệu ứng tính theo cấp trung bình của bộ trên tầng. Bảng cuộn dọc bằng `DragScroll`.
     9. **Ghi dữ liệu**: `upgradePot(potId, fodderIds[], charms{B,A,S}, keepCharm: boolean)` 1 transaction (kiểm tra đủ đồ, tính tỉ lệ lại từ dữ liệu server, quay ngẫu nhiên, trừ đồ, xoá chậu bỏ vào khỏi `pots` + `placed`, đổi cấp, cộng `stats` `upgradeTry` / `upgradeOk` / `maxPotLevel`).
        Ngẫu nhiên chạy trên điện thoại như gacha (chấp nhận với app gia đình).
-- [ ] **Mảnh vỡ sao sáng / Mảnh vỡ sao — tiền đổi đồ đặc biệt ở cửa hàng (NGƯỜI DÙNG MÔ TẢ + ĐÃ CHỐT 20/11/2026: mọi bảng + mục 1–8 theo đề xuất, riêng mục 3 CHO ĐỔI NGƯỢC ra lông chim; CHƯA LÀM)**:
+- [x] **Mảnh vỡ sao sáng / Mảnh vỡ sao — tiền đổi đồ đặc biệt ở cửa hàng (ĐÃ LÀM 20/11/2026, xem "THỨ TỰ CODE" bước 6) (NGƯỜI DÙNG MÔ TẢ + ĐÃ CHỐT 20/11/2026: mọi bảng + mục 1–8 theo đề xuất, riêng mục 3 CHO ĐỔI NGƯỢC ra lông chim; CHƯA LÀM)**:
   - **Người dùng mô tả**: 2 loại tiền mới, **Mảnh vỡ sao sáng** (quý hơn) và **Mảnh vỡ sao**; dùng **đổi vật phẩm đặc biệt trong cửa hàng** (gồm bùa A / S, bùa giữ cấp — xem "Đập chậu").
     **Nguồn: gacha, nhưng KHÔNG phải 1 món rơi riêng** — là **thưởng ĐI KÈM** khi rơi vật phẩm hiếm: **vật phẩm hạng S → kèm Mảnh vỡ sao sáng**, **hạng A → kèm Mảnh vỡ sao**.
     **Icon dựng bằng Blender** (làm sau).
@@ -1181,11 +1183,21 @@ Game nông trại **tự thiết kế** (cùng thể loại game trồng trọt,
      thành tựu "Chậu tinh xảo" (IV) + "Bộ hoàn mỹ" (VI). Icon bùa tạm 🍀 / 🔒. Bùa từ gacha + đổi sao làm ở bước 6. Chưa thử trong game (máy làm không có `.env`).
      Cặp côn trùng từng bộ (tự chọn theo chủ đề, sửa được): Đất nung sâu + bọ rùa, Mây tre nhện + sâu, Biển cả bọ rùa + đom đóm, Rừng nấm sâu + đom đóm, Trung thu đom đóm + bướm,
      Mật ong bướm + bọ rùa, Thiên hà đom đóm + nhện, Sứ Lam bướm + nhện, Băng Tinh nhện + bọ rùa, Phượng Hoàng đom đóm + bướm. **Thêm bộ chậu mới thì thêm vào `UPGRADE_INSECTS`.**
-  6. Mảnh vỡ sao sáng / sao (kèm khi quay, tỉ lệ gacha mới có bùa), cửa hàng 3 tab [Hạt giống] [Bùa] [Đổi sao], đổi mảnh → lông chim, đổi đá → lông chim (1 : 5).
+  6. **[x] ĐÃ LÀM (20/11/2026, gộp luôn bước 8 Phân bón theo yêu cầu người dùng)**:
+     - Gacha (`data/gacha.ts`): món mới `charm` (bùa B / A / S / giữ cấp) + `fert` (5 túi phân B / 2 túi phân A) theo `ITEM_RATES` (lấy từ suất côn trùng, côn trùng còn ≈ 35,4% trên bảng);
+       `pullMany(count, state, bag, banner)` (`bag` = vườn); mảnh vỡ sao ĐI KÈM món (`shardsFor`, `PullItem.shards`), thẻ kết quả ghi "+10 ✦"; bảng Tỉ lệ có dòng quy tắc thưởng kèm.
+       Mô phỏng 300.000 lần: thực tế ≈ **6–10 mảnh sao + ≈ 2,4 mảnh sao sáng / 10 lần quay** (cao hơn ước lượng đề xuất 3,7 / 0,2 vì bảo đảm tím làm tím ra ~12% + chậu trùng kèm nhiều mảnh hơn) — giới hạn đổi mỗi tháng giữ cân bằng.
+     - Vật phẩm `data/items.ts` (`FERTS`, `SHARDS`, `STONE_TO_FEATHERS`), đổi sao `data/exchange.ts` (`OFFERS` + giới hạn tháng, `choicesOf`: chậu S không thuộc banner đang chạy / chậu A / hạt A, S (ẩn khi chưa có cây) / côn trùng).
+     - Vườn có `shards`, `ferts`, `shop` (`month` / `bought` = số lần đổi sao trong tháng, `day` / `today` = số túi phân A mua trong ngày). API: `exchangeOffer`, `sellShards`, `stonesToFeathers`, `buyFerts`, `fertilize`.
+     - Cửa hàng 3 tab **[Hạt & phân] [Bùa] [Đổi sao]** (`ShopPopup`, `ChoosePicker` chọn loại bằng dải cuộn ngang); Túi đồ tab Vật phẩm có phân bón + mảnh sao; dòng phụ cửa hàng hiện số mảnh.
+     - **Phân bón**: cây có `boost` (phần thời gian đã rút) + `fert` (số lần bón); `plantState` cộng `boost` vào tiến độ; `canFertilize` (`data/crops.ts`).
+       Chạm cây đang lớn đã tưới (có phân) → dải chọn phân (hiện "bớt bao lâu") → túi phân 3D (mô hình túi hạt, màu xanh lá / nâu vàng, nhãn chữ B / A) → kéo lướt qua cây bón được (`BagState.fert` + `targets`), gom 1 transaction lúc thả tay.
+       Thành tựu "Nhà nông chăm bón" (`stats.fertilize`). Thư / script gửi được `--fert B:10`, `--shard sao:5`. Icon tạm: 🌱 / 🌿 (phân), ⭐ / ✨ (mảnh; vẽ thêm icon nét ✨).
+     - **Chưa có**: icon Blender (bùa, phân, mảnh), nhiệm vụ ngày "Bón phân" (làm ở bước 7). Chưa thử trong game (máy làm không có `.env`).
   7. Nhiệm vụ hằng ngày (tab "Hôm nay" trong Thành tựu).
-  8. Phân bón (đã duyệt): `plant.boost`, túi phân kiểu túi hạt, cửa hàng "Hạt & phân", gacha (côn trùng 35,5% + phân B 6% + phân A 2%), đổi sao, tab "Vật phẩm" trong Túi đồ, thành tựu + nhiệm vụ bón phân, quà thư `fertilizer` — icon tạm.
+  8. **[x] Gộp vào bước 6.** Phân bón (đã duyệt): `plant.boost`, túi phân kiểu túi hạt, cửa hàng "Hạt & phân", gacha (côn trùng 35,5% + phân B 6% + phân A 2%), đổi sao, tab "Vật phẩm" trong Túi đồ, thành tựu + nhiệm vụ bón phân, quà thư `fertilizer` — icon tạm.
   CẦN Blender (làm riêng): icon 4 bùa + 2 mảnh sao, hoạt cảnh / xuất máy chế tạo, xuất 14 cây mới, bộ chậu banner mới. CHƯA đặc tả: máy chế tạo (GĐ6), số liệu 14 cây (GĐ8), banner Sao Duyên.
-- [ ] **Phân bón — rút ngắn thời gian trồng (NGƯỜI DÙNG MÔ TẢ + ĐÃ DUYỆT 20/11/2026: mọi con số + mục 1–7 theo đề xuất; CHƯA LÀM)**:
+- [x] **Phân bón — rút ngắn thời gian trồng (ĐÃ LÀM 20/11/2026, xem "THỨ TỰ CODE" bước 6) (NGƯỜI DÙNG MÔ TẢ + ĐÃ DUYỆT 20/11/2026: mọi con số + mục 1–7 theo đề xuất; CHƯA LÀM)**:
   - **Người dùng mô tả**: 2 loại **Phân bón B** và **Phân bón A** (không có S). Nguồn: **mua ở cửa hàng, gacha, đổi bằng mảnh vỡ sao**. Dùng để **rút ngắn thời gian trồng cây theo %**.
   - **Cách giảm (đề xuất)**: mỗi lần bón **giảm % TỔNG thời gian lớn của cây** (dễ hiểu: bí ngô 12 giờ, phân B −20% = bớt 2 giờ 24 phút): **Phân B −20%, Phân A −40%**.
     **Mỗi cây bón tối đa 2 lần** (trộn B / A được), **tổng giảm tối đa 60%** (A + A = 80% → chặn còn 60%); chỉ bón cây **chưa chín**; bón quá phần còn lại thì cây chín ngay.

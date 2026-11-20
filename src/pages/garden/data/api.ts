@@ -8,6 +8,8 @@ import { bannerOf, EMPTY_GACHA, insectById, pullMany, ROLL_PRICE, START_STONES, 
 import { TIER_COUNT, TIER_UNLOCK_LEVEL } from '../game/constants'
 import { achievementById, achState, ACHIEVEMENTS, addReward, type Reward } from './achievements'
 import { broadcastFor, broadcastsCol, mailCol, toMail, type MailRewards } from './mail'
+import { dayKey, fertById, FERT_MIN_MINUTES, MAX_FERT_CUT, MAX_FERT_TIMES, monthKey, NO_FERTS, NO_SHARDS, shardById, STONE_TO_FEATHERS, type FertId, type Ferts, type ShardId, type Shards } from './items'
+import { choicesOf, offerById } from './exchange'
 import { CHARM_SHOP_PRICE, MAX_FODDER, MAX_LUCK, MAX_POT_LEVEL, NO_CHARMS, rollUpgrade, upgradeCost, upgradeRate, type Charms, type CharmId, type UpgradeOutcome } from './upgrade'
 
 // Vườn của mỗi thành viên: families/{familyId}/gardens/{uid}
@@ -37,6 +39,17 @@ export interface Garden {
   mailClaimed: Record<string, number> // thư chung (gardenBroadcasts) đã nhận: id -> lúc nhận (ms)
   born: number // lúc tạo vườn (ms, từ createdAt; CHỈ ĐỌC, không ghi lại)
   charms: Charms // bùa: may mắn B / A / S, giữ cấp (đập chậu)
+  ferts: Ferts // phân bón B / A
+  shards: Shards // mảnh vỡ sao sáng / mảnh vỡ sao
+  shop: ShopLimit // đếm số lần mua / đổi có giới hạn
+}
+// Giới hạn cửa hàng: `bought` = số lần đổi sao trong `month`, `today` = số túi phân A đã mua trong `day`
+export interface ShopLimit { month: string; day: string; bought: Record<string, number>; today: Record<string, number> }
+function shopNow(g: Garden) {
+  const m = monthKey(), d = dayKey()
+  if (g.shop.month !== m) g.shop = { ...g.shop, month: m, bought: {} }
+  if (g.shop.day !== d) g.shop = { ...g.shop, day: d, today: {} }
+  return g.shop
 }
 
 // ---- Bộ đếm tích luỹ (thành tựu, xem CLAUDE.md "Thành tựu") ----
@@ -107,7 +120,7 @@ export function toGarden(d: DocumentData): Garden {
   if (!d.seedGift) for (const [k, n] of Object.entries(START_SEEDS)) seeds[k] = (seeds[k] ?? 0) + n
   const plants: Record<string, Plant> = {}
   for (const [k, p] of Object.entries((d.plants ?? {}) as Record<string, Partial<Plant>>)) {
-    if (p?.crop && cropById.has(p.crop)) plants[k] = { crop: p.crop, plantedAt: p.plantedAt ?? 0, watered: !!p.watered, caught: !!p.caught }
+    if (p?.crop && cropById.has(p.crop)) plants[k] = { crop: p.crop, plantedAt: p.plantedAt ?? 0, watered: !!p.watered, caught: !!p.caught, boost: p.boost ?? 0, fert: p.fert ?? 0 }
   }
   const potData = Array.isArray(d.pots)
     ? { pots: withStarterSets((d.pots as OwnedPot[]).map((p) => ({ id: p.id, kind: p.kind, level: p.level ?? 1 }))), placed: { ...(d.placed ?? {}) } as Record<string, string> }
@@ -134,6 +147,9 @@ export function toGarden(d: DocumentData): Garden {
     claimed: { ...(d.claimed ?? {}) },
     mailClaimed: { ...(d.mailClaimed ?? {}) },
     charms: { ...NO_CHARMS, ...(d.charms ?? {}) },
+    ferts: { ...NO_FERTS, ...(d.ferts ?? {}) },
+    shards: { ...NO_SHARDS, ...(d.shards ?? {}) },
+    shop: { month: '', day: '', bought: {}, today: {}, ...(d.shop ?? {}) },
     born: typeof d.createdAt?.toMillis === 'function' ? d.createdAt.toMillis() : 0,
   }
   if (g.gift && !g.claimed.welcome) g.claimed.welcome = 1 // đã nhận quà chào mừng ở màn hình gacha cũ
@@ -164,6 +180,9 @@ export function createGarden(actor: Actor) {
     claimed: {},
     mailClaimed: {},
     charms: NO_CHARMS,
+    ferts: NO_FERTS,
+    shards: NO_SHARDS,
+    shop: { month: '', day: '', bought: {}, today: {} },
     stats: Object.fromEntries([...new Set(startPots(START_POTS).pots.map((p) => p.kind))].map((k) => [`pot_${k}`, 1])),
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
@@ -401,7 +420,8 @@ export function pullPots(actor: Actor, count: 1 | 10) {
   return mutate(actor, (g): PullItem[] => {
     if (g.rolls.vong_tinh < count) throw new Error(`Cần ${count} Vọng Tinh để quay`)
     g.rolls.vong_tinh -= count
-    const items = pullMany(count, g.gacha, g.pots, g.seeds, g.insects, bannerOf().setId)
+    const items = pullMany(count, g.gacha, g, bannerOf().setId)
+    for (const it of items) bump(g, 'shardsEarned', (it.shards?.sao_sang ?? 0) + (it.shards?.sao ?? 0))
     const at = Date.now()
     g.pullLog = [...g.pullLog, ...items.map((item) => ({ at, item }))].slice(-PULL_LOG_MAX)
     bump(g, 'pulls', count)
@@ -463,12 +483,104 @@ export function buyCharms(actor: Actor, n: number) {
   })
 }
 
+// ---- Phân bón (xem data/items.ts) ----
+// Bón 1 loại phân cho các cây chưa chín `slots` của tầng (1 lần kéo túi phân = 1 transaction). Mỗi cây tối đa MAX_FERT_TIMES lần, tổng rút tối đa MAX_FERT_CUT.
+// Cây không bón được (chín / đã đủ lần / đã đủ 60% / cây quá ngắn) thì bỏ qua; hết phân thì dừng. Trả về số cây đã bón + tổng thời gian rút (ms).
+export function fertilize(actor: Actor, tier: number, slots: number[], fertId: FertId) {
+  return mutate(actor, (g) => {
+    const f = fertById.get(fertId)
+    if (!f) throw new Error('Không có loại phân này')
+    const now = Date.now()
+    let n = 0
+    let cutMs = 0
+    for (const slot of slots) {
+      const p = g.plants[slotKey(tier, slot)]
+      if (!p) continue
+      const st = plantState(p, now)
+      if (!st?.crop || st.ripe || (p.fert ?? 0) >= MAX_FERT_TIMES || (p.boost ?? 0) >= MAX_FERT_CUT || st.crop.minutes < FERT_MIN_MINUTES) continue
+      if (g.ferts[fertId] <= 0) break
+      g.ferts[fertId] -= 1
+      const add = Math.min(f.cut, MAX_FERT_CUT - (p.boost ?? 0))
+      p.boost = (p.boost ?? 0) + add
+      p.fert = (p.fert ?? 0) + 1
+      cutMs += Math.min(add, 1 - st.progress) * st.crop.minutes * 60_000
+      n++
+    }
+    if (!n) throw new Error(g.ferts[fertId] <= 0 ? `Hết ${f.name.toLowerCase()}` : 'Không có cây nào bón được (đã chín / đã bón đủ 2 lần)')
+    bump(g, 'fertilize', n)
+    return { n, cutMs }
+  })
+}
+// Cửa hàng: mua phân bón bằng lông chim (phân A tối đa dailyLimit túi / ngày)
+export function buyFerts(actor: Actor, fertId: FertId, n: number) {
+  return mutate(actor, (g) => {
+    const f = fertById.get(fertId)
+    if (!f || !Number.isInteger(n) || n < 1) throw new Error('Số túi không hợp lệ')
+    const shop = shopNow(g)
+    const used = shop.today[`fert_${fertId}`] ?? 0
+    if (f.dailyLimit !== null && used + n > f.dailyLimit) throw new Error(`${f.name} chỉ mua tối đa ${f.dailyLimit} túi / ngày (hôm nay còn ${Math.max(0, f.dailyLimit - used)})`)
+    const cost = f.price * n
+    if (g.feathers < cost) throw new Error(`Cần ${cost} lông chim, bạn đang có ${g.feathers}`)
+    g.feathers -= cost
+    g.ferts[fertId] += n
+    shop.today[`fert_${fertId}`] = used + n
+    return cost
+  })
+}
+
+// ---- Đổi sao (xem data/exchange.ts) ----
+export function exchangeOffer(actor: Actor, offerId: string, choice: string | null) {
+  return mutate(actor, (g) => {
+    const o = offerById.get(offerId)
+    if (!o) throw new Error('Không có món này')
+    const shop = shopNow(g)
+    const used = shop.bought[o.id] ?? 0
+    if (used >= o.limit) throw new Error(`Tháng này đã đổi đủ ${o.limit} lần`)
+    if (o.choose && (!choice || !choicesOf(o.choose).includes(choice))) throw new Error('Hãy chọn loại muốn đổi')
+    if (g.shards[o.pay] < o.price) throw new Error(`Cần ${o.price} ${shardById.get(o.pay)!.name.toLowerCase()}, bạn đang có ${g.shards[o.pay]}`)
+    g.shards[o.pay] -= o.price
+    const v = o.give
+    if (v.vong_tinh) g.rolls.vong_tinh += v.vong_tinh
+    if (v.sao_duyen) g.rolls.sao_duyen += v.sao_duyen
+    if (v.charm) g.charms[v.charm] += 1
+    if (v.fert) g.ferts[v.fert.id] += v.fert.qty
+    if (v.seeds && choice) g.seeds[choice] = (g.seeds[choice] ?? 0) + v.seeds
+    if (v.insects && choice) g.insects[choice] = (g.insects[choice] ?? 0) + v.insects
+    if (v.pot && choice) { g.pots.push({ id: `x${Date.now().toString(36)}${g.pots.length}`, kind: choice, level: 1 }); markPots(g) }
+    shop.bought[o.id] = used + 1
+    return o.name
+  })
+}
+// Đổi ngược mảnh vỡ sao → lông chim (1 chiều, không giới hạn)
+export function sellShards(actor: Actor, id: ShardId, n: number) {
+  return mutate(actor, (g) => {
+    const s = shardById.get(id)
+    if (!s || !Number.isInteger(n) || n < 1) throw new Error('Số mảnh không hợp lệ')
+    if (g.shards[id] < n) throw new Error(`Bạn chỉ có ${g.shards[id]} ${s.name.toLowerCase()}`)
+    g.shards[id] -= n
+    g.feathers += n * s.feathers
+    return n * s.feathers
+  })
+}
+// Đổi đá vũ trụ → lông chim (1 đá = 5 lông chim, 1 chiều)
+export function stonesToFeathers(actor: Actor, n: number) {
+  return mutate(actor, (g) => {
+    if (!Number.isInteger(n) || n < 1) throw new Error('Số đá không hợp lệ')
+    if (g.stones < n) throw new Error(`Bạn chỉ có ${g.stones} đá vũ trụ`)
+    g.stones -= n
+    g.feathers += n * STONE_TO_FEATHERS
+    return n * STONE_TO_FEATHERS
+  })
+}
+
 // ---- Hòm thư (xem data/mail.ts) ----
 // Cộng quà của 1 thư vào vườn (bỏ qua cây / côn trùng / chậu không còn trong game)
 function giveMail(g: Garden, r: MailRewards, mailId: string) {
   giveReward(g, r)
   for (const [k, n] of Object.entries(r.seeds ?? {})) if (cropById.has(k) && n > 0) g.seeds[k] = (g.seeds[k] ?? 0) + n
   for (const [k, n] of Object.entries(r.insects ?? {})) if (insectById.has(k) && n > 0) g.insects[k] = (g.insects[k] ?? 0) + n
+  for (const [k, n] of Object.entries(r.ferts ?? {})) if (k in NO_FERTS && n > 0) g.ferts[k as FertId] += n
+  for (const [k, n] of Object.entries(r.shards ?? {})) if (k in NO_SHARDS && n > 0) g.shards[k as ShardId] += n
   for (const [k, n] of Object.entries(r.charms ?? {})) if (k in NO_CHARMS && n > 0) g.charms[k as CharmId] += n
   ;(r.pots ?? []).forEach((kind, i) => { if (potKindById.has(kind)) g.pots.push({ id: `m${mailId}_${i}`, kind, level: 1 }) })
   markPots(g)
