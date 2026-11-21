@@ -82,6 +82,7 @@ Chỉ thành viên trong cùng gia đình mới xem / sửa được; Security R
 - Code: `src/contexts/FamilyContext.tsx` (danh sách gia đình, gia đình đang chọn, yêu cầu realtime), `src/pages/family/`,
   `src/lib/family.ts` (`familyCol(name)` = collection của gia đình đang chọn). Layout của mỗi app con dùng `useAppScope()`:
   chưa chọn gia đình thì về màn hình chính; Provider của app con tạo lại khi đổi gia đình.
+  **Hook đọc dữ liệu gia đình chạy được trước khi danh sách gia đình tải xong (vd vừa tải lại trang game) phải kiểm tra `activeFamily()`** (`src/lib/family.ts`, trả null thay vì ném lỗi như `requireFamily`), vd `useMailbox`; nếu không sẽ lỗi "Chưa chọn gia đình".
 
 Dữ liệu gia đình (xem `src/pages/family/data/api.ts`):
 - `families/{familyId}`: `name`, `code`, `ownerUid`, `ownerName`
@@ -1198,7 +1199,7 @@ Game nông trại **tự thiết kế** (cùng thể loại game trồng trọt,
   **Phải dưới = 2 nút quay RỘNG BẰNG NHAU, CAO BẰNG NÚT X (40px), nội dung "[icon Vọng Tinh] x 1" / "[icon Vọng Tinh] x 10"** (không có chữ "Quay"); x 1 gradient xanh nước biển, x 10 cam → hồng (`PULL_BTN` = `BTN` đã bỏ màu gốc — thêm `from-* to-*` lên `BTN` sẽ KHÔNG đè được màu gốc của nó).
 - [x] **QUY ƯỚC GAME: ô vật phẩm dùng chung `ItemTile` (`game/ItemTile.tsx`, 21/11/2026)** — kiểu thẻ Cửa hàng: ảnh giữa, tên trên dải tối ở đáy (**"tên x số lượng"**, số lượng 1 thì chỉ tên — `qtyName`),
   nền kính màu theo hạng (`RANK_GRADIENT`), **chữ hạng B / A / S góc trái trên** (`RankBadge`), nhãn nhỏ góc phải trên (`tr`), ô phụ bên dưới `TileFooter` (giá, % cộng, mảnh sao kèm).
-  Đang dùng: Cửa hàng, kết quả gacha (từng món + bảng tổng kết; tên + số lượng qua `itemBase`), danh sách hạt khi gieo, chọn chậu bỏ vào khi đập chậu. Túi đồ giữ ô có số lượng ở đáy nhưng cũng có chữ hạng.
+  Đang dùng: Cửa hàng, kết quả gacha (từng món + bảng tổng kết; tên + số lượng qua `itemBase`), danh sách hạt khi gieo, **danh sách chậu khi đặt chậu** (`PotList`: nhãn "Lv n", dòng dưới = giúp đạt mốc / bị chặn / tiến độ bộ), chọn chậu bỏ vào khi đập chậu. Túi đồ giữ ô có số lượng ở đáy nhưng cũng có chữ hạng.
   **Côn trùng mặc định hạng B**, bùa giữ cấp tính hạng A, phân bón / bùa theo id (B / A / S).
   **Danh sách chọn hạt (gieo) và chọn chậu (đặt) có CỘT LỌC HẠNG ở đầu bên trái** (`RankFilter` trong `PotUi.tsx`): 4 nút dọc S / A / B / ALL (rộng 56px), đứng yên khi cuộn dải, mở danh sách mặc định ALL.
   **Mọi danh sách vật phẩm xếp theo hạng S → A → B** (`byRank` / `RANK_ORDER` trong `data/pots.ts`, cùng hạng giữ thứ tự cũ): Cửa hàng, Túi đồ, danh sách chậu khi đặt, danh sách hạt khi gieo, chọn phân bón.

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { byRank, potImage, potKindById, potSetById, RANK_STYLE, type OwnedPot, type Rank } from '../data/pots'
 import { DragScroll } from './DragScroll'
 import { potCard, tierInfo } from './potInfo'
+import { ItemTile } from './ItemTile'
 
 // Giao diện đặt / dời / cất chậu trong game (xem CLAUDE.md "Đặt chậu"): danh sách chậu cuộn ngang ở đáy,
 // bảng thông tin hiệu ứng bên phải (thu gọn được, cuộn dọc), menu khi nhấn giữ chậu đã đặt.
@@ -67,23 +68,14 @@ export function PotList({ pots, onTier, tier, selected, onSelect }: {
             const c = potCard(onTier, p, tier)
             const on = p.id === selected
             return (
-              <button
-                key={p.id}
-                type="button"
-                disabled={!!c.block}
-                onClick={() => onSelect(p.id)}
-                className={`relative mr-2 flex h-[112px] w-[104px] shrink-0 flex-col items-center border px-1 pt-1 text-center transition active:scale-95 ${
-                  c.block ? 'border-white/10 bg-white/5 opacity-45' : on ? 'border-amber-200 bg-white/25' : c.change ? 'border-amber-300/80 bg-white/10 shadow-[0_0_14px_rgba(253,230,138,0.55)]' : 'border-white/20 bg-white/10'
-                }`}
-              >
-                <RankBadge rank={c.set.rank} className="absolute top-1 left-1" />
-                <span className="absolute top-1 right-1 text-[10px] leading-4 text-white/80">Cấp {p.level}</span>
-                <img src={potImage(p.kind, p.level)} alt="" draggable={false} className="h-12 w-12 object-contain" />
-                <span className="mt-0.5 text-[11px] leading-[13px] font-semibold">{c.kind.name}</span>
-                <span className="text-[10px] leading-3 text-white/70">{c.progress}</span>
-                {c.change && <span className="mt-0.5 text-[10px] leading-3 font-semibold text-amber-200">{c.change}</span>}
-                {c.block && <span className="mt-0.5 text-[10px] leading-3 font-semibold text-sky-200">{c.block}</span>}
-              </button>
+              <ItemTile key={p.id} className="mr-2 w-[88px] shrink-0" img={potImage(p.kind, p.level)} emoji="🪴" name={c.kind.name} rank={c.set.rank} tr={`Lv${p.level}`}
+                selected={on} dim={!!c.block} disabled={!!c.block} onClick={() => onSelect(p.id)}
+                glow={c.change && !on ? 'shadow-[0_0_14px_rgba(253,230,138,0.6)]' : ''}
+                footer={
+                  <span title={c.block ?? c.change ?? c.progress} className={`block h-5 w-full shrink-0 truncate px-0.5 text-center text-[10px] leading-5 font-semibold ${c.block ? 'text-sky-200' : c.change ? 'text-amber-200' : 'text-white/70'}`}>
+                    {c.block ?? c.change ?? c.progress}
+                  </span>
+                } />
             )
           })}
         </DragScroll>

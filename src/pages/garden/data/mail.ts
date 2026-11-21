@@ -5,7 +5,7 @@
 import { collection, doc, limit, onSnapshot, orderBy, query, type DocumentData } from 'firebase/firestore'
 import { requireDb } from '../../../lib/firestore'
 import { familyKey, useLiveQuery } from '../../../lib/liveQuery'
-import { familyCol } from '../../../lib/family'
+import { activeFamily, familyCol } from '../../../lib/family'
 import type { Reward } from './achievements'
 
 export interface MailRewards extends Reward {
@@ -65,7 +65,9 @@ export function mailView(personal: Mail[], broadcasts: Mail[], claimed: Record<s
 }
 
 // Theo dõi realtime thư riêng + thư chung (50 thư mới nhất mỗi loại)
-export function useMailbox(uid: string | null) {
+export function useMailbox(uidIn: string | null) {
+  // Vừa tải lại trang: danh sách gia đình chưa tải xong → chưa đọc thư (không ném lỗi "Chưa chọn gia đình")
+  const uid = uidIn && activeFamily() ? uidIn : null
   const personal = useLiveQuery<Mail[]>(uid ? familyKey('garden-mail', uid) : null, (on) =>
     onSnapshot(query(mailCol(uid!), orderBy('createdAt', 'desc'), limit(50)), (snap) =>
       on(snap.docs.map((d) => toMail(d.id, d.data(), false)), snap.metadata.fromCache),

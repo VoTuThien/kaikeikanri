@@ -11,6 +11,9 @@ export function setActiveFamily(id: string | null) {
   activeFamilyId = id
 }
 
+// Gia đình đang chọn hoặc null (chưa tải xong danh sách gia đình, vd vừa tải lại trang) — dùng khi KHÔNG muốn ném lỗi
+export const activeFamily = () => activeFamilyId
+
 export function requireFamily() {
   if (!activeFamilyId) throw new Error('Chưa chọn gia đình')
   return activeFamilyId

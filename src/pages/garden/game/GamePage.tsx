@@ -167,7 +167,7 @@ function Game() {
   // Các nút trong menu ☰ (2 nút / hàng: cẩm nang, cửa hàng / thành tựu, gacha / túi đồ); `dot` = có việc chờ (chấm đỏ)
   const achReady = useMemo(() => (garden ? readyTotal(garden, garden.claimed) : 0), [garden])
   const dailyReady = useMemo(() => (garden && uid ? dailyView(uid, garden).ready : 0), [garden, uid, now]) // eslint-disable-line react-hooks/exhaustive-deps
-  const box = useMailbox(uid || null)
+  const box = useMailbox(actor.uid || null) // actor.uid rỗng tới khi chọn xong gia đình (tải lại trang)
   const mailNow = useNow(60_000)
   const mail = useMemo(() => mailView(box.personal, box.broadcasts, garden?.mailClaimed ?? {}, garden?.born ?? 0, mailNow), [box.personal, box.broadcasts, garden?.mailClaimed, garden?.born, mailNow])
   const menuItems: { label: string; popup: NonNullable<typeof popup>; icon: React.ReactNode; dot: boolean }[] = [
